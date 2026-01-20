@@ -1,0 +1,42 @@
+{
+  "name": "kotlin-kmp",
+  "description": "Kotlin Multiplatform with shared business logic for Android/iOS",
+  "version": "1.0.0",
+  "domains": {
+    "shared": {
+      "agent": "shared-impl",
+      "skills": ["kmp", "koin"]
+    },
+    "android": {
+      "agent": "android-impl",
+      "skills": ["kmp", "android", "koin"]
+    },
+    "ios": {
+      "agent": "ios-impl",
+      "skills": ["kmp", "ios"]
+    },
+    "database": {
+      "agent": "database-impl",
+      "skills": ["kmp", "sqldelight"]
+    },
+    "network": {
+      "agent": "network-impl",
+      "skills": ["kmp", "ktor"]
+    }
+  },
+  "workflows": {
+    "build-android": {
+      "command": "./gradlew :composeApp:assembleDebug"
+    },
+    "build-ios": {
+      "command": "./gradlew :shared:linkDebugFrameworkIosArm64"
+    },
+    "test-shared": {
+      "command": "./gradlew :shared:allTests"
+    }
+  },
+  "detection": {
+    "files": ["shared/", "composeApp/", "iosApp/"],
+    "packages": []
+  }
+}

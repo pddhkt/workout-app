@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Android
+local.properties
+
+# iOS
+iosApp/*.xcworkspace
+iosApp/Pods/
+
+# Environment
+.env
+.env.local
+.env*.local

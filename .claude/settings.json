@@ -1,0 +1,3 @@
+{
+  "customInstructions": "When starting a conversation, read PROJECT.md, LEARNED.md, and TASKS.md from the .claude directory to understand project context."
+}
