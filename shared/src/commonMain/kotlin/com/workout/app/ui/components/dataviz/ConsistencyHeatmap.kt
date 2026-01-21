@@ -1,6 +1,7 @@
 package com.workout.app.ui.components.dataviz
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,12 +43,12 @@ data class HeatmapDay(
  * ConsistencyHeatmap component showing workout frequency over time
  * Based on mockup element EL-21
  *
- * Displays a grid of cells where color intensity represents workout frequency.
- * Useful for visualizing workout consistency over weeks or months.
+ * Displays a GitHub-style heatmap grid where days are rows and weeks are columns.
+ * Color intensity represents workout frequency. Time flows left-to-right with
+ * the most recent day at the bottom-right corner.
  *
- * @param days List of HeatmapDay data (typically 28-35 days for monthly view)
+ * @param days List of HeatmapDay data in chronological order (oldest to newest)
  * @param modifier Optional modifier for customization
- * @param columns Number of columns in the grid (default 7 for week view)
  * @param cellSize Size of each heatmap cell
  * @param cellSpacing Spacing between cells
  * @param lowIntensityColor Color for low workout count
@@ -60,9 +62,8 @@ data class HeatmapDay(
 fun ConsistencyHeatmap(
     days: List<HeatmapDay>,
     modifier: Modifier = Modifier,
-    columns: Int = 7,
-    cellSize: Dp = 32.dp,
-    cellSpacing: Dp = 4.dp,
+    cellSize: Dp = 12.dp,
+    cellSpacing: Dp = 2.dp,
     lowIntensityColor: Color = Warning.copy(alpha = 0.3f),
     mediumIntensityColor: Color = Success.copy(alpha = 0.6f),
     highIntensityColor: Color = Success,
@@ -85,42 +86,45 @@ fun ConsistencyHeatmap(
             )
         }
 
-        // Day labels (M T W T F S S)
-        if (showDayLabels) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(cellSpacing)
-            ) {
-                val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
-                dayLabels.forEach { label ->
-                    Box(
-                        modifier = Modifier.width(cellSize),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+        // GitHub-style heatmap: days as rows, weeks as columns
+        val weeksCount = (days.size + 6) / 7 // Ceiling division for weeks
+        val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(cellSpacing)
+        ) {
+            // Day labels column (left side)
+            if (showDayLabels) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(cellSpacing),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    dayLabels.forEach { label ->
+                        Box(
+                            modifier = Modifier.height(cellSize),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(end = AppTheme.spacing.xs)
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Heatmap grid
-        val rows = (days.size + columns - 1) / columns // Ceiling division
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(cellSpacing)
-        ) {
-            repeat(rows) { rowIndex ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(cellSpacing)
+            // Heatmap grid - each week is a column
+            repeat(weeksCount) { weekIndex ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(cellSpacing)
                 ) {
-                    repeat(columns) { colIndex ->
-                        val index = rowIndex * columns + colIndex
-                        if (index < days.size) {
-                            val day = days[index]
+                    repeat(7) { dayIndex ->
+                        val dataIndex = weekIndex * 7 + dayIndex
+                        if (dataIndex < days.size) {
+                            val day = days[dataIndex]
                             HeatmapCell(
                                 count = day.count,
                                 size = cellSize,
@@ -130,8 +134,8 @@ fun ConsistencyHeatmap(
                                 emptyColor = emptyColor
                             )
                         } else {
-                            // Empty placeholder to maintain grid
-                            Spacer(modifier = Modifier.width(cellSize))
+                            // Empty placeholder for incomplete last week
+                            Spacer(modifier = Modifier.height(cellSize).width(cellSize))
                         }
                     }
                 }
@@ -243,10 +247,10 @@ private fun HeatmapLegend(
 /**
  * Compact version of ConsistencyHeatmap without labels and legend
  * Useful for dashboard cards or preview displays
+ * Uses GitHub-style layout (days as rows, weeks as columns)
  *
- * @param days List of HeatmapDay data
+ * @param days List of HeatmapDay data in chronological order
  * @param modifier Optional modifier for customization
- * @param columns Number of columns in the grid
  * @param cellSize Size of each cell
  * @param cellSpacing Spacing between cells
  */
@@ -254,24 +258,23 @@ private fun HeatmapLegend(
 fun CompactConsistencyHeatmap(
     days: List<HeatmapDay>,
     modifier: Modifier = Modifier,
-    columns: Int = 7,
-    cellSize: Dp = 24.dp,
-    cellSpacing: Dp = 3.dp
+    cellSize: Dp = 10.dp,
+    cellSpacing: Dp = 2.dp
 ) {
-    val rows = (days.size + columns - 1) / columns
+    val weeksCount = (days.size + 6) / 7
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(cellSpacing)
+    Row(
+        modifier = modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(cellSpacing)
     ) {
-        repeat(rows) { rowIndex ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(cellSpacing)
+        repeat(weeksCount) { weekIndex ->
+            Column(
+                verticalArrangement = Arrangement.spacedBy(cellSpacing)
             ) {
-                repeat(columns) { colIndex ->
-                    val index = rowIndex * columns + colIndex
-                    if (index < days.size) {
-                        val day = days[index]
+                repeat(7) { dayIndex ->
+                    val dataIndex = weekIndex * 7 + dayIndex
+                    if (dataIndex < days.size) {
+                        val day = days[dataIndex]
                         HeatmapCell(
                             count = day.count,
                             size = cellSize,
@@ -281,7 +284,7 @@ fun CompactConsistencyHeatmap(
                             emptyColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     } else {
-                        Spacer(modifier = Modifier.width(cellSize))
+                        Spacer(modifier = Modifier.height(cellSize).width(cellSize))
                     }
                 }
             }

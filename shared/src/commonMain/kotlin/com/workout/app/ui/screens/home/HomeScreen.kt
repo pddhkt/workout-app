@@ -114,11 +114,9 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
 
-            // Consistency Heatmap
+            // Consistency Heatmap (full width with internal scroll)
             ConsistencyHeatmapSection(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppTheme.spacing.lg)
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
@@ -206,7 +204,7 @@ private fun HomeHeader(
 }
 
 /**
- * Consistency heatmap section
+ * Consistency heatmap section with title
  */
 @Composable
 private fun ConsistencyHeatmapSection(
@@ -219,13 +217,15 @@ private fun ConsistencyHeatmapSection(
         Text(
             text = "Workout Consistency",
             style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
         )
 
         ConsistencyHeatmap(
             days = getMockHeatmapData(),
             showDayLabels = true,
-            title = null
+            title = null,
+            modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
         )
     }
 }
