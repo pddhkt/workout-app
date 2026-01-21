@@ -6,14 +6,14 @@ user-invocable: false
 
 # Task Create Utility
 
-Internal utility to sync tasks from a phase plan to Convex. Used by `/phase-dev`, `/ideation`, and `/analyze` after user approves a plan.
+Internal utility to sync tasks from a phase plan to Convex. Used by `/phase-init`, `/ideation`, and `/analyze` after user approves a plan.
 
 ## Usage (Internal)
 
 This skill is not user-invocable. It's called by other skills:
 
 ```
-Called by /phase-dev:
+Called by /phase-init:
 → /task-create with task list JSON
 
 Called by /ideation:
@@ -291,7 +291,7 @@ Run /task-dev FT-001 to start implementation
 ## Integration
 
 Called by:
-- `/phase-dev` - After user approves phase plan
+- `/phase-init` - After user approves phase plan
 - `/ideation` - After user selects idea
 - `/analyze` - After user selects recommendation
 

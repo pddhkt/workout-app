@@ -107,7 +107,7 @@ Create a comparison table:
 |------|-----------------|----------|---------------|
 | CLAUDE.md | ✗ Missing | ✓ Available | Copy |
 | commands/task-dev.md | ✗ Missing | ✓ Available | Copy |
-| commands/feature.md | ✓ Exists (v1) | ✓ Available (v2) | Review |
+| commands/ad-hoc.md | ✓ Exists (v1) | ✓ Available (v2) | Review |
 | skills/frontend/ | ✓ Exists | ✓ Available | Skip |
 | agents/impl.md | ✗ Missing | ✓ Available | Copy |
 ```
@@ -209,7 +209,7 @@ Display what was set up:
 ## Files Copied
   - .claude/CLAUDE.md
   - .claude/commands/task-dev.md
-  - .claude/commands/feature.md
+  - .claude/commands/ad-hoc.md
   - .claude/agents/impl.md
   - .claude/skills/frontend/SKILL.md
   ... (N files total)
@@ -222,7 +222,7 @@ Display what was set up:
 
   /project-init       Explore codebase and generate task backlog
   /task-dev FT-001    Start working on a task
-  /feature [desc]     Quick feature implementation
+  /ad-hoc [desc]     Quick implementation without tracking
 
 +--------------------------------------------------+
 ```
@@ -237,7 +237,7 @@ Display what was set up:
 
 ### Commands (Recommended)
 - `commands/task-dev.md` - Task development workflow
-- `commands/feature.md` - Feature implementation
+- `commands/ad-hoc.md` - Quick implementation without tracking
 - `commands/bugfix.md` - Bug fix workflow
 - `commands/refactor.md` - Refactoring workflow
 - `commands/test.md` - Test generation
@@ -314,7 +314,7 @@ CLAUDE.md exists with different content. How to handle?
 
 Claude: Copying files...
 - commands/task-dev.md ✓
-- commands/feature.md ✓
+- commands/ad-hoc.md ✓
 - commands/bugfix.md ✓
 - agents/impl.md ✓
 - agents/scout.md ✓

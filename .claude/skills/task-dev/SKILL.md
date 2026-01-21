@@ -1058,3 +1058,6 @@ The skill will:
 | `/subtask` | Execute single subtask |
 | `/qa-review` | Validate acceptance criteria |
 | `/qa-fix` | Fix QA issues |
+| `/dev-loop` | Automated execution loop (calls task-dev) |
+| `/phase-init` | Create phases and tasks (planning layer) |
+| `/ad-hoc` | Quick implementation without task tracking |

@@ -878,7 +878,110 @@ list_tasks() {
 | Command           | Uses                                                                   |
 | ----------------- | ---------------------------------------------------------------------- |
 | `/project-init`   | POST /api/projects, POST /api/projects/{id}/keys, POST /api/tasks/bulk |
-| `/project-evolve` | GET /api/projects/current, GET /api/tasks, POST /api/tasks/bulk        |
+| `/phase-init`     | GET /api/phases, GET /api/tasks, POST /api/phases, POST /api/tasks     |
 | `/task-init`      | GET /api/tasks (duplicate check), POST /api/tasks                      |
 | `/task`           | GET /api/tasks/{id}, PATCH /api/tasks/{id}/status                      |
 | `/task-list`      | GET /api/tasks with filters                                            |
+| `/dev-loop`       | POST/GET/PATCH/DELETE /api/loop-sessions                               |
+
+---
+
+## Loop Sessions API
+
+The dev-loop system uses a `loopSessions` table to track automated execution sessions.
+
+### POST /api/loop-sessions
+
+Create a new loop session.
+
+**Request:**
+```json
+{
+  "active": true,
+  "cycle": 0,
+  "maxCycles": 50,
+  "completionType": "until-phase",
+  "completionValue": "2",
+  "batchSize": 1,
+  "tasksCompleted": [],
+  "tasksBlocked": [],
+  "currentBatch": []
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "_id": "session_abc123",
+  "projectId": "proj_xyz",
+  "active": true,
+  "cycle": 0,
+  "maxCycles": 50,
+  "completionType": "until-phase",
+  "completionValue": "2",
+  "batchSize": 1,
+  "tasksCompleted": [],
+  "tasksBlocked": [],
+  "currentBatch": [],
+  "startedAt": 1705320000000,
+  "lastCycleAt": 1705320000000
+}
+```
+
+### GET /api/loop-sessions/active
+
+Get the active loop session for the current project.
+
+**Response:**
+```json
+{
+  "_id": "session_abc123",
+  "active": true,
+  "cycle": 3,
+  "maxCycles": 50,
+  "completionType": "until-phase",
+  "completionValue": "2",
+  "tasksCompleted": ["FT-001", "FT-002", "FT-003"],
+  "currentBatch": ["FT-004"]
+}
+```
+
+### GET /api/loop-sessions/{id}
+
+Get a specific loop session by ID.
+
+### PATCH /api/loop-sessions/{id}
+
+Update a loop session.
+
+**Request:**
+```json
+{
+  "cycle": 4,
+  "tasksCompleted": ["FT-001", "FT-002", "FT-003", "FT-004"],
+  "currentBatch": ["FT-005"],
+  "lastCycleAt": 1705321000000
+}
+```
+
+### DELETE /api/loop-sessions/{id}
+
+End and delete a loop session.
+
+### Convex Schema (loopSessions table)
+
+```typescript
+loopSessions: defineTable({
+  projectId: v.id("projects"),
+  active: v.boolean(),
+  cycle: v.number(),
+  maxCycles: v.number(),
+  completionType: v.string(),  // "until-phase" | "until-task" | "all-pending" | "until-milestone"
+  completionValue: v.string(), // phase number, task ID, or milestone name
+  batchSize: v.number(),
+  tasksCompleted: v.array(v.string()),
+  tasksBlocked: v.array(v.string()),
+  currentBatch: v.array(v.string()),
+  startedAt: v.number(),
+  lastCycleAt: v.number(),
+}).index("by_project_active", ["projectId", "active"])

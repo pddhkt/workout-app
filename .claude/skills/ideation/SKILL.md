@@ -46,7 +46,7 @@ Generate and explore feature ideas for your project based on codebase analysis. 
     ↓
 4. User selects idea(s)
     ↓
-5. Run /phase-dev for selected idea
+5. Run /phase-init for selected idea
     ↓
 6. Phase plan created with tasks
 ```
@@ -206,7 +206,7 @@ Once user selects an idea:
 ```
 User selected: "1. Add Real-Time Notifications"
 
-Transitioning to /phase-dev...
+Transitioning to /phase-init...
 
 Phase Description:
 "Add real-time notifications using WebSockets. Users should receive
@@ -214,10 +214,10 @@ instant notifications for relevant events (new messages, status
 updates, mentions). Include notification preferences and a
 notification center UI."
 
-Running /phase-dev...
+Running /phase-init...
 ```
 
-Call `/phase-dev` with the elaborated idea description:
+Call `/phase-init` with the elaborated idea description:
 
 ```
 Use internal phase-planning to generate tasks:
@@ -332,7 +332,7 @@ This skill leverages Auto-Claude's ideation prompts:
 # → Adds acceptance criteria
 # → Identifies domains
 
-# Claude transitions to /phase-dev
+# Claude transitions to /phase-init
 # → Creates tasks for the feature
 # → Syncs to Convex
 
@@ -353,7 +353,7 @@ This skill leverages Auto-Claude's ideation prompts:
 
 | Skill | Relationship |
 |-------|--------------|
-| `/phase-dev` | Creates tasks from selected idea |
+| `/phase-init` | Creates tasks from selected idea |
 | `/analyze` | Market research to inform ideation |
 | `/project` | Project context for analysis |
 | `/task-dev` | Execute created tasks |

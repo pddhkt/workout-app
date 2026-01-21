@@ -6,7 +6,7 @@ user-invocable: false
 
 # Subtask Create Utility
 
-Internal utility to sync subtasks from a task plan to Convex. Used by `/task-dev` and `/phase-planning` after planner generates an implementation plan.
+Internal utility to sync subtasks from a task plan to Convex. Used by `/task-dev` after planner generates an implementation plan.
 
 ## Usage (Internal)
 
@@ -16,7 +16,7 @@ This skill is not user-invocable. It's called by other skills:
 Called by /task-dev:
 → /subtask-create FT-001 with subtasks JSON
 
-Called by /phase-planning:
+Called internally by task-dev planner:
 → /subtask-create with implementation_plan.json subtasks
 ```
 
@@ -304,7 +304,6 @@ clear_subtasks() {
 
 Called by:
 - `/task-dev` - After planner creates implementation plan
-- `/phase-planning` - After planning completes
 - `/task-dev --auto` - During planning phase
 
 Returns control to calling skill with subtask count and first subtask for execution.

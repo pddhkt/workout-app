@@ -790,7 +790,7 @@ Dependencies: RF-001
 | `/task-dev [ID]`  | Implement the created task           |
 | `/task-init`      | Create another task                  |
 | `/project`        | Create a new project (if no API key) |
-| `/feature [desc]` | Ad-hoc feature without task tracking |
+| `/ad-hoc [desc]` | Quick implementation without task tracking |
 
 ---
 

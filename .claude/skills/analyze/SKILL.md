@@ -47,7 +47,7 @@ Conduct market research and competitive analysis to inform feature development. 
     ↓
 6. User selects recommendation
     ↓
-7. Transition to /phase-dev
+7. Transition to /phase-init
 ```
 
 ## Phase 1: Context Gathering
@@ -282,7 +282,7 @@ Once user selects:
 ```
 User selected: "1. OAuth with Google"
 
-Transitioning to /phase-dev...
+Transitioning to /phase-init...
 
 Phase Description:
 "Add OAuth authentication with Google. Users should be able to sign
@@ -297,7 +297,7 @@ Acceptance Criteria (from research):
 - Token refresh handled transparently
 - Proper error messages for denied permissions
 
-Running /phase-dev...
+Running /phase-init...
 ```
 
 ## Research Sources
@@ -340,7 +340,7 @@ The skill uses these research approaches:
 
 # User: "Let's do OAuth with Google"
 
-# Claude transitions to /phase-dev
+# Claude transitions to /phase-init
 # → Creates tasks for OAuth implementation
 ```
 
@@ -357,7 +357,7 @@ The skill uses these research approaches:
 
 | Skill | Relationship |
 |-------|--------------|
-| `/phase-dev` | Creates tasks from selected recommendation |
+| `/phase-init` | Creates tasks from selected recommendation |
 | `/ideation` | Complements with internal improvement ideas |
 | `/project` | Provides project context |
 | `/task-dev` | Execute created tasks |

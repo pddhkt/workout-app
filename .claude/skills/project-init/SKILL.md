@@ -452,7 +452,7 @@ Display comprehensive summary:
 
   /task-dev FT-001        Start working on top priority task
   /task-init          Create additional tasks manually
-  /feature [desc]     Quick feature without task tracking
+  /ad-hoc [desc]     Quick implementation without task tracking
 
 ## Files Updated
   - .env.local (API key added)
@@ -633,4 +633,4 @@ Same as before - uses:
 | ----------------- | ----------------------------------- |
 | `/task-dev [ID]`  | Implement a generated task          |
 | `/task-init`      | Manually create additional tasks    |
-| `/feature [desc]` | Quick feature without task tracking |
+| `/ad-hoc [desc]` | Quick implementation without task tracking |
