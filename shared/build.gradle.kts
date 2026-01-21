@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -35,10 +36,25 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
+        }
+
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.sqldelight.sqlite)
         }
 
         androidMain.dependencies {
             implementation(libs.koin.android)
+            implementation(libs.sqldelight.android)
+            implementation(libs.androidx.lifecycle.viewmodel)
+        }
+
+        iosMain.dependencies {
+            implementation(libs.sqldelight.native)
         }
     }
 }
@@ -54,5 +70,14 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+}
+
+sqldelight {
+    databases {
+        create("WorkoutDatabase") {
+            packageName.set("com.workout.app.database")
+            srcDirs.setFrom("src/commonMain/sqldelight")
+        }
     }
 }

@@ -1,0 +1,87 @@
+-- Exercise table
+-- Stores both standard and custom exercises for workouts
+CREATE TABLE Exercise (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    muscleGroup TEXT NOT NULL,
+    category TEXT,
+    equipment TEXT,
+    difficulty TEXT,
+    instructions TEXT,
+    videoUrl TEXT,
+    isCustom INTEGER NOT NULL DEFAULT 0,
+    isFavorite INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+-- Indexes for frequent queries
+CREATE INDEX exercise_muscle_group_idx ON Exercise(muscleGroup);
+CREATE INDEX exercise_category_idx ON Exercise(category);
+CREATE INDEX exercise_favorite_idx ON Exercise(isFavorite);
+CREATE INDEX exercise_custom_idx ON Exercise(isCustom);
+
+-- Select all exercises
+selectAll:
+SELECT * FROM Exercise ORDER BY name ASC;
+
+-- Select by ID
+selectById:
+SELECT * FROM Exercise WHERE id = ?;
+
+-- Select by muscle group
+selectByMuscleGroup:
+SELECT * FROM Exercise WHERE muscleGroup = ? ORDER BY name ASC;
+
+-- Select favorites
+selectFavorites:
+SELECT * FROM Exercise WHERE isFavorite = 1 ORDER BY name ASC;
+
+-- Select custom exercises
+selectCustom:
+SELECT * FROM Exercise WHERE isCustom = 1 ORDER BY name ASC;
+
+-- Search exercises by name or muscle group
+search:
+SELECT * FROM Exercise
+WHERE name LIKE '%' || ? || '%'
+   OR muscleGroup LIKE '%' || ? || '%'
+   OR category LIKE '%' || ? || '%'
+ORDER BY name ASC;
+
+-- Insert exercise
+insert:
+INSERT INTO Exercise (id, name, muscleGroup, category, equipment, difficulty, instructions, videoUrl, isCustom, isFavorite, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update exercise
+update:
+UPDATE Exercise SET
+    name = ?,
+    muscleGroup = ?,
+    category = ?,
+    equipment = ?,
+    difficulty = ?,
+    instructions = ?,
+    videoUrl = ?,
+    isFavorite = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+-- Toggle favorite status
+toggleFavorite:
+UPDATE Exercise SET
+    isFavorite = CASE WHEN isFavorite = 1 THEN 0 ELSE 1 END,
+    updatedAt = ?
+WHERE id = ?;
+
+-- Delete exercise (only custom ones)
+delete:
+DELETE FROM Exercise WHERE id = ? AND isCustom = 1;
+
+-- Count exercises by muscle group
+countByMuscleGroup:
+SELECT muscleGroup, COUNT(*) AS exerciseCount
+FROM Exercise
+GROUP BY muscleGroup
+ORDER BY muscleGroup ASC;

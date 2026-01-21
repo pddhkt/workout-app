@@ -1,6 +1,7 @@
 package com.workout.app
 
 import android.app.Application
+import com.workout.app.di.sharedModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -12,7 +13,7 @@ class App : Application() {
         startKoin {
             androidLogger()
             androidContext(this@App)
-            // modules will be added as features are implemented
+            modules(sharedModules)
         }
     }
 }

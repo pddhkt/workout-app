@@ -1,0 +1,76 @@
+-- Workout table
+-- Stores completed workouts (historical records)
+CREATE TABLE Workout (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    duration INTEGER NOT NULL, -- Duration in seconds
+    notes TEXT,
+    isPartnerWorkout INTEGER NOT NULL DEFAULT 0,
+    totalVolume INTEGER NOT NULL DEFAULT 0, -- Total weight lifted in kg
+    totalSets INTEGER NOT NULL DEFAULT 0,
+    exerciseCount INTEGER NOT NULL DEFAULT 0
+);
+
+-- Index for recent workouts
+CREATE INDEX workout_created_at_idx ON Workout(createdAt DESC);
+
+-- Select all workouts
+selectAll:
+SELECT * FROM Workout ORDER BY createdAt DESC;
+
+-- Select by ID
+selectById:
+SELECT * FROM Workout WHERE id = ?;
+
+-- Select recent workouts (limit)
+selectRecent:
+SELECT * FROM Workout
+ORDER BY createdAt DESC
+LIMIT ?;
+
+-- Select workouts by date range
+selectByDateRange:
+SELECT * FROM Workout
+WHERE createdAt BETWEEN ? AND ?
+ORDER BY createdAt DESC;
+
+-- Insert workout
+insert:
+INSERT INTO Workout (id, name, createdAt, duration, notes, isPartnerWorkout, totalVolume, totalSets, exerciseCount)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update workout
+update:
+UPDATE Workout SET
+    name = ?,
+    duration = ?,
+    notes = ?,
+    isPartnerWorkout = ?,
+    totalVolume = ?,
+    totalSets = ?,
+    exerciseCount = ?
+WHERE id = ?;
+
+-- Delete workout
+delete:
+DELETE FROM Workout WHERE id = ?;
+
+-- Get workout statistics
+getStats:
+SELECT
+    COUNT(*) AS totalWorkouts,
+    SUM(duration) AS totalDuration,
+    SUM(totalVolume) AS totalVolume,
+    SUM(totalSets) AS totalSets
+FROM Workout;
+
+-- Get workouts for consistency heatmap (last N days)
+selectForHeatmap:
+SELECT
+    DATE(createdAt / 1000, 'unixepoch') AS workoutDate,
+    COUNT(*) AS workoutCount
+FROM Workout
+WHERE createdAt >= ?
+GROUP BY workoutDate
+ORDER BY workoutDate ASC;

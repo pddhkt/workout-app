@@ -23,6 +23,7 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.uiTooling)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.navigation.compose)
             implementation(libs.koin.android)
         }
     }

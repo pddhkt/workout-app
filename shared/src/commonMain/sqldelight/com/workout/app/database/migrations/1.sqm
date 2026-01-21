@@ -1,0 +1,76 @@
+-- Migration 1: Initial schema and seed data
+-- Creates all tables and populates with standard exercises and default templates
+
+-- Seed standard exercises (~50 exercises across 7 major muscle groups)
+INSERT INTO Exercise (id, name, muscleGroup, category, equipment, difficulty, instructions, videoUrl, isCustom, isFavorite, createdAt, updatedAt) VALUES
+-- Chest exercises (9 exercises)
+('ex_bench_press', 'Barbell Bench Press', 'Chest', 'Compound', 'Barbell', 'Intermediate', 'Lie on bench, grip bar slightly wider than shoulders, lower to chest, press up', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_incline_bench', 'Incline Dumbbell Press', 'Chest', 'Compound', 'Dumbbells', 'Intermediate', 'Set bench to 30-45 degrees, press dumbbells from chest level', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_decline_bench', 'Decline Bench Press', 'Chest', 'Compound', 'Barbell', 'Intermediate', 'Lie on decline bench, press bar from lower chest upward', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_dumbbell_fly', 'Dumbbell Fly', 'Chest', 'Isolation', 'Dumbbells', 'Beginner', 'Lie on bench, slight bend in elbows, lower weights out to sides, squeeze chest', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_cable_fly', 'Cable Crossover', 'Chest', 'Isolation', 'Cable', 'Beginner', 'Stand between cables, bring handles together in arc motion', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_pushup', 'Push-ups', 'Chest', 'Compound', 'Bodyweight', 'Beginner', 'Hands shoulder-width, lower chest to ground, push back up', NULL, 0, 1, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_dips_chest', 'Chest Dips', 'Chest', 'Compound', 'Bodyweight', 'Intermediate', 'Lean forward on dip bars, lower until stretch in chest, press back up', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_incline_fly', 'Incline Dumbbell Fly', 'Chest', 'Isolation', 'Dumbbells', 'Beginner', 'On incline bench, arc motion focusing on upper chest', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_pec_deck', 'Pec Deck Machine', 'Chest', 'Isolation', 'Machine', 'Beginner', 'Sit upright, bring handles together squeezing chest', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+
+-- Back exercises (10 exercises)
+('ex_deadlift', 'Deadlift', 'Back', 'Compound', 'Barbell', 'Advanced', 'Hip hinge, grip bar, keep back straight, drive through heels', NULL, 0, 1, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_pullup', 'Pull-ups', 'Back', 'Compound', 'Bodyweight', 'Intermediate', 'Hang from bar, pull chin over bar, lower with control', NULL, 0, 1, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_barbell_row', 'Barbell Row', 'Back', 'Compound', 'Barbell', 'Intermediate', 'Hip hinge, pull bar to lower chest, squeeze shoulder blades', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_lat_pulldown', 'Lat Pulldown', 'Back', 'Compound', 'Cable', 'Beginner', 'Grip bar wide, pull to upper chest, control the negative', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_tbar_row', 'T-Bar Row', 'Back', 'Compound', 'Barbell', 'Intermediate', 'Straddle bar, pull to chest with neutral grip', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_dumbbell_row', 'Single-Arm Dumbbell Row', 'Back', 'Compound', 'Dumbbells', 'Beginner', 'Support on bench, pull dumbbell to hip, squeeze at top', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_seated_row', 'Seated Cable Row', 'Back', 'Compound', 'Cable', 'Beginner', 'Sit upright, pull handle to torso, squeeze shoulder blades', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_chin_up', 'Chin-ups', 'Back', 'Compound', 'Bodyweight', 'Intermediate', 'Underhand grip, pull chin over bar focusing on biceps and lats', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_shrug', 'Barbell Shrugs', 'Back', 'Isolation', 'Barbell', 'Beginner', 'Hold bar at thighs, shrug shoulders to ears, lower slowly', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_hyperextension', 'Back Extension', 'Back', 'Isolation', 'Bodyweight', 'Beginner', 'Lie prone on bench, extend torso up engaging lower back', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+
+-- Leg exercises (11 exercises)
+('ex_squat', 'Barbell Squat', 'Legs', 'Compound', 'Barbell', 'Intermediate', 'Bar on upper back, squat to parallel, drive through heels', NULL, 0, 1, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_front_squat', 'Front Squat', 'Legs', 'Compound', 'Barbell', 'Advanced', 'Bar on front shoulders, squat deep maintaining upright torso', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_leg_press', 'Leg Press', 'Legs', 'Compound', 'Machine', 'Beginner', 'Feet shoulder-width on platform, lower to 90 degrees, press back up', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_lunges', 'Dumbbell Lunges', 'Legs', 'Compound', 'Dumbbells', 'Beginner', 'Step forward, lower back knee, push back to start', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_bulgarian_split', 'Bulgarian Split Squat', 'Legs', 'Compound', 'Dumbbells', 'Intermediate', 'Rear foot elevated, lower into lunge position', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_leg_curl', 'Leg Curl', 'Legs', 'Isolation', 'Machine', 'Beginner', 'Lie prone, curl heels to glutes, control the descent', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_leg_extension', 'Leg Extension', 'Legs', 'Isolation', 'Machine', 'Beginner', 'Sit upright, extend legs until straight, squeeze quads', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_romanian_deadlift', 'Romanian Deadlift', 'Legs', 'Compound', 'Barbell', 'Intermediate', 'Keep legs mostly straight, hip hinge lowering bar down shins', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_hack_squat', 'Hack Squat', 'Legs', 'Compound', 'Machine', 'Intermediate', 'Back against pad, squat down on angled platform', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_calf_raise', 'Standing Calf Raise', 'Legs', 'Isolation', 'Machine', 'Beginner', 'Stand on platform, raise heels up high, lower for stretch', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_goblet_squat', 'Goblet Squat', 'Legs', 'Compound', 'Dumbbells', 'Beginner', 'Hold dumbbell at chest, squat deep keeping torso upright', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+
+-- Shoulder exercises (8 exercises)
+('ex_overhead_press', 'Overhead Press', 'Shoulders', 'Compound', 'Barbell', 'Intermediate', 'Bar at shoulder level, press overhead, lock out arms', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_dumbbell_press', 'Dumbbell Shoulder Press', 'Shoulders', 'Compound', 'Dumbbells', 'Beginner', 'Press dumbbells overhead from shoulder height', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_arnold_press', 'Arnold Press', 'Shoulders', 'Compound', 'Dumbbells', 'Intermediate', 'Start palms facing you, rotate as you press overhead', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_lateral_raise', 'Lateral Raise', 'Shoulders', 'Isolation', 'Dumbbells', 'Beginner', 'Slight bend in elbows, raise weights to shoulder height laterally', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_front_raise', 'Front Raise', 'Shoulders', 'Isolation', 'Dumbbells', 'Beginner', 'Raise weights forward to shoulder height, alternating or together', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_rear_delt_fly', 'Reverse Fly', 'Shoulders', 'Isolation', 'Dumbbells', 'Beginner', 'Bend over, raise weights out to sides targeting rear delts', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_face_pull', 'Face Pulls', 'Shoulders', 'Isolation', 'Cable', 'Beginner', 'Pull rope to face, external rotation at end, squeeze rear delts', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_upright_row', 'Upright Row', 'Shoulders', 'Compound', 'Barbell', 'Intermediate', 'Pull bar up front of body to chin height, elbows high', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+
+-- Arm exercises (7 exercises)
+('ex_bicep_curl', 'Bicep Curl', 'Arms', 'Isolation', 'Dumbbells', 'Beginner', 'Curl weight, keep elbows stationary, control the negative', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_hammer_curl', 'Hammer Curl', 'Arms', 'Isolation', 'Dumbbells', 'Beginner', 'Neutral grip, curl weight, keep wrists stable', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_barbell_curl', 'Barbell Curl', 'Arms', 'Isolation', 'Barbell', 'Beginner', 'Grip bar underhand, curl to shoulders without swinging', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_preacher_curl', 'Preacher Curl', 'Arms', 'Isolation', 'Barbell', 'Beginner', 'Arms on preacher pad, curl focusing on bicep contraction', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_tricep_dip', 'Tricep Dips', 'Arms', 'Compound', 'Bodyweight', 'Intermediate', 'Lower body by bending elbows, push back up', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_tricep_pushdown', 'Tricep Pushdown', 'Arms', 'Isolation', 'Cable', 'Beginner', 'Push cable attachment down until arms fully extended', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_skull_crusher', 'Skull Crushers', 'Arms', 'Isolation', 'Barbell', 'Intermediate', 'Lie on bench, lower bar to forehead, extend arms back up', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+
+-- Core exercises (7 exercises)
+('ex_plank', 'Plank', 'Core', 'Stability', 'Bodyweight', 'Beginner', 'Forearms on ground, hold body straight, engage core', NULL, 0, 1, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_side_plank', 'Side Plank', 'Core', 'Stability', 'Bodyweight', 'Beginner', 'Side position on one forearm, hold body straight', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_crunches', 'Crunches', 'Core', 'Isolation', 'Bodyweight', 'Beginner', 'Lie on back, curl shoulders toward hips, control descent', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_russian_twist', 'Russian Twists', 'Core', 'Rotation', 'Bodyweight', 'Beginner', 'Seated position, lean back, rotate torso side to side', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_leg_raise', 'Hanging Leg Raise', 'Core', 'Compound', 'Bodyweight', 'Intermediate', 'Hang from bar, raise legs to 90 degrees, control descent', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_ab_wheel', 'Ab Wheel Rollout', 'Core', 'Compound', 'Ab Wheel', 'Advanced', 'From knees, roll wheel out extending body, pull back', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_mountain_climber', 'Mountain Climbers', 'Core', 'Compound', 'Bodyweight', 'Beginner', 'Plank position, alternate driving knees to chest rapidly', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
+
+-- Seed default workout templates
+INSERT INTO Template (id, name, description, exercises, estimatedDuration, isDefault, isFavorite, lastUsed, useCount, createdAt, updatedAt) VALUES
+('tmpl_push_day', 'Push Day', 'Chest, shoulders, and triceps focused workout', '[{"exerciseId":"ex_bench_press","sets":4},{"exerciseId":"ex_incline_bench","sets":3},{"exerciseId":"ex_overhead_press","sets":3},{"exerciseId":"ex_lateral_raise","sets":3},{"exerciseId":"ex_tricep_dip","sets":3}]', 60, 1, 1, NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('tmpl_pull_day', 'Pull Day', 'Back and biceps focused workout', '[{"exerciseId":"ex_deadlift","sets":4},{"exerciseId":"ex_pullup","sets":3},{"exerciseId":"ex_barbell_row","sets":4},{"exerciseId":"ex_lat_pulldown","sets":3},{"exerciseId":"ex_bicep_curl","sets":3}]', 60, 1, 1, NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('tmpl_leg_day', 'Leg Day', 'Lower body focused workout', '[{"exerciseId":"ex_squat","sets":4},{"exerciseId":"ex_leg_press","sets":4},{"exerciseId":"ex_lunges","sets":3},{"exerciseId":"ex_leg_curl","sets":3}]', 55, 1, 1, NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('tmpl_upper_body', 'Upper Body', 'Complete upper body workout', '[{"exerciseId":"ex_bench_press","sets":4},{"exerciseId":"ex_barbell_row","sets":4},{"exerciseId":"ex_overhead_press","sets":3},{"exerciseId":"ex_pullup","sets":3},{"exerciseId":"ex_bicep_curl","sets":3},{"exerciseId":"ex_tricep_dip","sets":3}]', 75, 1, 0, NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('tmpl_quick_workout', 'Quick Full Body', 'Short full body workout for busy days', '[{"exerciseId":"ex_pushup","sets":3},{"exerciseId":"ex_squat","sets":3},{"exerciseId":"ex_pullup","sets":3},{"exerciseId":"ex_plank","sets":3}]', 30, 1, 0, NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);

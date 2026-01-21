@@ -1,0 +1,99 @@
+-- Template table
+-- Workout templates for quick session creation
+CREATE TABLE Template (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    exercises TEXT NOT NULL, -- JSON array of exercise IDs with sets/order
+    estimatedDuration INTEGER, -- Estimated duration in minutes
+    isDefault INTEGER NOT NULL DEFAULT 0, -- Pre-defined vs user-created
+    isFavorite INTEGER NOT NULL DEFAULT 0,
+    lastUsed INTEGER, -- Last time template was used
+    useCount INTEGER NOT NULL DEFAULT 0, -- How many times used
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+-- Indexes
+CREATE INDEX template_favorite_idx ON Template(isFavorite);
+CREATE INDEX template_last_used_idx ON Template(lastUsed DESC);
+CREATE INDEX template_use_count_idx ON Template(useCount DESC);
+
+-- Select all templates
+selectAll:
+SELECT * FROM Template ORDER BY name ASC;
+
+-- Select by ID
+selectById:
+SELECT * FROM Template WHERE id = ?;
+
+-- Select favorites
+selectFavorites:
+SELECT * FROM Template WHERE isFavorite = 1 ORDER BY name ASC;
+
+-- Select recently used
+selectRecentlyUsed:
+SELECT * FROM Template
+WHERE lastUsed IS NOT NULL
+ORDER BY lastUsed DESC
+LIMIT ?;
+
+-- Select most used
+selectMostUsed:
+SELECT * FROM Template
+ORDER BY useCount DESC
+LIMIT ?;
+
+-- Select default templates
+selectDefaults:
+SELECT * FROM Template WHERE isDefault = 1 ORDER BY name ASC;
+
+-- Select custom templates
+selectCustom:
+SELECT * FROM Template WHERE isDefault = 0 ORDER BY name ASC;
+
+-- Insert template
+insert:
+INSERT INTO Template (id, name, description, exercises, estimatedDuration, isDefault, isFavorite, lastUsed, useCount, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update template
+update:
+UPDATE Template SET
+    name = ?,
+    description = ?,
+    exercises = ?,
+    estimatedDuration = ?,
+    isFavorite = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+-- Toggle favorite
+toggleFavorite:
+UPDATE Template SET
+    isFavorite = CASE WHEN isFavorite = 1 THEN 0 ELSE 1 END,
+    updatedAt = ?
+WHERE id = ?;
+
+-- Update last used
+updateLastUsed:
+UPDATE Template SET
+    lastUsed = ?,
+    useCount = useCount + 1,
+    updatedAt = ?
+WHERE id = ?;
+
+-- Delete template (only custom ones)
+delete:
+DELETE FROM Template WHERE id = ? AND isDefault = 0;
+
+-- Count templates
+countAll:
+SELECT COUNT(*) AS templateCount FROM Template;
+
+-- Count by type
+countByType:
+SELECT
+    SUM(CASE WHEN isDefault = 1 THEN 1 ELSE 0 END) AS defaultCount,
+    SUM(CASE WHEN isDefault = 0 THEN 1 ELSE 0 END) AS customCount
+FROM Template;

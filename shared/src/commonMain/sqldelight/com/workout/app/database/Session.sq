@@ -1,0 +1,93 @@
+-- Session table
+-- Represents an active or completed workout session
+-- When completed, data is moved to Workout table
+CREATE TABLE Session (
+    id TEXT NOT NULL PRIMARY KEY,
+    workoutId TEXT, -- NULL for new sessions, references Workout when based on template
+    templateId TEXT, -- Reference to Template if started from template
+    name TEXT NOT NULL,
+    startTime INTEGER NOT NULL,
+    endTime INTEGER, -- NULL for active sessions
+    status TEXT NOT NULL DEFAULT 'active', -- 'active', 'paused', 'completed', 'draft'
+    notes TEXT,
+    isPartnerWorkout INTEGER NOT NULL DEFAULT 0,
+    currentExerciseIndex INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+-- Index for active sessions
+CREATE INDEX session_status_idx ON Session(status);
+CREATE INDEX session_start_time_idx ON Session(startTime DESC);
+
+-- Select all sessions
+selectAll:
+SELECT * FROM Session ORDER BY startTime DESC;
+
+-- Select by ID
+selectById:
+SELECT * FROM Session WHERE id = ?;
+
+-- Select active sessions
+selectActive:
+SELECT * FROM Session WHERE status = 'active' ORDER BY startTime DESC;
+
+-- Select by status
+selectByStatus:
+SELECT * FROM Session WHERE status = ? ORDER BY startTime DESC;
+
+-- Select session with exercises (join with SessionExercise)
+selectWithExercises:
+SELECT
+    s.*,
+    se.id AS exerciseId,
+    se.exerciseId AS exerciseRefId,
+    se.orderIndex,
+    se.targetSets,
+    se.completedSets,
+    e.name AS exerciseName,
+    e.muscleGroup AS exerciseMuscleGroup
+FROM Session s
+LEFT JOIN SessionExercise se ON s.id = se.sessionId
+LEFT JOIN Exercise e ON se.exerciseId = e.id
+WHERE s.id = ?
+ORDER BY se.orderIndex ASC;
+
+-- Insert session
+insert:
+INSERT INTO Session (id, workoutId, templateId, name, startTime, endTime, status, notes, isPartnerWorkout, currentExerciseIndex, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update session
+update:
+UPDATE Session SET
+    name = ?,
+    endTime = ?,
+    status = ?,
+    notes = ?,
+    isPartnerWorkout = ?,
+    currentExerciseIndex = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+-- Update session status
+updateStatus:
+UPDATE Session SET status = ?, updatedAt = ? WHERE id = ?;
+
+-- Complete session
+complete:
+UPDATE Session SET
+    status = 'completed',
+    endTime = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+-- Delete session
+delete:
+DELETE FROM Session WHERE id = ?;
+
+-- Count sessions by status
+countByStatus:
+SELECT status, COUNT(*) AS sessionCount
+FROM Session
+GROUP BY status;
