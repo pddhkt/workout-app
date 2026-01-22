@@ -10,12 +10,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.workout.app.data.repository.ThemeMode
 import com.workout.app.ui.screens.complete.WorkoutCompleteScreen
 import com.workout.app.ui.screens.detail.ExerciseDetailScreen
 import com.workout.app.ui.screens.home.HomeScreen
 import com.workout.app.ui.screens.library.ExerciseLibraryScreen
 import com.workout.app.ui.screens.onboarding.OnboardingScreen
 import com.workout.app.ui.screens.planning.SessionPlanningScreen
+import com.workout.app.ui.screens.settings.SettingsScreen
 import com.workout.app.ui.screens.timer.RestTimerScreen
 import com.workout.app.ui.screens.workout.WorkoutScreen
 
@@ -40,7 +42,9 @@ import com.workout.app.ui.screens.workout.WorkoutScreen
 fun AppNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Route.Onboarding.route
+    startDestination: String = Route.Onboarding.route,
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChange: (ThemeMode) -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -255,7 +259,16 @@ fun AppNavigation(
             )
         }
 
-        // Future: Profile screen, History, Templates, Settings, etc.
+        // Settings Screen
+        composable(Route.Settings.route) {
+            SettingsScreen(
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 

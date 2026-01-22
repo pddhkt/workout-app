@@ -1,0 +1,14 @@
+-- Settings table
+-- Key-value store for app preferences
+CREATE TABLE IF NOT EXISTS Settings (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- Get a setting by key
+getSetting:
+SELECT value FROM Settings WHERE key = ?;
+
+-- Insert or update a setting
+upsertSetting:
+INSERT OR REPLACE INTO Settings (key, value) VALUES (?, ?);

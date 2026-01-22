@@ -79,6 +79,11 @@ sealed class Route(val route: String) {
             const val ARG_EXERCISE_ID = "exerciseId"
         }
     }
+
+    /**
+     * Settings screen
+     */
+    data object Settings : Route("settings")
 }
 
 /**
@@ -118,6 +123,10 @@ fun NavController.navigateToExerciseDetail(exerciseId: String, builder: NavOptio
     navigate(Route.ExerciseDetail(exerciseId).route, builder)
 }
 
+fun NavController.navigateToSettings(builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.Settings.route, builder)
+}
+
 /**
  * Bottom navigation indices mapping
  * Used for BottomNavBar component integration
@@ -126,7 +135,7 @@ object BottomNavDestinations {
     const val HOME = 0
     const val LIBRARY = 1
     const val WORKOUT = 2
-    const val PROFILE = 3
+    const val SETTINGS = 3
 
     /**
      * Get navigation route for bottom nav index
@@ -135,7 +144,7 @@ object BottomNavDestinations {
         HOME -> Route.Home.route
         LIBRARY -> Route.ExerciseLibrary.route
         WORKOUT -> Route.SessionPlanning.route
-        PROFILE -> "profile" // Future implementation
+        SETTINGS -> Route.Settings.route
         else -> Route.Home.route
     }
 
@@ -149,7 +158,7 @@ object BottomNavDestinations {
         route.startsWith(Route.ExerciseDetail.ROUTE.substringBefore("{")) -> LIBRARY
         route.startsWith(Route.SessionPlanning.route) -> WORKOUT
         route.startsWith(Route.Workout.ROUTE.substringBefore("?")) -> WORKOUT
-        route.startsWith("profile") -> PROFILE
+        route.startsWith(Route.Settings.route) -> SETTINGS
         else -> HOME
     }
 }

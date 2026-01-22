@@ -26,6 +26,7 @@ val databaseModule = module {
     single { get<WorkoutDatabase>().sessionExerciseQueries }
     single { get<WorkoutDatabase>().setQueries }
     single { get<WorkoutDatabase>().templateQueries }
+    single { get<WorkoutDatabase>().settingsQueries }
 }
 
 /**

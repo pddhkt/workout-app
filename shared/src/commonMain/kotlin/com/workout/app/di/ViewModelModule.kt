@@ -5,6 +5,8 @@ import com.workout.app.presentation.home.HomeViewModel
 import com.workout.app.presentation.library.ExerciseLibraryViewModel
 import com.workout.app.presentation.onboarding.OnboardingViewModel
 import com.workout.app.presentation.planning.SessionPlanningViewModel
+import com.workout.app.presentation.settings.SettingsViewModel
+import com.workout.app.presentation.settings.ThemeViewModel
 import com.workout.app.presentation.workout.WorkoutViewModel
 import org.koin.dsl.module
 
@@ -56,5 +58,19 @@ val viewModelModule = module {
     // Onboarding ViewModel
     factory {
         OnboardingViewModel()
+    }
+
+    // Theme ViewModel - Singleton for app-wide theme state
+    single {
+        ThemeViewModel(
+            settingsRepository = get()
+        )
+    }
+
+    // Settings ViewModel
+    factory {
+        SettingsViewModel(
+            settingsRepository = get()
+        )
     }
 }
