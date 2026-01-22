@@ -1,9 +1,9 @@
 package com.workout.app.ui.components.dataviz
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,9 +46,11 @@ data class HeatmapDay(
  * Color intensity represents workout frequency. Time flows left-to-right with
  * the most recent day at the bottom-right corner.
  *
+ * The grid automatically fills the available width, showing empty cells for weeks
+ * without data. Data is right-aligned so the most recent entries appear on the right.
+ *
  * @param days List of HeatmapDay data in chronological order (oldest to newest)
  * @param modifier Optional modifier for customization
- * @param cellSize Size of each heatmap cell
  * @param cellSpacing Spacing between cells
  * @param lowIntensityColor Color for low workout count
  * @param mediumIntensityColor Color for medium workout count
@@ -62,7 +63,6 @@ data class HeatmapDay(
 fun ConsistencyHeatmap(
     days: List<HeatmapDay>,
     modifier: Modifier = Modifier,
-    cellSize: Dp = 12.dp,
     cellSpacing: Dp = 2.dp,
     lowIntensityColor: Color = Warning.copy(alpha = 0.3f),
     mediumIntensityColor: Color = Success.copy(alpha = 0.6f),
@@ -86,56 +86,91 @@ fun ConsistencyHeatmap(
             )
         }
 
-        // GitHub-style heatmap: days as rows, weeks as columns
-        val weeksCount = (days.size + 6) / 7 // Ceiling division for weeks
         val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+        val dayLabelWidth = 20.dp // Approximate width for day labels
 
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(cellSpacing)
+        // Use BoxWithConstraints to calculate how many weeks fit
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Day labels column (left side)
-            if (showDayLabels) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(cellSpacing),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    dayLabels.forEach { label ->
-                        Box(
-                            modifier = Modifier.height(cellSize),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(end = AppTheme.spacing.xs)
-                            )
+            val availableWidth = maxWidth
+
+            // Calculate cell size and weeks count to fill width
+            // Formula: availableWidth = labelWidth + (weeksCount * cellSize) + ((weeksCount - 1) * spacing)
+            // Rearranged: weeksCount = (availableWidth - labelWidth + spacing) / (cellSize + spacing)
+            val labelSpace = if (showDayLabels) dayLabelWidth + cellSpacing else 0.dp
+            val gridWidth = availableWidth - labelSpace
+
+            // Target around 12dp cells, calculate how many weeks fit
+            val targetCellSize = 12.dp
+            val weeksCount = ((gridWidth + cellSpacing) / (targetCellSize + cellSpacing)).toInt().coerceAtLeast(1)
+
+            // Recalculate cell size to exactly fill the width
+            val cellSize = (gridWidth - (cellSpacing * (weeksCount - 1))) / weeksCount
+
+            // Data weeks (ceiling division)
+            val dataWeeksCount = (days.size + 6) / 7
+
+            // Calculate offset to right-align data (empty weeks on left, data on right)
+            val emptyWeeksCount = (weeksCount - dataWeeksCount).coerceAtLeast(0)
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(cellSpacing)
+            ) {
+                // Day labels column (left side)
+                if (showDayLabels) {
+                    Column(
+                        modifier = Modifier.width(dayLabelWidth),
+                        verticalArrangement = Arrangement.spacedBy(cellSpacing),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        dayLabels.forEach { label ->
+                            Box(
+                                modifier = Modifier.height(cellSize),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(end = AppTheme.spacing.xs)
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            // Heatmap grid - each week is a column
-            repeat(weeksCount) { weekIndex ->
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(cellSpacing)
-                ) {
-                    repeat(7) { dayIndex ->
-                        val dataIndex = weekIndex * 7 + dayIndex
-                        if (dataIndex < days.size) {
-                            val day = days[dataIndex]
-                            HeatmapCell(
-                                count = day.count,
-                                size = cellSize,
-                                lowIntensityColor = lowIntensityColor,
-                                mediumIntensityColor = mediumIntensityColor,
-                                highIntensityColor = highIntensityColor,
-                                emptyColor = emptyColor
-                            )
-                        } else {
-                            // Empty placeholder for incomplete last week
-                            Spacer(modifier = Modifier.height(cellSize).width(cellSize))
+                // Heatmap grid - each week is a column
+                repeat(weeksCount) { weekIndex ->
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(cellSpacing)
+                    ) {
+                        repeat(7) { dayIndex ->
+                            // Calculate data index with right-alignment offset
+                            val dataWeekIndex = weekIndex - emptyWeeksCount
+                            val dataIndex = dataWeekIndex * 7 + dayIndex
+
+                            if (dataWeekIndex >= 0 && dataIndex >= 0 && dataIndex < days.size) {
+                                val day = days[dataIndex]
+                                HeatmapCell(
+                                    count = day.count,
+                                    size = cellSize,
+                                    lowIntensityColor = lowIntensityColor,
+                                    mediumIntensityColor = mediumIntensityColor,
+                                    highIntensityColor = highIntensityColor,
+                                    emptyColor = emptyColor
+                                )
+                            } else {
+                                // Empty cell (no data for this position)
+                                HeatmapCell(
+                                    count = 0,
+                                    size = cellSize,
+                                    lowIntensityColor = lowIntensityColor,
+                                    mediumIntensityColor = mediumIntensityColor,
+                                    highIntensityColor = highIntensityColor,
+                                    emptyColor = emptyColor
+                                )
+                            }
                         }
                     }
                 }
@@ -248,43 +283,69 @@ private fun HeatmapLegend(
  * Compact version of ConsistencyHeatmap without labels and legend
  * Useful for dashboard cards or preview displays
  * Uses GitHub-style layout (days as rows, weeks as columns)
+ * Automatically fills available width with empty cells for weeks without data.
  *
  * @param days List of HeatmapDay data in chronological order
  * @param modifier Optional modifier for customization
- * @param cellSize Size of each cell
  * @param cellSpacing Spacing between cells
  */
 @Composable
 fun CompactConsistencyHeatmap(
     days: List<HeatmapDay>,
     modifier: Modifier = Modifier,
-    cellSize: Dp = 10.dp,
     cellSpacing: Dp = 2.dp
 ) {
-    val weeksCount = (days.size + 6) / 7
-
-    Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(cellSpacing)
+    BoxWithConstraints(
+        modifier = modifier.fillMaxWidth()
     ) {
-        repeat(weeksCount) { weekIndex ->
-            Column(
-                verticalArrangement = Arrangement.spacedBy(cellSpacing)
-            ) {
-                repeat(7) { dayIndex ->
-                    val dataIndex = weekIndex * 7 + dayIndex
-                    if (dataIndex < days.size) {
-                        val day = days[dataIndex]
-                        HeatmapCell(
-                            count = day.count,
-                            size = cellSize,
-                            lowIntensityColor = Warning.copy(alpha = 0.3f),
-                            mediumIntensityColor = Success.copy(alpha = 0.6f),
-                            highIntensityColor = Success,
-                            emptyColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.height(cellSize).width(cellSize))
+        val availableWidth = maxWidth
+
+        // Target around 10dp cells, calculate how many weeks fit
+        val targetCellSize = 10.dp
+        val weeksCount = ((availableWidth + cellSpacing) / (targetCellSize + cellSpacing)).toInt().coerceAtLeast(1)
+
+        // Recalculate cell size to exactly fill the width
+        val cellSize = (availableWidth - (cellSpacing * (weeksCount - 1))) / weeksCount
+
+        // Data weeks (ceiling division)
+        val dataWeeksCount = (days.size + 6) / 7
+
+        // Calculate offset to right-align data (empty weeks on left, data on right)
+        val emptyWeeksCount = (weeksCount - dataWeeksCount).coerceAtLeast(0)
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(cellSpacing)
+        ) {
+            repeat(weeksCount) { weekIndex ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(cellSpacing)
+                ) {
+                    repeat(7) { dayIndex ->
+                        // Calculate data index with right-alignment offset
+                        val dataWeekIndex = weekIndex - emptyWeeksCount
+                        val dataIndex = dataWeekIndex * 7 + dayIndex
+
+                        if (dataWeekIndex >= 0 && dataIndex >= 0 && dataIndex < days.size) {
+                            val day = days[dataIndex]
+                            HeatmapCell(
+                                count = day.count,
+                                size = cellSize,
+                                lowIntensityColor = Warning.copy(alpha = 0.3f),
+                                mediumIntensityColor = Success.copy(alpha = 0.6f),
+                                highIntensityColor = Success,
+                                emptyColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        } else {
+                            // Empty cell (no data for this position)
+                            HeatmapCell(
+                                count = 0,
+                                size = cellSize,
+                                lowIntensityColor = Warning.copy(alpha = 0.3f),
+                                mediumIntensityColor = Success.copy(alpha = 0.6f),
+                                highIntensityColor = Success,
+                                emptyColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        }
                     }
                 }
             }
