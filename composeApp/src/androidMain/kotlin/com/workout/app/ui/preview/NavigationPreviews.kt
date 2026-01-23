@@ -42,6 +42,7 @@ private fun BottomNavBarHomePreview() {
             BottomNavBar(
                 selectedIndex = 0,
                 onItemSelected = {},
+                onAddClick = {},
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -63,6 +64,7 @@ private fun BottomNavBarLibraryPreview() {
             BottomNavBar(
                 selectedIndex = 1,
                 onItemSelected = {},
+                onAddClick = {},
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -84,6 +86,7 @@ private fun BottomNavBarWorkoutPreview() {
             BottomNavBar(
                 selectedIndex = 2,
                 onItemSelected = {},
+                onAddClick = {},
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -105,6 +108,7 @@ private fun BottomNavBarProfilePreview() {
             BottomNavBar(
                 selectedIndex = 3,
                 onItemSelected = {},
+                onAddClick = {},
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -124,7 +128,8 @@ private fun BottomNavBarInteractivePreview() {
             bottomBar = {
                 BottomNavBar(
                     selectedIndex = selectedIndex,
-                    onItemSelected = { selectedIndex = it }
+                    onItemSelected = { selectedIndex = it },
+                    onAddClick = {}
                 )
             }
         ) { padding ->
@@ -139,7 +144,7 @@ private fun BottomNavBarInteractivePreview() {
                     text = when (selectedIndex) {
                         0 -> "Home Screen"
                         1 -> "Library Screen"
-                        2 -> "Workout Screen"
+                        2 -> "Template Screen"
                         3 -> "Profile Screen"
                         else -> "Unknown"
                     },
@@ -301,13 +306,15 @@ private fun AllNavigationComponentsPreview() {
             // Home selected
             BottomNavBar(
                 selectedIndex = 0,
-                onItemSelected = {}
+                onItemSelected = {},
+                onAddClick = {}
             )
 
             // Library selected
             BottomNavBar(
                 selectedIndex = 1,
-                onItemSelected = {}
+                onItemSelected = {},
+                onAddClick = {}
             )
 
             Spacer(modifier = Modifier.height(16.dp))

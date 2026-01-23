@@ -79,8 +79,11 @@ fun WorkoutAppTheme(
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
+    val extendedColors = if (darkTheme) DarkExtendedColors else LightExtendedColors
+
     CompositionLocalProvider(
-        LocalSpacing provides Spacing()
+        LocalSpacing provides Spacing(),
+        LocalExtendedColors provides extendedColors
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
@@ -105,4 +108,18 @@ object AppTheme {
     val spacing: Spacing
         @Composable
         get() = LocalSpacing.current
+
+    /**
+     * Access extended semantic colors within a composable.
+     * These colors adapt to light/dark theme automatically.
+     *
+     * Usage:
+     * ```
+     * val successColor = AppTheme.colors.success
+     * val errorColor = AppTheme.colors.error
+     * ```
+     */
+    val colors: ExtendedColors
+        @Composable
+        get() = LocalExtendedColors.current
 }

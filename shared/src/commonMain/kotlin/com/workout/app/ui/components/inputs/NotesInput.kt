@@ -20,10 +20,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
-import com.workout.app.ui.theme.Border
-import com.workout.app.ui.theme.Error
-import com.workout.app.ui.theme.OnSurfaceVariant
-import com.workout.app.ui.theme.SurfaceVariant
 
 /**
  * Multi-line text field for notes
@@ -55,7 +51,7 @@ fun NotesInput(
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (isError) Error else MaterialTheme.colorScheme.onSurface
+                        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -63,7 +59,7 @@ fun NotesInput(
                     Text(
                         text = "${value.length}/$maxCharacters",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (value.length > maxCharacters) Error else OnSurfaceVariant,
+                        color = if (value.length > maxCharacters) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd)
                     )
                 }
@@ -82,7 +78,7 @@ fun NotesInput(
             },
             enabled = enabled,
             textStyle = MaterialTheme.typography.bodyMedium.copy(
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else OnSurfaceVariant
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
             ),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             keyboardOptions = KeyboardOptions(
@@ -102,10 +98,9 @@ fun NotesInput(
                         .border(
                             width = 1.dp,
                             color = when {
-                                isError -> Error
-                                maxCharacters != null && value.length > maxCharacters -> Error
-                                !enabled -> Border
-                                else -> Border
+                                isError -> MaterialTheme.colorScheme.error
+                                maxCharacters != null && value.length > maxCharacters -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.outline
                             },
                             shape = RoundedCornerShape(8.dp)
                         )
@@ -116,7 +111,7 @@ fun NotesInput(
                         Text(
                             text = placeholder,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = OnSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     innerTextField()
@@ -129,7 +124,7 @@ fun NotesInput(
             Text(
                 text = errorMessage,
                 style = MaterialTheme.typography.bodySmall,
-                color = Error,
+                color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = AppTheme.spacing.xs)
             )
         }

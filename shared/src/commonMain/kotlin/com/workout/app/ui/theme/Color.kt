@@ -28,7 +28,7 @@ val Charcoal = Color(0xFF332B2B)
 
 val BackgroundLight = Color(0xFFF8F8F7)
 val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceVariantLight = Color(0xFFFFFBF0) // Pale Honey Cream
+val SurfaceVariantLight = Color(0xFFFFFFFF) // Pure white
 val OnBackgroundLight = Color(0xFF332B2B) // Charcoal
 val OnSurfaceLight = Color(0xFF332B2B)
 val OnSurfaceVariantLight = Color(0xFF888888)
@@ -49,13 +49,40 @@ val BorderDark = Color(0xFF4A4A4A)
 val BorderDarkVariant = Color(0xFF3D3D3D)
 
 // =============================================================================
-// STATUS COLORS (Shared between themes)
+// STATUS COLORS - Light Theme
 // =============================================================================
 
-val Success = Color(0xFF22C55E)
-val Warning = Color(0xFFFACC15)
-val Error = Color(0xFFEF4444)
-val Info = Color(0xFF3B82F6)
+val SuccessLight = Color(0xFF22C55E)
+val OnSuccessLight = Color(0xFFFFFFFF)
+val WarningLight = Color(0xFFFACC15)
+val OnWarningLight = Color(0xFF000000)
+val ErrorLight = Color(0xFFEF4444)
+val OnErrorLight = Color(0xFFFFFFFF)
+val InfoLight = Color(0xFF3B82F6)
+val OnInfoLight = Color(0xFFFFFFFF)
+
+// =============================================================================
+// STATUS COLORS - Dark Theme (Lighter for visibility)
+// =============================================================================
+
+val SuccessDark = Color(0xFF4ADE80)
+val OnSuccessDark = Color(0xFF000000)
+val WarningDark = Color(0xFFFDE047)
+val OnWarningDark = Color(0xFF000000)
+val ErrorDark = Color(0xFFF87171)
+val OnErrorDark = Color(0xFF000000)
+val InfoDark = Color(0xFF60A5FA)
+val OnInfoDark = Color(0xFF000000)
+
+// =============================================================================
+// LEGACY STATUS COLORS (for backward compatibility)
+// New code should use AppTheme.colors.* instead
+// =============================================================================
+
+val Success = SuccessLight
+val Warning = WarningLight
+val Error = ErrorLight
+val Info = InfoLight
 
 // =============================================================================
 // EXERCISE STATE COLORS
@@ -94,17 +121,3 @@ val TagStatus = Color(0xFFFACC15)
 val TagDataViz = Color(0xFFC084FC)
 val TagOverlay = Color(0xFF9CA3AF)
 
-// =============================================================================
-// BACKWARD COMPATIBILITY ALIASES
-// These allow existing components to continue using direct color imports.
-// New components should use MaterialTheme.colorScheme instead.
-// =============================================================================
-
-val Background = BackgroundDark
-val Surface = SurfaceDark
-val SurfaceVariant = SurfaceVariantDark
-val OnBackground = OnBackgroundDark
-val OnSurface = OnSurfaceDark
-val OnSurfaceVariant = OnSurfaceVariantDark
-val Border = BorderDark
-val BorderVariant = BorderDarkVariant

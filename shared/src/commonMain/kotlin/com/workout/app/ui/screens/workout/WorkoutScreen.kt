@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -37,19 +36,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.workout.app.ui.components.buttons.PrimaryButton
 import com.workout.app.ui.components.buttons.SecondaryButton
 import com.workout.app.ui.components.chips.SetState
 import com.workout.app.ui.components.dataviz.CompactCircularTimer
 import com.workout.app.ui.components.exercise.ExerciseCard
 import com.workout.app.ui.components.exercise.ExerciseCardState
+import com.workout.app.ui.components.exercise.ExerciseExecutionCard
+import com.workout.app.ui.components.exercise.ExerciseSetEditorBottomSheet
 import com.workout.app.ui.components.exercise.SetInfo
 import com.workout.app.ui.components.inputs.CompactRPESelector
 import com.workout.app.ui.components.inputs.NotesInput
-import com.workout.app.ui.components.overlays.BottomSheet
+import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.theme.AppTheme
-import com.workout.app.ui.theme.SurfaceVariant
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 
@@ -80,6 +79,10 @@ data class ExerciseData(
         )
     }
 )
+
+private enum class SheetType {
+    OPTIONS, SET_EDITOR
+}
 
 /**
  * Workout Screen - Active workout session with exercise tracking
@@ -113,15 +116,21 @@ fun WorkoutScreen(
 ) {
     // State management
     var currentExerciseIndex by remember { mutableIntStateOf(0) }
+    
+    // Editor State
+    var activeSheet by remember { mutableStateOf<SheetType?>(null) }
+    var editingSetNumber by remember { mutableIntStateOf(1) }
+    
     var currentReps by remember { mutableIntStateOf(0) }
     var currentWeight by remember { mutableFloatStateOf(0f) }
     var currentRPE by remember { mutableStateOf<Int?>(null) }
     var notes by remember { mutableStateOf("") }
-    var showRPESelector by remember { mutableStateOf(false) }
+    
     var showRestTimer by remember { mutableStateOf(false) }
-    var showBottomSheet by remember { mutableStateOf(false) }
     var restTimeRemaining by remember { mutableIntStateOf(90) }
     var elapsedTime by remember { mutableIntStateOf(0) }
+    
+    // Expanded state for legacy cards (though we might not need it for active card anymore)
     var expandedExerciseId by remember { mutableStateOf(session.exercises.firstOrNull()?.id) }
 
     // Timer for elapsed time
@@ -147,8 +156,20 @@ fun WorkoutScreen(
     }
 
     val currentExercise = session.exercises.getOrNull(currentExerciseIndex)
-    val totalSetsCompleted = session.exercises.sumOf { it.completedSets }
-    val totalSetsTarget = session.exercises.sumOf { it.targetSets }
+    
+    // Update local state when opening editor or changing set
+    fun openSetEditor(exercise: ExerciseData, setIndex: Int) {
+        editingSetNumber = setIndex + 1
+        val set = exercise.sets.getOrNull(setIndex)
+        if (set != null) {
+            currentReps = if (set.reps > 0) set.reps else 12 // Default target
+            currentWeight = if (set.weight > 0f) set.weight else 100f // Default target
+            // Reset RPE and Notes for new set if not stored (mock assumption)
+            currentRPE = null 
+            // notes = ...
+        }
+        activeSheet = SheetType.SET_EDITOR
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -162,7 +183,7 @@ fun WorkoutScreen(
                 elapsedTime = elapsedTime,
                 completedExercises = session.exercises.count { it.completedSets == it.targetSets },
                 totalExercises = session.exercises.size,
-                onMoreClick = { showBottomSheet = true }
+                onMoreClick = { activeSheet = SheetType.OPTIONS }
             )
 
             // Exercise List
@@ -174,138 +195,30 @@ fun WorkoutScreen(
                 verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
             ) {
                 itemsIndexed(session.exercises) { index, exercise ->
-                    val cardState = when {
-                        exercise.completedSets == exercise.targetSets -> ExerciseCardState.COMPLETED
-                        index == currentExerciseIndex -> ExerciseCardState.ACTIVE
-                        else -> ExerciseCardState.PENDING
-                    }
-
-                    ExerciseCard(
-                        exerciseName = exercise.name,
-                        muscleGroup = exercise.muscleGroup,
-                        sets = exercise.sets,
-                        state = cardState,
-                        isExpanded = expandedExerciseId == exercise.id && cardState == ExerciseCardState.ACTIVE,
-                        onExpandToggle = {
-                            expandedExerciseId = if (expandedExerciseId == exercise.id) null else exercise.id
-                            onExerciseExpand(exercise.id)
-                        },
-                        onSetClick = { setNumber ->
-                            // Handle set chip click
-                        },
-                        onRepsChange = { currentReps = it },
-                        onWeightChange = { currentWeight = it },
-                        currentReps = currentReps,
-                        currentWeight = currentWeight
-                    )
-                }
-
-                // RPE Selector section (shows after completing set)
-                if (showRPESelector && currentExercise != null) {
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = AppTheme.spacing.md)
-                        ) {
-                            Text(
-                                text = "How hard was that set?",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
-                            )
-                            CompactRPESelector(
-                                selectedRPE = currentRPE,
-                                onRPESelected = { rpe ->
-                                    currentRPE = rpe
-                                },
-                                label = "RPE (Rate of Perceived Exertion)"
-                            )
-                        }
-                    }
-                }
-
-                // Rest Timer section
-                if (showRestTimer) {
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = AppTheme.spacing.md),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Rest Timer",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
-                            )
-                            CompactCircularTimer(
-                                remainingSeconds = restTimeRemaining,
-                                totalSeconds = 90,
-                                size = 120.dp
-                            )
-                            Spacer(modifier = Modifier.height(AppTheme.spacing.md))
-                            SecondaryButton(
-                                text = "Skip Rest",
-                                onClick = {
-                                    showRestTimer = false
-                                    restTimeRemaining = 90
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Notes section
-                item {
-                    NotesInput(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        label = "Workout Notes",
-                        placeholder = "Add notes about this set or exercise...",
-                        minLines = 3,
-                        maxLines = 6,
-                        maxCharacters = 500,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = AppTheme.spacing.md)
-                    )
-                }
-
-                // Action buttons section
-                if (currentExercise != null && expandedExerciseId == currentExercise.id) {
-                    item {
-                        ActionButtons(
-                            onCompleteSet = {
-                                if (currentReps > 0 || currentWeight > 0f) {
-                                    onCompleteSet(currentExercise.id, currentReps, currentWeight, currentRPE)
-                                    showRPESelector = true
-                                    showRestTimer = true
-                                    // Reset inputs
-                                    currentReps = 0
-                                    currentWeight = 0f
-                                    currentRPE = null
-
-                                    // Move to next exercise if current is complete
-                                    if (currentExercise.completedSets + 1 == currentExercise.targetSets) {
-                                        showRPESelector = false
-                                        if (currentExerciseIndex < session.exercises.size - 1) {
-                                            currentExerciseIndex++
-                                            expandedExerciseId = session.exercises[currentExerciseIndex].id
-                                        }
-                                    }
-                                }
+                    val isCompleted = exercise.completedSets == exercise.targetSets
+                    val isActive = index == currentExerciseIndex
+                    
+                    if (isActive && !isCompleted) {
+                        // Use new ExerciseExecutionCard for the active exercise
+                        ExerciseExecutionCard(
+                            exerciseName = exercise.name,
+                            targetSummary = "Target: ${exercise.targetSets} Sets • 8-12 Reps", // Mock target
+                            sets = exercise.sets,
+                            activeSetIndex = exercise.completedSets, // Next pending set is active
+                            onSetClick = { setIndex ->
+                                openSetEditor(exercise, setIndex)
                             },
-                            onSkipSet = {
-                                onSkipSet(currentExercise.id)
-                                currentReps = 0
-                                currentWeight = 0f
-                                currentRPE = null
-                                showRPESelector = false
-                            },
-                            isCompleteEnabled = currentReps > 0 || currentWeight > 0f,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = AppTheme.spacing.lg)
+                            onOptionsClick = { activeSheet = SheetType.OPTIONS }
+                        )
+                    } else {
+                        // Use standard ExerciseCard for others
+                        ExerciseCard(
+                            exerciseName = exercise.name,
+                            muscleGroup = exercise.muscleGroup,
+                            sets = exercise.sets,
+                            state = if (isCompleted) ExerciseCardState.COMPLETED else ExerciseCardState.PENDING,
+                            isExpanded = false,
+                            onExpandToggle = { /* No expansion for non-active in this mode */ }
                         )
                     }
                 }
@@ -317,46 +230,87 @@ fun WorkoutScreen(
             }
         }
 
-        // Bottom Sheet for additional options
-        BottomSheet(
-            visible = showBottomSheet,
-            onDismiss = { showBottomSheet = false }
+        // Bottom Sheet
+        M3BottomSheet(
+            visible = activeSheet != null,
+            onDismiss = { activeSheet = null }
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-            ) {
-                Text(
-                    text = "Workout Options",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
-                )
+            when (activeSheet) {
+                SheetType.OPTIONS -> {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                    ) {
+                        Text(
+                            text = "Workout Options",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
+                        )
 
-                PrimaryButton(
-                    text = "Finish Workout",
-                    onClick = {
-                        showBottomSheet = false
-                        onEndWorkout()
-                    },
-                    fullWidth = true
-                )
+                        PrimaryButton(
+                            text = "Finish Workout",
+                            onClick = {
+                                activeSheet = null
+                                onEndWorkout()
+                            },
+                            fullWidth = true
+                        )
 
-                SecondaryButton(
-                    text = "Save & Exit",
-                    onClick = {
-                        showBottomSheet = false
-                        onEndWorkout()
-                    },
-                    fullWidth = true
-                )
+                        SecondaryButton(
+                            text = "Save & Exit",
+                            onClick = {
+                                activeSheet = null
+                                onEndWorkout()
+                            },
+                            fullWidth = true
+                        )
 
-                SecondaryButton(
-                    text = "Cancel Workout",
-                    onClick = {
-                        showBottomSheet = false
-                    },
-                    fullWidth = true
-                )
+                        SecondaryButton(
+                            text = "Cancel Workout",
+                            onClick = {
+                                activeSheet = null
+                            },
+                            fullWidth = true
+                        )
+                    }
+                }
+                SheetType.SET_EDITOR -> {
+                    if (currentExercise != null) {
+                        ExerciseSetEditorBottomSheet(
+                            exerciseName = currentExercise.name,
+                            setNumber = editingSetNumber,
+                            previousPerformance = "Previous: 100kg x 10", // Mock
+                            currentWeight = currentWeight,
+                            currentReps = currentReps,
+                            currentRpe = currentRPE,
+                            restTimerSeconds = 120, // Mock default
+                            notes = notes,
+                            onWeightChange = { currentWeight = it },
+                            onRepsChange = { currentReps = it },
+                            onRpeChange = { currentRPE = it },
+                            onRestTimerChange = { /* Handle timer change */ },
+                            onNotesChange = { notes = it },
+                            onHistoryClick = { /* Show history */ },
+                            onDeleteSet = { 
+                                // Handle delete
+                                activeSheet = null 
+                            },
+                            onCompleteSet = {
+                                onCompleteSet(currentExercise.id, currentReps, currentWeight, currentRPE)
+                                activeSheet = null
+                                
+                                // Logic to advance set/exercise is in parent/viewmodel usually, 
+                                // but here we update UI state locally for mock
+                                if (currentExercise.completedSets + 1 == currentExercise.targetSets) {
+                                    if (currentExerciseIndex < session.exercises.size - 1) {
+                                        currentExerciseIndex++
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+                null -> {}
             }
         }
     }
@@ -418,7 +372,7 @@ private fun SessionHeader(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(SurfaceVariant)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
@@ -427,35 +381,6 @@ private fun SessionHeader(
                 )
             }
         }
-    }
-}
-
-/**
- * Action Buttons component for completing or skipping sets
- */
-@Composable
-private fun ActionButtons(
-    onCompleteSet: () -> Unit,
-    onSkipSet: () -> Unit,
-    isCompleteEnabled: Boolean,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-    ) {
-        PrimaryButton(
-            text = "Complete Set",
-            onClick = onCompleteSet,
-            enabled = isCompleteEnabled,
-            fullWidth = true
-        )
-
-        SecondaryButton(
-            text = "Skip Set",
-            onClick = onSkipSet,
-            fullWidth = true
-        )
     }
 }
 

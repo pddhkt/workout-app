@@ -15,9 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.workout.app.ui.components.buttons.AppFloatingActionButton
 import com.workout.app.ui.components.buttons.AppIconButton
 import com.workout.app.ui.components.cards.BaseCard
 import com.workout.app.ui.components.chips.Badge
@@ -119,14 +116,8 @@ fun ExerciseLibraryScreen(
                 onItemSelected = { index ->
                     selectedNavIndex = index
                     onNavigate(index)
-                }
-            )
-        },
-        floatingActionButton = {
-            AppFloatingActionButton(
-                icon = Icons.Default.Add,
-                contentDescription = "Add to workout",
-                onClick = onAddToWorkoutClick
+                },
+                onAddClick = onAddToWorkoutClick
             )
         }
     ) { paddingValues ->

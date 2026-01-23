@@ -24,8 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
-import com.workout.app.ui.theme.Success
-import com.workout.app.ui.theme.Warning
 
 /**
  * Data class representing a day's workout data for the heatmap
@@ -64,13 +62,17 @@ fun ConsistencyHeatmap(
     days: List<HeatmapDay>,
     modifier: Modifier = Modifier,
     cellSpacing: Dp = 2.dp,
-    lowIntensityColor: Color = Warning.copy(alpha = 0.3f),
-    mediumIntensityColor: Color = Success.copy(alpha = 0.6f),
-    highIntensityColor: Color = Success,
+    lowIntensityColor: Color? = null,
+    mediumIntensityColor: Color? = null,
+    highIntensityColor: Color? = null,
     emptyColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     showDayLabels: Boolean = true,
     title: String? = null
 ) {
+    val colors = AppTheme.colors
+    val resolvedLowIntensityColor = lowIntensityColor ?: colors.warning.copy(alpha = 0.3f)
+    val resolvedMediumIntensityColor = mediumIntensityColor ?: colors.success.copy(alpha = 0.6f)
+    val resolvedHighIntensityColor = highIntensityColor ?: colors.success
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
@@ -155,9 +157,9 @@ fun ConsistencyHeatmap(
                                 HeatmapCell(
                                     count = day.count,
                                     size = cellSize,
-                                    lowIntensityColor = lowIntensityColor,
-                                    mediumIntensityColor = mediumIntensityColor,
-                                    highIntensityColor = highIntensityColor,
+                                    lowIntensityColor = resolvedLowIntensityColor,
+                                    mediumIntensityColor = resolvedMediumIntensityColor,
+                                    highIntensityColor = resolvedHighIntensityColor,
                                     emptyColor = emptyColor
                                 )
                             } else {
@@ -165,9 +167,9 @@ fun ConsistencyHeatmap(
                                 HeatmapCell(
                                     count = 0,
                                     size = cellSize,
-                                    lowIntensityColor = lowIntensityColor,
-                                    mediumIntensityColor = mediumIntensityColor,
-                                    highIntensityColor = highIntensityColor,
+                                    lowIntensityColor = resolvedLowIntensityColor,
+                                    mediumIntensityColor = resolvedMediumIntensityColor,
+                                    highIntensityColor = resolvedHighIntensityColor,
                                     emptyColor = emptyColor
                                 )
                             }
@@ -180,9 +182,9 @@ fun ConsistencyHeatmap(
         // Legend
         HeatmapLegend(
             emptyColor = emptyColor,
-            lowIntensityColor = lowIntensityColor,
-            mediumIntensityColor = mediumIntensityColor,
-            highIntensityColor = highIntensityColor
+            lowIntensityColor = resolvedLowIntensityColor,
+            mediumIntensityColor = resolvedMediumIntensityColor,
+            highIntensityColor = resolvedHighIntensityColor
         )
     }
 }
@@ -295,6 +297,12 @@ fun CompactConsistencyHeatmap(
     modifier: Modifier = Modifier,
     cellSpacing: Dp = 2.dp
 ) {
+    val colors = AppTheme.colors
+    val lowIntensityColor = colors.warning.copy(alpha = 0.3f)
+    val mediumIntensityColor = colors.success.copy(alpha = 0.6f)
+    val highIntensityColor = colors.success
+    val emptyColor = MaterialTheme.colorScheme.surfaceVariant
+
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -330,20 +338,20 @@ fun CompactConsistencyHeatmap(
                             HeatmapCell(
                                 count = day.count,
                                 size = cellSize,
-                                lowIntensityColor = Warning.copy(alpha = 0.3f),
-                                mediumIntensityColor = Success.copy(alpha = 0.6f),
-                                highIntensityColor = Success,
-                                emptyColor = MaterialTheme.colorScheme.surfaceVariant
+                                lowIntensityColor = lowIntensityColor,
+                                mediumIntensityColor = mediumIntensityColor,
+                                highIntensityColor = highIntensityColor,
+                                emptyColor = emptyColor
                             )
                         } else {
                             // Empty cell (no data for this position)
                             HeatmapCell(
                                 count = 0,
                                 size = cellSize,
-                                lowIntensityColor = Warning.copy(alpha = 0.3f),
-                                mediumIntensityColor = Success.copy(alpha = 0.6f),
-                                highIntensityColor = Success,
-                                emptyColor = MaterialTheme.colorScheme.surfaceVariant
+                                lowIntensityColor = lowIntensityColor,
+                                mediumIntensityColor = mediumIntensityColor,
+                                highIntensityColor = highIntensityColor,
+                                emptyColor = emptyColor
                             )
                         }
                     }

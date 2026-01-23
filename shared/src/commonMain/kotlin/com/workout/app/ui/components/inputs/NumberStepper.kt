@@ -26,9 +26,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
-import com.workout.app.ui.theme.Border
-import com.workout.app.ui.theme.OnSurfaceVariant
-import com.workout.app.ui.theme.SurfaceVariant
 
 /**
  * Number stepper for weight/reps with +/- buttons
@@ -65,7 +62,7 @@ fun NumberStepper(
             modifier = Modifier
                 .border(
                     width = 1.dp,
-                    color = Border,
+                    color = MaterialTheme.colorScheme.outline,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .padding(AppTheme.spacing.xs),
@@ -87,7 +84,7 @@ fun NumberStepper(
                     color = if (enabled && value > minValue)
                         MaterialTheme.colorScheme.onSurface
                     else
-                        OnSurfaceVariant
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -95,11 +92,11 @@ fun NumberStepper(
             Text(
                 text = if (unit.isNotEmpty()) "$value $unit" else value.toString(),
                 style = MaterialTheme.typography.titleMedium,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else OnSurfaceVariant,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .background(
-                        color = SurfaceVariant,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(4.dp)
                     )
                     .padding(horizontal = AppTheme.spacing.lg, vertical = AppTheme.spacing.sm)
@@ -120,7 +117,7 @@ fun NumberStepper(
                     color = if (enabled && value < maxValue)
                         MaterialTheme.colorScheme.onSurface
                     else
-                        OnSurfaceVariant
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -134,11 +131,12 @@ private fun StepperButton(
     contentDescription: String,
     content: @Composable () -> Unit
 ) {
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     Box(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(if (enabled) SurfaceVariant else SurfaceVariant.copy(alpha = 0.5f))
+            .background(if (enabled) surfaceVariant else surfaceVariant.copy(alpha = 0.5f))
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -187,7 +185,7 @@ fun DecimalNumberStepper(
             modifier = Modifier
                 .border(
                     width = 1.dp,
-                    color = Border,
+                    color = MaterialTheme.colorScheme.outline,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .padding(AppTheme.spacing.xs),
@@ -209,7 +207,7 @@ fun DecimalNumberStepper(
                     color = if (enabled && value > minValue)
                         MaterialTheme.colorScheme.onSurface
                     else
-                        OnSurfaceVariant
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -229,11 +227,11 @@ fun DecimalNumberStepper(
             Text(
                 text = if (unit.isNotEmpty()) "$formattedValue $unit" else formattedValue,
                 style = MaterialTheme.typography.titleMedium,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else OnSurfaceVariant,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .background(
-                        color = SurfaceVariant,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(4.dp)
                     )
                     .padding(horizontal = AppTheme.spacing.lg, vertical = AppTheme.spacing.sm)
@@ -254,7 +252,7 @@ fun DecimalNumberStepper(
                     color = if (enabled && value < maxValue)
                         MaterialTheme.colorScheme.onSurface
                     else
-                        OnSurfaceVariant
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

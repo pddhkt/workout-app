@@ -39,7 +39,7 @@ A comprehensive design system for the Lemon Workouts mobile app, built with Jetp
 |-------|------------|-----------|-------|
 | `Background` | `#F8F8F7` | `#2C2821` | Page background |
 | `Surface` | `#FFFFFF` | `#3D362B` | Card surfaces |
-| `SurfaceVariant` | `#FFFBF0` | `#3D362B` | Card backgrounds (Pale Honey Cream) |
+| `SurfaceVariant` | `#FFFFFF` | `#3D362B` | Card backgrounds (Pure white) |
 
 ### Text Colors
 
@@ -128,8 +128,8 @@ Shadows use the brand yellow (`#FFD400`) in the alpha channel for a warm, cohesi
 
 | Token | Definition | Usage |
 |-------|------------|-------|
-| `ShadowWarm` | `0 10px 30px -10px rgba(255, 212, 0, 0.4)` | Elevated cards, prominent elements |
-| `ShadowWarmSm` | `0 4px 12px -4px rgba(255, 212, 0, 0.3)` | Subtle elevation, hover states |
+| `ShadowWarm` | `0 10px 30px -10px rgba(255, 212, 0, 0.2)` | Elevated cards, prominent elements |
+| `ShadowWarmSm` | `0 4px 12px -4px rgba(255, 212, 0, 0.15)` | Subtle elevation, hover states |
 | `ShadowDefault` | `0 4px 16px rgba(0, 0, 0, 0.08)` | Standard card elevation |
 
 ### Usage in Code
@@ -139,8 +139,8 @@ Shadows use the brand yellow (`#FFD400`) in the alpha channel for a warm, cohesi
 Modifier.shadow(
     elevation = 8.dp,
     shape = RoundedCornerShape(24.dp),
-    ambientColor = Primary.copy(alpha = 0.3f),
-    spotColor = Primary.copy(alpha = 0.2f)
+    ambientColor = Primary.copy(alpha = 0.15f),
+    spotColor = Primary.copy(alpha = 0.1f)
 )
 ```
 
@@ -337,6 +337,6 @@ This design system represents the updated citrus/yellow brand identity. The prev
 
 - Primary: `#13EC5B` → `#FFD400`
 - Background: `#0A0A0A` → `#F8F8F7` (light) / `#2C2821` (dark)
-- Surface: `#111111` → `#FFFBF0` (light) / `#3D362B` (dark)
+- Surface: `#111111` → `#FFFFFF` (light) / `#3D362B` (dark)
 
 Components should be updated to use the new color tokens through `MaterialTheme.colorScheme`.

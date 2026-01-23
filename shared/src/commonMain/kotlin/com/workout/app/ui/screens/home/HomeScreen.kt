@@ -73,6 +73,7 @@ data class RecentSession(
  * @param onViewAllTemplates Callback for "View All" templates action
  * @param onViewAllSessions Callback for "View All" sessions action
  * @param onNavigate Callback for bottom navigation
+ * @param onAddClick Callback for center Add button
  * @param modifier Optional modifier for customization
  */
 @Composable
@@ -82,6 +83,7 @@ fun HomeScreen(
     onViewAllTemplates: () -> Unit = {},
     onViewAllSessions: () -> Unit = {},
     onNavigate: (Int) -> Unit = {},
+    onAddClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedNavIndex by remember { mutableIntStateOf(0) }
@@ -94,7 +96,8 @@ fun HomeScreen(
                 onItemSelected = { index ->
                     selectedNavIndex = index
                     onNavigate(index)
-                }
+                },
+                onAddClick = onAddClick
             )
         }
     ) { paddingValues ->

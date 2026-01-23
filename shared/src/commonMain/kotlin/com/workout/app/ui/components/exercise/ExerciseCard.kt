@@ -30,9 +30,7 @@ import com.workout.app.ui.components.inputs.NumberStepper
 import com.workout.app.ui.theme.Active
 import com.workout.app.ui.theme.AppTheme
 import com.workout.app.ui.theme.Completed
-import com.workout.app.ui.theme.OnSurfaceVariant
 import com.workout.app.ui.theme.Pending
-import com.workout.app.ui.theme.Success
 
 /**
  * State of an exercise card
@@ -107,8 +105,9 @@ fun ExerciseCard(
         ExerciseCardState.PENDING -> MaterialTheme.colorScheme.surface
     }
 
+    val colors = AppTheme.colors
     val border = when (state) {
-        ExerciseCardState.COMPLETED -> BorderStroke(1.dp, Success.copy(alpha = 0.5f))
+        ExerciseCardState.COMPLETED -> BorderStroke(1.dp, colors.success.copy(alpha = 0.5f))
         ExerciseCardState.ACTIVE -> BorderStroke(2.dp, Active)
         ExerciseCardState.PENDING -> null
     }
@@ -116,7 +115,7 @@ fun ExerciseCard(
     val contentColor = when (state) {
         ExerciseCardState.COMPLETED -> MaterialTheme.colorScheme.onSurface
         ExerciseCardState.ACTIVE -> MaterialTheme.colorScheme.onSurface
-        ExerciseCardState.PENDING -> OnSurfaceVariant
+        ExerciseCardState.PENDING -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     BaseCard(
@@ -146,10 +145,7 @@ fun ExerciseCard(
                 Text(
                     text = muscleGroup,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (state == ExerciseCardState.PENDING)
-                        OnSurfaceVariant
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -158,7 +154,7 @@ fun ExerciseCard(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Exercise completed",
-                    tint = Success,
+                    tint = colors.success,
                     modifier = Modifier.size(24.dp)
                 )
             }

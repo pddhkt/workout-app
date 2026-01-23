@@ -28,13 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
-import com.workout.app.ui.theme.Border
-import com.workout.app.ui.theme.Error
-import com.workout.app.ui.theme.Info
-import com.workout.app.ui.theme.OnSurfaceVariant
-import com.workout.app.ui.theme.Success
-import com.workout.app.ui.theme.SurfaceVariant
-import com.workout.app.ui.theme.Warning
+import com.workout.app.ui.theme.ExtendedColors
 
 /**
  * RPE (Rate of Perceived Exertion) selector for 1-10 scale
@@ -66,7 +60,7 @@ fun RPESelector(
             Text(
                 text = getRPEDescription(selectedRPE),
                 style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
             )
         }
@@ -97,14 +91,17 @@ private fun RPEButton(
     onClick: () -> Unit,
     enabled: Boolean
 ) {
+    val colors = AppTheme.colors
+    val rpeColor = getRPEColor(rpe, colors)
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val backgroundColor = when {
-        !enabled -> SurfaceVariant.copy(alpha = 0.5f)
-        isSelected -> getRPEColor(rpe)
-        else -> SurfaceVariant
+        !enabled -> surfaceVariant.copy(alpha = 0.5f)
+        isSelected -> rpeColor
+        else -> surfaceVariant
     }
 
     val textColor = when {
-        !enabled -> OnSurfaceVariant
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
         isSelected -> Color.Black
         else -> MaterialTheme.colorScheme.onSurface
     }
@@ -116,7 +113,7 @@ private fun RPEButton(
             .background(backgroundColor)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) getRPEColor(rpe) else Border,
+                color = if (isSelected) rpeColor else MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable(
@@ -149,6 +146,8 @@ fun CompactRPESelector(
     label: String? = "RPE",
     enabled: Boolean = true
 ) {
+    val colors = AppTheme.colors
+
     Column(modifier = modifier) {
         // Label with selected value
         Row(
@@ -165,14 +164,15 @@ fun CompactRPESelector(
             }
 
             if (selectedRPE != null) {
+                val rpeColor = getRPEColor(selectedRPE, colors)
                 Text(
                     text = selectedRPE.toString(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = getRPEColor(selectedRPE),
+                    color = rpeColor,
                     modifier = Modifier
                         .background(
-                            color = getRPEColor(selectedRPE).copy(alpha = 0.2f),
+                            color = rpeColor.copy(alpha = 0.2f),
                             shape = CircleShape
                         )
                         .padding(horizontal = AppTheme.spacing.md, vertical = AppTheme.spacing.xs)
@@ -185,7 +185,7 @@ fun CompactRPESelector(
             modifier = Modifier
                 .border(
                     width = 1.dp,
-                    color = Border,
+                    color = MaterialTheme.colorScheme.outline,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .padding(AppTheme.spacing.xs),
@@ -210,10 +210,13 @@ private fun CompactRPEButton(
     onClick: () -> Unit,
     enabled: Boolean
 ) {
+    val colors = AppTheme.colors
+    val rpeColor = getRPEColor(rpe, colors)
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val backgroundColor = when {
-        !enabled -> SurfaceVariant.copy(alpha = 0.5f)
-        isSelected -> getRPEColor(rpe)
-        else -> SurfaceVariant
+        !enabled -> surfaceVariant.copy(alpha = 0.5f)
+        isSelected -> rpeColor
+        else -> surfaceVariant
     }
 
     Box(
@@ -234,24 +237,27 @@ private fun CompactRPEButton(
             text = rpe.toString(),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) Color.Black else OnSurfaceVariant
+            color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
 /**
- * Get color based on RPE value
+ * Get color based on RPE value using theme-aware semantic colors.
  * 1-3: Easy (Info)
  * 4-6: Moderate (Success)
  * 7-8: Hard (Warning)
  * 9-10: Maximum (Error)
+ *
+ * @param rpe The RPE value (1-10)
+ * @param colors The ExtendedColors from the current theme
  */
-private fun getRPEColor(rpe: Int): Color {
+private fun getRPEColor(rpe: Int, colors: ExtendedColors): Color {
     return when (rpe) {
-        in 1..3 -> Info
-        in 4..6 -> Success
-        in 7..8 -> Warning
-        else -> Error
+        in 1..3 -> colors.info
+        in 4..6 -> colors.success
+        in 7..8 -> colors.warning
+        else -> colors.error
     }
 }
 

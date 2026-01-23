@@ -24,7 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.components.buttons.PrimaryButton
 import com.workout.app.ui.theme.AppTheme
-import com.workout.app.ui.theme.Border
 
 /**
  * Session summary data for the action bar.
@@ -62,8 +61,7 @@ fun BottomActionBar(
 ) {
     Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars),
+            .fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 3.dp
     ) {
@@ -72,10 +70,11 @@ fun BottomActionBar(
                 .fillMaxWidth()
                 .border(
                     width = 1.dp,
-                    color = Border,
+                    color = MaterialTheme.colorScheme.outline,
                     shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp)
                 )
                 .background(MaterialTheme.colorScheme.surface)
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(AppTheme.spacing.lg)
         ) {
             // Session summary (if provided)
@@ -179,6 +178,6 @@ private fun VerticalDivider() {
         modifier = Modifier
             .width(1.dp)
             .height(40.dp)
-            .background(Border)
+            .background(MaterialTheme.colorScheme.outline)
     )
 }

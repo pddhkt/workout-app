@@ -16,10 +16,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
-import com.workout.app.ui.theme.Error
-import com.workout.app.ui.theme.Info
-import com.workout.app.ui.theme.Success
-import com.workout.app.ui.theme.Warning
 
 /**
  * Badge variant types for different status indicators
@@ -54,11 +50,12 @@ fun Badge(
     showDot: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val colors = AppTheme.colors
     val variantColor = when (variant) {
-        BadgeVariant.SUCCESS -> Success
-        BadgeVariant.WARNING -> Warning
-        BadgeVariant.ERROR -> Error
-        BadgeVariant.INFO -> Info
+        BadgeVariant.SUCCESS -> colors.success
+        BadgeVariant.WARNING -> colors.warning
+        BadgeVariant.ERROR -> colors.error
+        BadgeVariant.INFO -> colors.info
         BadgeVariant.NEUTRAL -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -107,11 +104,12 @@ fun CountBadge(
     variant: BadgeVariant = BadgeVariant.ERROR,
     modifier: Modifier = Modifier
 ) {
+    val colors = AppTheme.colors
     val variantColor = when (variant) {
-        BadgeVariant.SUCCESS -> Success
-        BadgeVariant.WARNING -> Warning
-        BadgeVariant.ERROR -> Error
-        BadgeVariant.INFO -> Info
+        BadgeVariant.SUCCESS -> colors.success
+        BadgeVariant.WARNING -> colors.warning
+        BadgeVariant.ERROR -> colors.error
+        BadgeVariant.INFO -> colors.info
         BadgeVariant.NEUTRAL -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 

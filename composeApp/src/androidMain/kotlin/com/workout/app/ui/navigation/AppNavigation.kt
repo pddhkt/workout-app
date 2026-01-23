@@ -20,6 +20,7 @@ import com.workout.app.ui.screens.planning.SessionPlanningScreen
 import com.workout.app.ui.screens.settings.SettingsScreen
 import com.workout.app.ui.screens.timer.RestTimerScreen
 import com.workout.app.ui.screens.workout.WorkoutScreen
+import com.workout.app.ui.components.overlays.BottomSheetComparisonScreen
 
 /**
  * Main navigation configuration for the Workout App.
@@ -101,6 +102,9 @@ fun AppNavigation(
                             restoreState = true
                         }
                     }
+                },
+                onAddClick = {
+                    navController.navigateToSessionPlanning()
                 }
             )
         }
@@ -266,8 +270,16 @@ fun AppNavigation(
                 onThemeModeChange = onThemeModeChange,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onBottomSheetComparisonClick = {
+                    navController.navigateToBottomSheetComparison()
                 }
             )
+        }
+
+        // Debug: BottomSheet Comparison Screen
+        composable(Route.BottomSheetComparison.route) {
+            BottomSheetComparisonScreen()
         }
     }
 }

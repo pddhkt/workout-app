@@ -56,7 +56,6 @@ import com.workout.app.ui.components.chips.Badge
 import com.workout.app.ui.components.chips.BadgeVariant
 import com.workout.app.ui.components.headers.SectionHeader
 import com.workout.app.ui.theme.AppTheme
-import com.workout.app.ui.theme.Border
 
 /**
  * Exercise data model for detail screen
@@ -554,7 +553,7 @@ private fun PerformanceStatsCard(
                     )
                 }
 
-                HorizontalDivider(color = Border)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -748,7 +747,7 @@ private fun HistoryItemCard(
                         .padding(top = AppTheme.spacing.md),
                     verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
                 ) {
-                    HorizontalDivider(color = Border)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -818,7 +817,7 @@ private fun StickyFooterButton(
             .padding(WindowInsets.navigationBars.asPaddingValues())
     ) {
         HorizontalDivider(
-            color = Border,
+            color = MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(bottom = AppTheme.spacing.md)
         )
 

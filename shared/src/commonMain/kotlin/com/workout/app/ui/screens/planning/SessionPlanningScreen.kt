@@ -29,6 +29,7 @@ import com.workout.app.ui.components.buttons.AppIconButton
 import com.workout.app.ui.components.buttons.SecondaryButton
 import com.workout.app.ui.components.chips.FilterChip
 import com.workout.app.ui.components.exercise.ExerciseSelectionCard
+import com.workout.app.ui.components.exercise.PreviousRecord
 import com.workout.app.ui.components.headers.SectionHeader
 import com.workout.app.ui.components.navigation.BottomActionBar
 import com.workout.app.ui.components.navigation.SessionSummary
@@ -41,7 +42,8 @@ data class Exercise(
     val id: String,
     val name: String,
     val category: String,
-    val muscleGroup: MuscleGroup
+    val muscleGroup: MuscleGroup,
+    val history: List<PreviousRecord> = emptyList()
 )
 
 /**
@@ -204,19 +206,15 @@ fun SessionPlanningScreen(
                         exerciseName = exercise.name,
                         exerciseCategory = exercise.category,
                         isAdded = addedExercise != null,
-                        setCount = addedExercise?.setCount ?: 3,
-                        onAddClick = {
-                            addedExercises = addedExercises + (exercise.id to AddedExercise(
-                                exercise = exercise,
-                                setCount = 3
-                            ))
-                        },
-                        onRemoveClick = {
-                            addedExercises = addedExercises - exercise.id
-                        },
-                        onSetCountChange = { newCount ->
-                            addedExercise?.let {
-                                addedExercises = addedExercises + (exercise.id to it.copy(setCount = newCount))
+                        history = exercise.history,
+                        onToggle = {
+                            if (addedExercise != null) {
+                                addedExercises = addedExercises - exercise.id
+                            } else {
+                                addedExercises = addedExercises + (exercise.id to AddedExercise(
+                                    exercise = exercise,
+                                    setCount = 3
+                                ))
                             }
                         }
                     )
@@ -261,25 +259,34 @@ private fun SessionPlanningHeader(
  * Generate mock exercise data for preview and development
  */
 private fun getMockExercises(): List<Exercise> {
+    val history = listOf(
+        PreviousRecord("Jan 19", "8-10", "85-90 kg"),
+        PreviousRecord("Jan 16", "10-12", "80-85 kg"),
+        PreviousRecord("Jan 12", "8", "82.5 kg")
+    )
+
     return listOf(
         // Chest exercises
         Exercise(
             id = "1",
             name = "Barbell Bench Press",
             category = "Chest - Compound",
-            muscleGroup = MuscleGroup.CHEST
+            muscleGroup = MuscleGroup.CHEST,
+            history = history
         ),
         Exercise(
             id = "2",
             name = "Dumbbell Fly",
             category = "Chest - Isolation",
-            muscleGroup = MuscleGroup.CHEST
+            muscleGroup = MuscleGroup.CHEST,
+            history = history
         ),
         Exercise(
             id = "3",
             name = "Incline Dumbbell Press",
             category = "Chest - Compound",
-            muscleGroup = MuscleGroup.CHEST
+            muscleGroup = MuscleGroup.CHEST,
+            history = history
         ),
 
         // Back exercises
@@ -287,25 +294,29 @@ private fun getMockExercises(): List<Exercise> {
             id = "4",
             name = "Barbell Row",
             category = "Back - Compound",
-            muscleGroup = MuscleGroup.BACK
+            muscleGroup = MuscleGroup.BACK,
+            history = history
         ),
         Exercise(
             id = "5",
             name = "Pull-ups",
             category = "Back - Compound",
-            muscleGroup = MuscleGroup.BACK
+            muscleGroup = MuscleGroup.BACK,
+            history = history
         ),
         Exercise(
             id = "6",
             name = "Lat Pulldown",
             category = "Back - Compound",
-            muscleGroup = MuscleGroup.BACK
+            muscleGroup = MuscleGroup.BACK,
+            history = history
         ),
         Exercise(
             id = "7",
             name = "Seated Cable Row",
             category = "Back - Compound",
-            muscleGroup = MuscleGroup.BACK
+            muscleGroup = MuscleGroup.BACK,
+            history = history
         ),
 
         // Legs exercises
@@ -313,31 +324,36 @@ private fun getMockExercises(): List<Exercise> {
             id = "8",
             name = "Barbell Squat",
             category = "Legs - Compound",
-            muscleGroup = MuscleGroup.LEGS
+            muscleGroup = MuscleGroup.LEGS,
+            history = history
         ),
         Exercise(
             id = "9",
             name = "Romanian Deadlift",
             category = "Legs - Compound",
-            muscleGroup = MuscleGroup.LEGS
+            muscleGroup = MuscleGroup.LEGS,
+            history = history
         ),
         Exercise(
             id = "10",
             name = "Leg Press",
             category = "Legs - Compound",
-            muscleGroup = MuscleGroup.LEGS
+            muscleGroup = MuscleGroup.LEGS,
+            history = history
         ),
         Exercise(
             id = "11",
             name = "Leg Curl",
             category = "Legs - Isolation",
-            muscleGroup = MuscleGroup.LEGS
+            muscleGroup = MuscleGroup.LEGS,
+            history = history
         ),
         Exercise(
             id = "12",
             name = "Leg Extension",
             category = "Legs - Isolation",
-            muscleGroup = MuscleGroup.LEGS
+            muscleGroup = MuscleGroup.LEGS,
+            history = history
         ),
 
         // Shoulders exercises
@@ -345,19 +361,22 @@ private fun getMockExercises(): List<Exercise> {
             id = "13",
             name = "Overhead Press",
             category = "Shoulders - Compound",
-            muscleGroup = MuscleGroup.SHOULDERS
+            muscleGroup = MuscleGroup.SHOULDERS,
+            history = history
         ),
         Exercise(
             id = "14",
             name = "Lateral Raise",
             category = "Shoulders - Isolation",
-            muscleGroup = MuscleGroup.SHOULDERS
+            muscleGroup = MuscleGroup.SHOULDERS,
+            history = history
         ),
         Exercise(
             id = "15",
             name = "Face Pulls",
             category = "Shoulders - Isolation",
-            muscleGroup = MuscleGroup.SHOULDERS
+            muscleGroup = MuscleGroup.SHOULDERS,
+            history = history
         ),
 
         // Arms exercises
@@ -365,25 +384,29 @@ private fun getMockExercises(): List<Exercise> {
             id = "16",
             name = "Barbell Curl",
             category = "Arms - Isolation",
-            muscleGroup = MuscleGroup.ARMS
+            muscleGroup = MuscleGroup.ARMS,
+            history = history
         ),
         Exercise(
             id = "17",
             name = "Tricep Pushdown",
             category = "Arms - Isolation",
-            muscleGroup = MuscleGroup.ARMS
+            muscleGroup = MuscleGroup.ARMS,
+            history = history
         ),
         Exercise(
             id = "18",
             name = "Hammer Curl",
             category = "Arms - Isolation",
-            muscleGroup = MuscleGroup.ARMS
+            muscleGroup = MuscleGroup.ARMS,
+            history = history
         ),
         Exercise(
             id = "19",
             name = "Overhead Tricep Extension",
             category = "Arms - Isolation",
-            muscleGroup = MuscleGroup.ARMS
+            muscleGroup = MuscleGroup.ARMS,
+            history = history
         ),
 
         // Core exercises
@@ -391,19 +414,22 @@ private fun getMockExercises(): List<Exercise> {
             id = "20",
             name = "Plank",
             category = "Core - Stability",
-            muscleGroup = MuscleGroup.CORE
+            muscleGroup = MuscleGroup.CORE,
+            history = history
         ),
         Exercise(
             id = "21",
             name = "Cable Crunch",
             category = "Core - Isolation",
-            muscleGroup = MuscleGroup.CORE
+            muscleGroup = MuscleGroup.CORE,
+            history = history
         ),
         Exercise(
             id = "22",
             name = "Russian Twist",
             category = "Core - Rotation",
-            muscleGroup = MuscleGroup.CORE
+            muscleGroup = MuscleGroup.CORE,
+            history = history
         )
     )
 }

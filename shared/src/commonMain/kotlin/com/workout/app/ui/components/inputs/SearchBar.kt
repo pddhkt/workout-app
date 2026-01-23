@@ -29,9 +29,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
-import com.workout.app.ui.theme.Border
-import com.workout.app.ui.theme.OnSurfaceVariant
-import com.workout.app.ui.theme.SurfaceVariant
 
 /**
  * Search bar with search icon and clear button
@@ -53,7 +50,7 @@ fun SearchBar(
         onValueChange = onQueryChange,
         enabled = enabled,
         textStyle = MaterialTheme.typography.bodyMedium.copy(
-            color = if (enabled) MaterialTheme.colorScheme.onSurface else OnSurfaceVariant
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         ),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         keyboardOptions = KeyboardOptions(
@@ -71,12 +68,12 @@ fun SearchBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = SurfaceVariant,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(24.dp)
                     )
                     .border(
                         width = 1.dp,
-                        color = Border,
+                        color = MaterialTheme.colorScheme.outline,
                         shape = RoundedCornerShape(24.dp)
                     )
                     .padding(
@@ -90,7 +87,7 @@ fun SearchBar(
                     Icon(
                         imageVector = searchIcon,
                         contentDescription = "Search",
-                        tint = OnSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(AppTheme.spacing.sm))
@@ -102,7 +99,7 @@ fun SearchBar(
                         Text(
                             text = placeholder,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = OnSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     innerTextField()
@@ -114,7 +111,7 @@ fun SearchBar(
                     Icon(
                         imageVector = clearIcon,
                         contentDescription = "Clear search",
-                        tint = OnSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .size(20.dp)
                             .clickable(

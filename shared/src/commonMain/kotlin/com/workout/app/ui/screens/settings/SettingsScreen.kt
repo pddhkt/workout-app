@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.workout.app.data.repository.ThemeMode
 import com.workout.app.ui.components.buttons.AppIconButton
+import com.workout.app.ui.components.buttons.SecondaryButton
 import com.workout.app.ui.components.cards.ElevatedCard
 import com.workout.app.ui.theme.AppTheme
 
@@ -50,6 +51,7 @@ fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     onBackClick: () -> Unit = {},
+    onBottomSheetComparisonClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -95,6 +97,19 @@ fun SettingsScreen(
             ThemeSelector(
                 selectedMode = themeMode,
                 onModeSelected = onThemeModeChange
+            )
+
+            Spacer(modifier = Modifier.height(AppTheme.spacing.xxl))
+
+            // Debug Section
+            SectionTitle(title = "Debug")
+
+            Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+            SecondaryButton(
+                text = "BottomSheet Comparison",
+                onClick = onBottomSheetComparisonClick,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(AppTheme.spacing.xxl))

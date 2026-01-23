@@ -57,7 +57,7 @@ fun BottomSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    scrimColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+    scrimColor: Color = Color.Black.copy(alpha = 0.5f),
     sheetColor: Color = MaterialTheme.colorScheme.surface,
     dragDismissThreshold: Float = 0.3f,
     content: @Composable ColumnScope.() -> Unit

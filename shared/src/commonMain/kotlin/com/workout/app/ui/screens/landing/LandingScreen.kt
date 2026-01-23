@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.workout.app.ui.components.navigation.BottomNavBar
 import com.workout.app.ui.theme.AccentGreen
 import com.workout.app.ui.theme.AccentOrange
 import com.workout.app.ui.theme.AppTheme
@@ -93,6 +94,7 @@ enum class WorkoutDifficulty(val label: String) {
  * @param onWorkoutSelect Callback when a workout is selected
  * @param onQuickStart Callback for quick start FAB
  * @param onNavigate Callback for bottom navigation
+ * @param onAddClick Callback for the center FAB in bottom nav
  * @param modifier Optional modifier
  */
 @Composable
@@ -100,6 +102,7 @@ fun LandingScreen(
     onWorkoutSelect: (String) -> Unit = {},
     onQuickStart: () -> Unit = {},
     onNavigate: (Int) -> Unit = {},
+    onAddClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -145,12 +148,13 @@ fun LandingScreen(
             )
         },
         bottomBar = {
-            LandingBottomNav(
+            BottomNavBar(
                 selectedIndex = selectedNavIndex,
                 onItemSelected = { index ->
                     selectedNavIndex = index
                     onNavigate(index)
-                }
+                },
+                onAddClick = onAddClick
             )
         }
     ) { paddingValues ->
@@ -260,8 +264,8 @@ private fun LandingHeader(
                 .shadow(
                     elevation = 4.dp,
                     shape = CircleShape,
-                    ambientColor = Primary.copy(alpha = 0.3f),
-                    spotColor = Primary.copy(alpha = 0.2f)
+                    ambientColor = Primary.copy(alpha = 0.15f),
+                    spotColor = Primary.copy(alpha = 0.1f)
                 )
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surface)
@@ -314,8 +318,8 @@ private fun FeaturedWorkoutCard(
             .shadow(
                 elevation = 16.dp,
                 shape = RoundedCornerShape(40.dp),
-                ambientColor = Primary.copy(alpha = 0.4f),
-                spotColor = Primary.copy(alpha = 0.3f)
+                ambientColor = Primary.copy(alpha = 0.2f),
+                spotColor = Primary.copy(alpha = 0.15f)
             )
             .clip(RoundedCornerShape(40.dp))
             .background(

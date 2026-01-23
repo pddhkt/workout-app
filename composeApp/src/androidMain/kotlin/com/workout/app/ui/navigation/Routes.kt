@@ -84,6 +84,11 @@ sealed class Route(val route: String) {
      * Settings screen
      */
     data object Settings : Route("settings")
+
+    /**
+     * Debug: BottomSheet comparison screen
+     */
+    data object BottomSheetComparison : Route("debug/bottomsheet_comparison")
 }
 
 /**
@@ -125,6 +130,10 @@ fun NavController.navigateToExerciseDetail(exerciseId: String, builder: NavOptio
 
 fun NavController.navigateToSettings(builder: NavOptionsBuilder.() -> Unit = {}) {
     navigate(Route.Settings.route, builder)
+}
+
+fun NavController.navigateToBottomSheetComparison(builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.BottomSheetComparison.route, builder)
 }
 
 /**

@@ -17,9 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.Active
 import com.workout.app.ui.theme.AppTheme
 import com.workout.app.ui.theme.Completed
-import com.workout.app.ui.theme.Error
 import com.workout.app.ui.theme.Primary
-import com.workout.app.ui.theme.SurfaceVariant
 import com.workout.app.ui.theme.WorkoutAppTheme
 
 /**
@@ -143,7 +141,7 @@ fun CardPreviewsScreen() {
             }
 
             ColoredCard(
-                surfaceColor = Error,
+                surfaceColor = AppTheme.colors.error,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 CardContent(
@@ -169,7 +167,7 @@ fun CardPreviewsScreen() {
             SectionTitle("Custom Background")
             BaseCard(
                 modifier = Modifier.fillMaxWidth(),
-                backgroundColor = SurfaceVariant
+                backgroundColor = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 CardContent(
                     title = "Custom Background",
