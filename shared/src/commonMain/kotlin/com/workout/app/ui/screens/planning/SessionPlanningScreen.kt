@@ -18,13 +18,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.workout.app.data.repository.TemplateRepository
+import com.workout.app.domain.model.TemplateExercise
 import com.workout.app.ui.components.buttons.AppIconButton
 import com.workout.app.ui.components.buttons.SecondaryButton
 import com.workout.app.ui.components.chips.FilterChip
@@ -34,6 +38,8 @@ import com.workout.app.ui.components.headers.SectionHeader
 import com.workout.app.ui.components.navigation.BottomActionBar
 import com.workout.app.ui.components.navigation.SessionSummary
 import com.workout.app.ui.theme.AppTheme
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 /**
  * Exercise data model for session planning
@@ -78,7 +84,9 @@ data class AddedExercise(
  * - Exercise list with add/remove functionality
  * - Session summary showing exercises and total sets
  * - Start Session button in bottom bar
+ * - Template pre-loading when templateId is provided
  *
+ * @param templateId Optional template ID to pre-populate exercises
  * @param onBackClick Callback when back button is clicked
  * @param onTemplatesClick Callback when templates button is clicked
  * @param onStartSession Callback when start session button is clicked
@@ -86,17 +94,49 @@ data class AddedExercise(
  */
 @Composable
 fun SessionPlanningScreen(
+    templateId: String? = null,
     onBackClick: () -> Unit,
     onTemplatesClick: () -> Unit,
     onStartSession: (List<AddedExercise>) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val templateRepository: TemplateRepository = koinInject()
+    val scope = rememberCoroutineScope()
+
     // State management
     var selectedMuscleGroup by remember { mutableStateOf(MuscleGroup.ALL) }
     var addedExercises by remember { mutableStateOf<Map<String, AddedExercise>>(emptyMap()) }
 
     // Mock exercise data
     val exercises = remember { getMockExercises() }
+
+    // Load template exercises if templateId is provided
+    LaunchedEffect(templateId) {
+        if (templateId != null) {
+            val result = templateRepository.getById(templateId)
+            if (result is com.workout.app.domain.model.Result.Success && result.data != null) {
+                val template = result.data
+                val templateExercises = TemplateExercise.fromJsonArray(template.exercises)
+                val exerciseMap = exercises.associateBy { it.id }
+
+                addedExercises = templateExercises
+                    .mapNotNull { templateExercise ->
+                        exerciseMap[templateExercise.exerciseId]?.let { exercise ->
+                            exercise.id to AddedExercise(
+                                exercise = exercise,
+                                setCount = templateExercise.defaultSets
+                            )
+                        }
+                    }
+                    .toMap()
+
+                // Update template's last used timestamp
+                scope.launch {
+                    templateRepository.updateLastUsed(templateId)
+                }
+            }
+        }
+    }
 
     // Filter exercises by selected muscle group
     val filteredExercises = if (selectedMuscleGroup == MuscleGroup.ALL) {

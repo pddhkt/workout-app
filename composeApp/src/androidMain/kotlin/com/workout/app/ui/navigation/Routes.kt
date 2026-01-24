@@ -89,6 +89,22 @@ sealed class Route(val route: String) {
      * Debug: BottomSheet comparison screen
      */
     data object BottomSheetComparison : Route("debug/bottomsheet_comparison")
+
+    /**
+     * Templates screen for managing workout templates
+     */
+    data object Templates : Route("templates")
+
+    /**
+     * Session planning screen with optional template pre-selection
+     * @param templateId Optional template ID to pre-populate exercises
+     */
+    data class SessionPlanningWithTemplate(val templateId: String) : Route("session_planning/$templateId") {
+        companion object {
+            const val ROUTE = "session_planning/{templateId}"
+            const val ARG_TEMPLATE_ID = "templateId"
+        }
+    }
 }
 
 /**
@@ -136,6 +152,14 @@ fun NavController.navigateToBottomSheetComparison(builder: NavOptionsBuilder.() 
     navigate(Route.BottomSheetComparison.route, builder)
 }
 
+fun NavController.navigateToTemplates(builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.Templates.route, builder)
+}
+
+fun NavController.navigateToSessionPlanningWithTemplate(templateId: String, builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.SessionPlanningWithTemplate(templateId).route, builder)
+}
+
 /**
  * Bottom navigation indices mapping
  * Used for BottomNavBar component integration
@@ -143,7 +167,7 @@ fun NavController.navigateToBottomSheetComparison(builder: NavOptionsBuilder.() 
 object BottomNavDestinations {
     const val HOME = 0
     const val LIBRARY = 1
-    const val WORKOUT = 2
+    const val TEMPLATES = 2
     const val SETTINGS = 3
 
     /**
@@ -152,7 +176,7 @@ object BottomNavDestinations {
     fun getRouteForIndex(index: Int): String = when (index) {
         HOME -> Route.Home.route
         LIBRARY -> Route.ExerciseLibrary.route
-        WORKOUT -> Route.SessionPlanning.route
+        TEMPLATES -> Route.Templates.route
         SETTINGS -> Route.Settings.route
         else -> Route.Home.route
     }
@@ -165,8 +189,9 @@ object BottomNavDestinations {
         route.startsWith(Route.Home.route) -> HOME
         route.startsWith(Route.ExerciseLibrary.route) -> LIBRARY
         route.startsWith(Route.ExerciseDetail.ROUTE.substringBefore("{")) -> LIBRARY
-        route.startsWith(Route.SessionPlanning.route) -> WORKOUT
-        route.startsWith(Route.Workout.ROUTE.substringBefore("?")) -> WORKOUT
+        route.startsWith(Route.Templates.route) -> TEMPLATES
+        route.startsWith(Route.SessionPlanning.route) -> TEMPLATES
+        route.startsWith(Route.Workout.ROUTE.substringBefore("?")) -> TEMPLATES
         route.startsWith(Route.Settings.route) -> SETTINGS
         else -> HOME
     }

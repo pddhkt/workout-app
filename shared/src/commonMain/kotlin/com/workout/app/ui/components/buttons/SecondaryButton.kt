@@ -23,6 +23,7 @@ import com.workout.app.ui.theme.AppTheme
  * @param modifier Modifier to be applied to the button
  * @param enabled Whether the button is enabled or disabled
  * @param fullWidth Whether the button should fill max width
+ * @param destructive Whether the button represents a destructive action (uses error color)
  */
 @Composable
 fun SecondaryButton(
@@ -30,8 +31,15 @@ fun SecondaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    fullWidth: Boolean = false
+    fullWidth: Boolean = false,
+    destructive: Boolean = false
 ) {
+    val contentColor = if (destructive) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
     OutlinedButton(
         onClick = onClick,
         modifier = modifier
@@ -41,14 +49,14 @@ fun SecondaryButton(
         shape = RoundedCornerShape(AppTheme.spacing.sm),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
+            contentColor = contentColor,
             disabledContainerColor = MaterialTheme.colorScheme.surface,
             disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         ),
         border = BorderStroke(
             width = 1.dp,
             color = if (enabled) {
-                MaterialTheme.colorScheme.primary
+                contentColor
             } else {
                 MaterialTheme.colorScheme.outline.copy(alpha = 0.38f)
             }

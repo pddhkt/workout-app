@@ -4,20 +4,25 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,10 +45,10 @@ import com.workout.app.ui.components.buttons.PrimaryButton
 import com.workout.app.ui.components.buttons.SecondaryButton
 import com.workout.app.ui.components.chips.SetState
 import com.workout.app.ui.components.dataviz.CompactCircularTimer
-import com.workout.app.ui.components.exercise.ExerciseCard
-import com.workout.app.ui.components.exercise.ExerciseCardState
-import com.workout.app.ui.components.exercise.ExerciseExecutionCard
+import com.workout.app.ui.components.exercise.ExercisePickerContent
 import com.workout.app.ui.components.exercise.ExerciseSetEditorBottomSheet
+import com.workout.app.ui.components.exercise.ExerciseWorkoutCard
+import com.workout.app.ui.components.exercise.LibraryExercise
 import com.workout.app.ui.components.exercise.SetInfo
 import com.workout.app.ui.components.inputs.CompactRPESelector
 import com.workout.app.ui.components.inputs.NotesInput
@@ -81,7 +86,7 @@ data class ExerciseData(
 )
 
 private enum class SheetType {
-    OPTIONS, SET_EDITOR
+    OPTIONS, SET_EDITOR, ADD_EXERCISE, EXERCISE_OPTIONS
 }
 
 /**
@@ -112,14 +117,19 @@ fun WorkoutScreen(
     onSkipSet: (exerciseId: String) -> Unit = {},
     onExerciseExpand: (exerciseId: String) -> Unit = {},
     onEndWorkout: () -> Unit = {},
+    onAddExercise: (LibraryExercise) -> Unit = {},
+    onRemoveExercise: (exerciseId: String) -> Unit = {},
+    onReplaceExercise: (exerciseId: String, newExercise: LibraryExercise) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     // State management
     var currentExerciseIndex by remember { mutableIntStateOf(0) }
-    
+
     // Editor State
     var activeSheet by remember { mutableStateOf<SheetType?>(null) }
     var editingSetNumber by remember { mutableIntStateOf(1) }
+    var selectedExerciseForOptions by remember { mutableStateOf<ExerciseData?>(null) }
+    var replacingExerciseId by remember { mutableStateOf<String?>(null) }
     
     var currentReps by remember { mutableIntStateOf(0) }
     var currentWeight by remember { mutableFloatStateOf(0f) }
@@ -196,36 +206,35 @@ fun WorkoutScreen(
             ) {
                 itemsIndexed(session.exercises) { index, exercise ->
                     val isCompleted = exercise.completedSets == exercise.targetSets
-                    val isActive = index == currentExerciseIndex
-                    
-                    if (isActive && !isCompleted) {
-                        // Use new ExerciseExecutionCard for the active exercise
-                        ExerciseExecutionCard(
-                            exerciseName = exercise.name,
-                            targetSummary = "Target: ${exercise.targetSets} Sets • 8-12 Reps", // Mock target
-                            sets = exercise.sets,
-                            activeSetIndex = exercise.completedSets, // Next pending set is active
-                            onSetClick = { setIndex ->
-                                openSetEditor(exercise, setIndex)
-                            },
-                            onOptionsClick = { activeSheet = SheetType.OPTIONS }
-                        )
-                    } else {
-                        // Use standard ExerciseCard for others
-                        ExerciseCard(
-                            exerciseName = exercise.name,
-                            muscleGroup = exercise.muscleGroup,
-                            sets = exercise.sets,
-                            state = if (isCompleted) ExerciseCardState.COMPLETED else ExerciseCardState.PENDING,
-                            isExpanded = false,
-                            onExpandToggle = { /* No expansion for non-active in this mode */ }
-                        )
-                    }
+                    val isActive = index == currentExerciseIndex && !isCompleted
+
+                    ExerciseWorkoutCard(
+                        exerciseName = exercise.name,
+                        muscleGroup = exercise.muscleGroup,
+                        targetSummary = "${exercise.targetSets} Sets • 8-12 Reps",
+                        sets = exercise.sets,
+                        isActive = isActive,
+                        activeSetIndex = exercise.completedSets,
+                        onSetClick = { setIndex ->
+                            openSetEditor(exercise, setIndex)
+                        },
+                        onOptionsClick = {
+                            selectedExerciseForOptions = exercise
+                            activeSheet = SheetType.EXERCISE_OPTIONS
+                        }
+                    )
+                }
+
+                // Add Exercise Button
+                item {
+                    AddExerciseButton(
+                        onClick = { activeSheet = SheetType.ADD_EXERCISE }
+                    )
                 }
 
                 // Bottom spacing for comfortable scrolling
                 item {
-                    Spacer(modifier = Modifier.height(80.dp))
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
                 }
             }
         }
@@ -290,7 +299,6 @@ fun WorkoutScreen(
                             onRpeChange = { currentRPE = it },
                             onRestTimerChange = { /* Handle timer change */ },
                             onNotesChange = { notes = it },
-                            onHistoryClick = { /* Show history */ },
                             onDeleteSet = { 
                                 // Handle delete
                                 activeSheet = null 
@@ -298,8 +306,8 @@ fun WorkoutScreen(
                             onCompleteSet = {
                                 onCompleteSet(currentExercise.id, currentReps, currentWeight, currentRPE)
                                 activeSheet = null
-                                
-                                // Logic to advance set/exercise is in parent/viewmodel usually, 
+
+                                // Logic to advance set/exercise is in parent/viewmodel usually,
                                 // but here we update UI state locally for mock
                                 if (currentExercise.completedSets + 1 == currentExercise.targetSets) {
                                     if (currentExerciseIndex < session.exercises.size - 1) {
@@ -308,6 +316,65 @@ fun WorkoutScreen(
                                 }
                             }
                         )
+                    }
+                }
+                SheetType.ADD_EXERCISE -> {
+                    ExercisePickerContent(
+                        onExerciseSelected = { exercise ->
+                            // Check if we're replacing an exercise
+                            val exerciseToReplace = replacingExerciseId
+                            if (exerciseToReplace != null) {
+                                onReplaceExercise(exerciseToReplace, exercise)
+                                replacingExerciseId = null
+                            } else {
+                                onAddExercise(exercise)
+                            }
+                            activeSheet = null
+                        }
+                    )
+                }
+                SheetType.EXERCISE_OPTIONS -> {
+                    val exercise = selectedExerciseForOptions
+                    if (exercise != null) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                        ) {
+                            Text(
+                                text = exercise.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
+                            )
+
+                            SecondaryButton(
+                                text = "Replace Exercise",
+                                onClick = {
+                                    replacingExerciseId = exercise.id
+                                    activeSheet = SheetType.ADD_EXERCISE
+                                },
+                                fullWidth = true
+                            )
+
+                            SecondaryButton(
+                                text = "Remove Exercise",
+                                onClick = {
+                                    onRemoveExercise(exercise.id)
+                                    selectedExerciseForOptions = null
+                                    activeSheet = null
+                                },
+                                fullWidth = true,
+                                destructive = true
+                            )
+
+                            SecondaryButton(
+                                text = "Cancel",
+                                onClick = {
+                                    selectedExerciseForOptions = null
+                                    activeSheet = null
+                                },
+                                fullWidth = true
+                            )
+                        }
                     }
                 }
                 null -> {}
@@ -332,6 +399,7 @@ private fun SessionHeader(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
+            .windowInsetsPadding(WindowInsets.statusBars)
             .padding(AppTheme.spacing.lg)
     ) {
         Row(
@@ -380,6 +448,43 @@ private fun SessionHeader(
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
+        }
+    }
+}
+
+/**
+ * Add Exercise button that appears at the end of the exercise list
+ */
+@Composable
+private fun AddExerciseButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .clickable(onClick = onClick)
+            .padding(AppTheme.spacing.md),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = "Add Exercise",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

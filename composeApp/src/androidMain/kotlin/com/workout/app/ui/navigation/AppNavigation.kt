@@ -18,6 +18,7 @@ import com.workout.app.ui.screens.library.ExerciseLibraryScreen
 import com.workout.app.ui.screens.onboarding.OnboardingScreen
 import com.workout.app.ui.screens.planning.SessionPlanningScreen
 import com.workout.app.ui.screens.settings.SettingsScreen
+import com.workout.app.ui.screens.templates.TemplatesScreen
 import com.workout.app.ui.screens.timer.RestTimerScreen
 import com.workout.app.ui.screens.workout.WorkoutScreen
 import com.workout.app.ui.components.overlays.BottomSheetComparisonScreen
@@ -75,17 +76,18 @@ fun AppNavigation(
             HomeScreen(
                 onTemplateClick = { templateId ->
                     // Navigate to session planning with template pre-selected
-                    // TODO: Pass template ID when supported
-                    navController.navigateToSessionPlanning()
+                    navController.navigateToSessionPlanningWithTemplate(templateId)
                 },
                 onSessionClick = { sessionId ->
                     // Navigate to workout complete to view session details
                     navController.navigateToWorkoutComplete(sessionId)
                 },
                 onViewAllTemplates = {
-                    // Navigate to templates library (future implementation)
-                    // For now, navigate to session planning
-                    navController.navigateToSessionPlanning()
+                    navController.navigateToTemplates {
+                        popUpTo(Route.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 },
                 onViewAllSessions = {
                     // Navigate to history screen (future implementation)
@@ -109,6 +111,29 @@ fun AppNavigation(
             )
         }
 
+        // Templates Screen
+        composable(Route.Templates.route) {
+            TemplatesScreen(
+                onTemplateClick = { templateId ->
+                    // Navigate to session planning with template pre-selected
+                    navController.navigateToSessionPlanningWithTemplate(templateId)
+                },
+                onNavigate = { index ->
+                    val route = BottomNavDestinations.getRouteForIndex(index)
+                    if (route != Route.Templates.route) {
+                        navController.navigate(route) {
+                            popUpTo(Route.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                },
+                onAddClick = {
+                    navController.navigateToSessionPlanning()
+                }
+            )
+        }
+
         // Session Planning (FT-013)
         composable(Route.SessionPlanning.route) {
             SessionPlanningScreen(
@@ -116,8 +141,34 @@ fun AppNavigation(
                     navController.popBackStack()
                 },
                 onTemplatesClick = {
-                    // Navigate to templates screen (future implementation)
-                    // TODO: Implement templates screen
+                    navController.navigateToTemplates()
+                },
+                onStartSession = { addedExercises ->
+                    // Start workout with selected exercises
+                    // TODO: Create session and pass session ID
+                    navController.navigateToWorkout()
+                }
+            )
+        }
+
+        // Session Planning with Template (FT-013)
+        composable(
+            route = Route.SessionPlanningWithTemplate.ROUTE,
+            arguments = listOf(
+                navArgument(Route.SessionPlanningWithTemplate.ARG_TEMPLATE_ID) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val templateId = backStackEntry.arguments?.getString(Route.SessionPlanningWithTemplate.ARG_TEMPLATE_ID)
+
+            SessionPlanningScreen(
+                templateId = templateId,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onTemplatesClick = {
+                    navController.navigateToTemplates()
                 },
                 onStartSession = { addedExercises ->
                     // Start workout with selected exercises

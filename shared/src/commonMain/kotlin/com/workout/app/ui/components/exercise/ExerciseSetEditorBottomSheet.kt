@@ -15,13 +15,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,7 +51,6 @@ fun ExerciseSetEditorBottomSheet(
     onRpeChange: (Int) -> Unit,
     onRestTimerChange: (Int) -> Unit,
     onNotesChange: (String) -> Unit,
-    onHistoryClick: () -> Unit,
     onDeleteSet: () -> Unit,
     onCompleteSet: () -> Unit,
     modifier: Modifier = Modifier
@@ -62,80 +58,50 @@ fun ExerciseSetEditorBottomSheet(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = AppTheme.spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.lg)
+            .padding(bottom = AppTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
     ) {
-        // Drag Handle (Already in BottomSheet, but visual space here)
-
         // Header Section
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(AppTheme.colors.success.copy(alpha = 0.2f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "SET $setNumber",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = AppTheme.colors.success
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(AppTheme.spacing.sm))
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(AppTheme.colors.success.copy(alpha = 0.2f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
                     Text(
-                        text = previousPerformance ?: "First time",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "SET $setNumber",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = AppTheme.colors.success
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.width(AppTheme.spacing.sm))
                 Text(
-                    text = exerciseName,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = previousPerformance ?: "First time",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            FilledTonalButton(
-                onClick = onHistoryClick,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = 12.dp,
-                    vertical = 8.dp
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("History", style = MaterialTheme.typography.labelLarge)
-            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = exerciseName,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
 
         // Input Grid
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
         ) {
             // Weight Input
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(AppTheme.spacing.md))
-                    .background(MaterialTheme.colorScheme.surfaceVariant) // Using SurfaceVariant for input background
-                    .padding(AppTheme.spacing.md)
-            ) {
+            Box(modifier = Modifier.weight(1f)) {
                 DecimalNumberStepper(
                     value = currentWeight,
                     onValueChange = onWeightChange,
@@ -145,13 +111,7 @@ fun ExerciseSetEditorBottomSheet(
             }
 
             // Reps Input
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(AppTheme.spacing.md))
-                    .background(MaterialTheme.colorScheme.surfaceVariant) // Using SurfaceVariant for input background
-                    .padding(AppTheme.spacing.md)
-            ) {
+            Box(modifier = Modifier.weight(1f)) {
                 NumberStepper(
                     value = currentReps,
                     onValueChange = onRepsChange,
@@ -164,16 +124,10 @@ fun ExerciseSetEditorBottomSheet(
         // RPE & Timer Row
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
         ) {
             // RPE Input
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(AppTheme.spacing.md))
-                    .background(MaterialTheme.colorScheme.surfaceVariant) // Using SurfaceVariant for input background
-                    .padding(AppTheme.spacing.md)
-            ) {
+            Box(modifier = Modifier.weight(1f)) {
                 CompactRPESelector(
                     selectedRPE = currentRpe,
                     onRPESelected = onRpeChange,
@@ -187,9 +141,9 @@ fun ExerciseSetEditorBottomSheet(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(AppTheme.spacing.md))
-                    .background(MaterialTheme.colorScheme.surfaceVariant) // Using SurfaceVariant for input background
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable { /* Open timer picker */ }
-                    .padding(AppTheme.spacing.md)
+                    .padding(AppTheme.spacing.sm)
             ) {
                 Column(horizontalAlignment = Alignment.Start) {
                     Text(
@@ -234,59 +188,35 @@ fun ExerciseSetEditorBottomSheet(
         NotesInput(
             value = notes,
             onValueChange = onNotesChange,
-            label = null, // Hidden label for cleaner look
+            label = null,
             placeholder = "Add notes for this set...",
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
-
-        // Footer Actions
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+        // Complete Button
+        Button(
+            onClick = onCompleteSet,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(AppTheme.spacing.md),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         ) {
-            // Delete Button
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(AppTheme.spacing.md))
-                    .background(MaterialTheme.colorScheme.surfaceVariant) // Using SurfaceVariant for button background
-                    .clickable(onClick = onDeleteSet),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete Set",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Mark Complete",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold
                 )
-            }
-
-            // Complete Button
-            Button(
-                onClick = onCompleteSet,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp),
-                shape = RoundedCornerShape(AppTheme.spacing.md),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppTheme.colors.success,
-                    contentColor = Color.Black
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Mark Complete",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-            }
+            )
         }
     }
 }
