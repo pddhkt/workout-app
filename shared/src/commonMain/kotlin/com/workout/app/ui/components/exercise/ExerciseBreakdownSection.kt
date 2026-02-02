@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,7 +37,7 @@ import com.workout.app.ui.components.chips.BadgeVariant
 import com.workout.app.ui.theme.AppTheme
 
 /**
- * Collapsible section showing exercise breakdown with sets.
+ * Section showing exercise breakdown with sets (always expanded).
  *
  * @param exercises List of exercises with their sets
  * @param modifier Optional modifier
@@ -49,49 +47,27 @@ fun ExerciseBreakdownSection(
     exercises: List<ExerciseWithSets>,
     modifier: Modifier = Modifier
 ) {
-    var isExpanded by remember { mutableStateOf(true) }
-
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        // Header with expand/collapse toggle
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded }
-                .padding(vertical = AppTheme.spacing.sm),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Exercises (${exercises.size})",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onBackground
-            )
+        // Header (non-clickable)
+        Text(
+            text = "Exercises (${exercises.size})",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(vertical = AppTheme.spacing.sm)
+        )
 
-            Icon(
-                imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = if (isExpanded) "Collapse" else "Expand",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // Expandable content
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
+        // Exercise cards
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
-            ) {
-                exercises.forEach { exercise ->
-                    ExerciseBreakdownCard(
-                        exercise = exercise
-                    )
-                }
+            exercises.forEach { exercise ->
+                ExerciseBreakdownCard(
+                    exercise = exercise
+                )
             }
         }
     }

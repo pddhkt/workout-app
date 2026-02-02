@@ -9,10 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -24,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.components.cards.ElevatedCard
 import com.workout.app.ui.components.dataviz.ConsistencyHeatmap
@@ -258,16 +263,68 @@ private fun QuickStartTemplatesSection(
             modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
         )
 
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = AppTheme.spacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-        ) {
-            items(templates, key = { it.id }) { template ->
-                TemplateCard(
-                    template = template,
-                    onClick = { onTemplateClick(template.id) }
-                )
+        if (templates.isEmpty()) {
+            // Empty state - show add template card
+            AddTemplateCard(
+                onClick = onViewAll,
+                modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
+            )
+        } else {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = AppTheme.spacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+            ) {
+                items(templates, key = { it.id }) { template ->
+                    TemplateCard(
+                        template = template,
+                        onClick = { onTemplateClick(template.id) }
+                    )
+                }
             }
+        }
+    }
+}
+
+/**
+ * Add template card for empty state - encourages users to create their first template
+ */
+@Composable
+private fun AddTemplateCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(
+        modifier = modifier
+            .width(180.dp)
+            .height(120.dp),
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(AppTheme.spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add template",
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
+            Text(
+                text = "Add Template",
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Create your first workout",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
