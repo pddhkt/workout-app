@@ -14,22 +14,50 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.workout.app.domain.model.Participant
+import com.workout.app.presentation.complete.WorkoutCompleteState
+import com.workout.app.presentation.complete.WorkoutCompleteViewModel
+import com.workout.app.ui.components.buttons.ParticipantSelector
 import com.workout.app.ui.components.buttons.PrimaryButton
 import com.workout.app.ui.components.buttons.SecondaryButton
 import com.workout.app.ui.components.buttons.ToggleButton
 import com.workout.app.ui.components.chips.FilterChip
+import com.workout.app.ui.components.dataviz.MetricsGrid
+import com.workout.app.ui.components.dataviz.MusclesTargetedSection
+import com.workout.app.ui.components.exercise.ExerciseBreakdownSection
 import com.workout.app.ui.components.headers.SectionHeader
 import com.workout.app.ui.components.inputs.NotesInput
+import com.workout.app.ui.components.inputs.RPEProgressDisplay
 import com.workout.app.ui.theme.AppTheme
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 /**
  * Data class representing workout summary information
@@ -361,6 +389,302 @@ private fun formatDuration(seconds: Int): String {
     val minutes = seconds / 60
     val remainingSeconds = seconds % 60
     return "$minutes:${remainingSeconds.toString().padStart(2, '0')}"
+}
+
+/**
+ * Enhanced Workout Complete Screen with ViewModel integration.
+ * Provides a richer experience with metrics grid, muscle intensity bars,
+ * exercise breakdown, RPE selector, and save as template functionality.
+ *
+ * @param sessionId ID of the completed session
+ * @param onDoneClick Callback when workout is finalized
+ * @param onSaveDraft Callback when save draft is clicked
+ * @param onShareClick Callback when share is clicked
+ * @param modifier Optional modifier
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EnhancedWorkoutCompleteScreen(
+    sessionId: String,
+    onDoneClick: () -> Unit,
+    onSaveDraft: () -> Unit = {},
+    onShareClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val viewModel: WorkoutCompleteViewModel = koinInject { parametersOf(sessionId) }
+    val state by viewModel.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Show template saved notification
+    LaunchedEffect(state.templateSaved) {
+        if (state.templateSaved) {
+            snackbarHostState.showSnackbar("Template saved successfully!")
+            viewModel.dismissTemplateSaved()
+        }
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Summary") },
+                navigationIcon = {
+                    IconButton(onClick = onDoneClick) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Close"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onShareClick) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = "Share"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        when {
+            state.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            state.workout != null -> {
+                EnhancedWorkoutCompleteContent(
+                    state = state,
+                    onParticipantSelect = viewModel::selectParticipant,
+                    onNotesChange = viewModel::updateNotes,
+                    onRpeChange = viewModel::updateRpe,
+                    onSaveAsTemplate = viewModel::saveAsTemplate,
+                    onShare = onShareClick,
+                    onFinish = { viewModel.saveWorkout(onDoneClick) },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                )
+            }
+            else -> {
+                // Fallback to simple mock version
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No workout data available")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EnhancedWorkoutCompleteContent(
+    state: WorkoutCompleteState,
+    onParticipantSelect: (Participant) -> Unit,
+    onNotesChange: (String) -> Unit,
+    onRpeChange: (Int) -> Unit,
+    onSaveAsTemplate: () -> Unit,
+    onShare: () -> Unit,
+    onFinish: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val workout = state.workout!!
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(AppTheme.spacing.lg)
+    ) {
+        // Partner selector (only for partner workouts)
+        if (state.isPartnerWorkout) {
+            ParticipantSelector(
+                selectedParticipant = state.selectedParticipant,
+                onSelect = onParticipantSelect,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppTheme.spacing.xxl)
+            )
+
+            Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
+        }
+
+        // Celebration header with time
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Session Complete!",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
+
+            Text(
+                text = "${state.formattedStartTime} - ${state.formattedEndTime}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
+
+        // Metrics grid
+        MetricsGrid(
+            duration = workout.duration,
+            volume = workout.totalVolume,
+            sets = workout.totalSets,
+            prCount = workout.prCount,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.xxl))
+
+        // Muscles targeted section
+        if (workout.muscleGroups.isNotEmpty()) {
+            MusclesTargetedSection(
+                muscleGroups = workout.muscleGroups,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(AppTheme.spacing.xxl))
+        }
+
+        // Exercise breakdown section
+        if (workout.exercises.isNotEmpty()) {
+            ExerciseBreakdownSection(
+                exercises = workout.exercises,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(AppTheme.spacing.xxl))
+        }
+
+        // RPE Section
+        RPEProgressDisplay(
+            rpe = state.rpe ?: 5,
+            onRpeChange = onRpeChange,
+            label = "How hard was this session?",
+            interactive = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.xxl))
+
+        // Notes section
+        SectionHeader(
+            title = "Session Notes",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+        NotesInput(
+            value = state.notes,
+            onValueChange = onNotesChange,
+            placeholder = "How did the workout feel? Any observations?",
+            minLines = 3,
+            maxLines = 5,
+            maxCharacters = 500,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.xxl))
+
+        // Action buttons
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+        ) {
+            SecondaryButton(
+                text = "Save as Template",
+                onClick = onSaveAsTemplate,
+                enabled = !state.isSavingTemplate,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            SecondaryButton(
+                text = "Share",
+                onClick = onShare,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            PrimaryButton(
+                text = "Finish Workout",
+                onClick = onFinish,
+                enabled = !state.isSaving,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
+    }
+}
+
+/**
+ * Simple version of WorkoutCompleteScreen for navigation compatibility.
+ * Uses minimal callbacks and mock data for basic functionality.
+ */
+@Composable
+fun WorkoutCompleteScreen(
+    onDoneClick: () -> Unit,
+    onSaveDraft: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    // Use mock data for simple version
+    var notes by remember { mutableStateOf("") }
+    var partnerModeEnabled by remember { mutableStateOf(false) }
+    var selectedMuscleGroups by remember { mutableStateOf(setOf<String>()) }
+
+    val mockSummary = remember {
+        WorkoutSummary(
+            duration = 3600, // 60 minutes
+            totalVolume = 5000f,
+            exerciseCount = 6,
+            setCount = 18,
+            muscleGroups = listOf("Chest", "Triceps", "Shoulders")
+        )
+    }
+
+    WorkoutCompleteScreen(
+        summary = mockSummary,
+        selectedMuscleGroups = selectedMuscleGroups,
+        onMuscleGroupToggle = { muscleGroup ->
+            selectedMuscleGroups = if (selectedMuscleGroups.contains(muscleGroup)) {
+                selectedMuscleGroups - muscleGroup
+            } else {
+                selectedMuscleGroups + muscleGroup
+            }
+        },
+        partnerModeEnabled = partnerModeEnabled,
+        onPartnerModeToggle = { partnerModeEnabled = !partnerModeEnabled },
+        notes = notes,
+        onNotesChange = { notes = it },
+        onSave = onSaveDraft,
+        onDone = onDoneClick,
+        modifier = modifier
+    )
 }
 
 /**

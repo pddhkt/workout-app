@@ -3,7 +3,9 @@ package com.workout.app.data.repository
 import com.workout.app.database.GetStats
 import com.workout.app.database.SelectForHeatmap
 import com.workout.app.database.Workout
+import com.workout.app.domain.model.MonthGroup
 import com.workout.app.domain.model.Result
+import com.workout.app.domain.model.WorkoutHistoryFilters
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -93,4 +95,43 @@ interface WorkoutRepository {
      * @return Result containing heatmap data (date to workout count)
      */
     suspend fun getHeatmapData(sinceDate: Long): Result<List<SelectForHeatmap>>
+
+    /**
+     * Get workouts grouped by month.
+     * @return Result containing map of month string to workouts
+     */
+    suspend fun getGroupedByMonth(): Result<Map<String, List<Workout>>>
+
+    /**
+     * Get workouts for a specific month.
+     * @param yearMonth Month in YYYY-MM format
+     * @return Result containing workouts for that month
+     */
+    suspend fun getByMonth(yearMonth: String): Result<List<Workout>>
+
+    /**
+     * Get distinct months that have workouts.
+     * @return Result containing list of month groups
+     */
+    suspend fun getDistinctMonths(): Result<List<MonthGroup>>
+
+    /**
+     * Search workouts by name.
+     * @param query Search query
+     * @return Result containing matching workouts
+     */
+    suspend fun search(query: String): Result<List<Workout>>
+
+    /**
+     * Get filtered workouts.
+     * @param filters Filter criteria
+     * @return Result containing filtered workouts
+     */
+    suspend fun getFiltered(filters: WorkoutHistoryFilters): Result<List<Workout>>
+
+    /**
+     * Observe all workouts grouped by month.
+     * @return Flow of workouts grouped by month
+     */
+    fun observeGroupedByMonth(): Flow<Map<String, List<Workout>>>
 }

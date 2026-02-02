@@ -18,8 +18,8 @@ import com.workout.app.ui.components.exercise.PreviousRecord
 import com.workout.app.ui.theme.WorkoutAppTheme
 
 private val mockHistory = listOf(
-    PreviousRecord("Jan 19, 2026", "8-10", "85-90 kg"),
-    PreviousRecord("Jan 16, 2026", "10-12", "80-85 kg")
+    PreviousRecord(date = "Jan 19, 2026", sets = "3", reps = "8-10", weight = "85-90 kg"),
+    PreviousRecord(date = "Jan 16, 2026", sets = "3", reps = "10-12", weight = "80-85 kg")
 )
 
 /**

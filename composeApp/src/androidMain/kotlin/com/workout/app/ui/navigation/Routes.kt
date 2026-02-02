@@ -105,6 +105,22 @@ sealed class Route(val route: String) {
             const val ARG_TEMPLATE_ID = "templateId"
         }
     }
+
+    /**
+     * Session history screen showing all past workouts
+     */
+    data object SessionHistory : Route("session_history")
+
+    /**
+     * Session detail screen for viewing historical workout details
+     * @param sessionId The session/workout ID to display
+     */
+    data class SessionDetail(val sessionId: String) : Route("session_detail/$sessionId") {
+        companion object {
+            const val ROUTE = "session_detail/{sessionId}"
+            const val ARG_SESSION_ID = "sessionId"
+        }
+    }
 }
 
 /**
@@ -158,6 +174,14 @@ fun NavController.navigateToTemplates(builder: NavOptionsBuilder.() -> Unit = {}
 
 fun NavController.navigateToSessionPlanningWithTemplate(templateId: String, builder: NavOptionsBuilder.() -> Unit = {}) {
     navigate(Route.SessionPlanningWithTemplate(templateId).route, builder)
+}
+
+fun NavController.navigateToSessionHistory(builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.SessionHistory.route, builder)
+}
+
+fun NavController.navigateToSessionDetail(sessionId: String, builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.SessionDetail(sessionId).route, builder)
 }
 
 /**

@@ -6,11 +6,19 @@ import com.workout.app.database.GetStats
 import com.workout.app.database.SelectForHeatmap
 import com.workout.app.database.Workout
 import com.workout.app.database.WorkoutQueries
+import com.workout.app.domain.model.MonthGroup
 import com.workout.app.domain.model.Result
+import com.workout.app.domain.model.WorkoutHistoryFilters
+import com.workout.app.domain.model.WorkoutType
+import com.workout.app.domain.model.formatMonthDisplay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Implementation of WorkoutRepository using SQLDelight.
@@ -142,5 +150,109 @@ class WorkoutRepositoryImpl(
      */
     private fun generateId(): String {
         return "workout_${Clock.System.now().toEpochMilliseconds()}_${(0..9999).random()}"
+    }
+
+    override suspend fun getGroupedByMonth(): Result<Map<String, List<Workout>>> =
+        withContext(Dispatchers.Default) {
+            try {
+                val workouts = workoutQueries.selectAll().executeAsList()
+                val grouped = workouts.groupBy { workout ->
+                    // Group by year-month
+                    val instant = Instant.fromEpochMilliseconds(workout.createdAt)
+                    val date = instant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    "${date.year}-${date.monthNumber.toString().padStart(2, '0')}"
+                }
+                Result.Success(grouped)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun getByMonth(yearMonth: String): Result<List<Workout>> =
+        withContext(Dispatchers.Default) {
+            try {
+                val workouts = workoutQueries.selectByMonth(yearMonth).executeAsList()
+                Result.Success(workouts)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun getDistinctMonths(): Result<List<MonthGroup>> =
+        withContext(Dispatchers.Default) {
+            try {
+                val monthStats = workoutQueries.countByMonth().executeAsList()
+                val monthGroups = monthStats.map { stats ->
+                    MonthGroup(
+                        yearMonth = stats.month ?: "",
+                        displayName = formatMonthDisplay(stats.month ?: ""),
+                        sessionCount = stats.workoutCount.toInt(),
+                        totalVolume = stats.totalVolume ?: 0,
+                        totalDuration = stats.totalDuration ?: 0
+                    )
+                }
+                Result.Success(monthGroups)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun search(query: String): Result<List<Workout>> =
+        withContext(Dispatchers.Default) {
+            try {
+                val workouts = workoutQueries.searchWorkouts(query).executeAsList()
+                Result.Success(workouts)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun getFiltered(filters: WorkoutHistoryFilters): Result<List<Workout>> =
+        withContext(Dispatchers.Default) {
+            try {
+                var workouts = if (filters.dateRange != null) {
+                    workoutQueries.selectByDateRange(
+                        filters.dateRange.startDate,
+                        filters.dateRange.endDate
+                    ).executeAsList()
+                } else {
+                    workoutQueries.selectAll().executeAsList()
+                }
+
+                // Apply search filter
+                if (filters.searchQuery.isNotBlank()) {
+                    workouts = workouts.filter { workout ->
+                        workout.name.contains(filters.searchQuery, ignoreCase = true)
+                    }
+                }
+
+                // Apply workout type filter
+                when (filters.workoutType) {
+                    WorkoutType.SOLO -> {
+                        workouts = workouts.filter { it.isPartnerWorkout == 0L }
+                    }
+                    WorkoutType.PARTNER -> {
+                        workouts = workouts.filter { it.isPartnerWorkout == 1L }
+                    }
+                    else -> { /* No filter */ }
+                }
+
+                Result.Success(workouts)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override fun observeGroupedByMonth(): Flow<Map<String, List<Workout>>> {
+        return workoutQueries.selectAll()
+            .asFlow()
+            .mapToList(Dispatchers.Default)
+            .map { workouts ->
+                workouts.groupBy { workout ->
+                    val instant = Instant.fromEpochMilliseconds(workout.createdAt)
+                    val date = instant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    "${date.year}-${date.monthNumber.toString().padStart(2, '0')}"
+                }
+            }
     }
 }

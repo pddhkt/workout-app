@@ -117,6 +117,77 @@ class ExerciseLibraryViewModel(
     fun clearError() {
         _state.update { it.copy(error = null) }
     }
+
+    /**
+     * Show the add custom exercise bottom sheet.
+     */
+    fun showAddExerciseSheet() {
+        _state.update { it.copy(showAddExerciseSheet = true) }
+    }
+
+    /**
+     * Hide the add custom exercise bottom sheet.
+     */
+    fun hideAddExerciseSheet() {
+        _state.update { it.copy(showAddExerciseSheet = false, createError = null) }
+    }
+
+    /**
+     * Create a new custom exercise.
+     *
+     * @param name Exercise name (required)
+     * @param muscleGroup Target muscle group (required)
+     * @param category Exercise category (optional)
+     * @param equipment Equipment needed (optional)
+     * @param difficulty Difficulty level (optional)
+     * @param instructions Exercise instructions (optional)
+     * @param videoUrl Video URL (optional)
+     */
+    fun createCustomExercise(
+        name: String,
+        muscleGroup: String,
+        category: String? = null,
+        equipment: String? = null,
+        difficulty: String? = null,
+        instructions: String? = null,
+        videoUrl: String? = null
+    ) {
+        viewModelScope.launch {
+            _state.update { it.copy(isCreating = true, createError = null) }
+
+            when (val result = exerciseRepository.create(
+                name = name,
+                muscleGroup = muscleGroup,
+                category = category,
+                equipment = equipment,
+                difficulty = difficulty,
+                instructions = instructions,
+                videoUrl = videoUrl
+            )) {
+                is Result.Success -> {
+                    _state.update {
+                        it.copy(
+                            isCreating = false,
+                            showAddExerciseSheet = false,
+                            createError = null
+                        )
+                    }
+                    // The new exercise will appear via the reactive flow from observeAll()
+                }
+                is Result.Error -> {
+                    _state.update {
+                        it.copy(
+                            isCreating = false,
+                            createError = result.exception.message ?: "Failed to create exercise"
+                        )
+                    }
+                }
+                is Result.Loading -> {
+                    // Already handled
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -128,7 +199,11 @@ data class ExerciseLibraryState(
     val searchQuery: String = "",
     val searchResults: List<Exercise>? = null,
     val selectedMuscleGroup: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    // Custom exercise creation state
+    val showAddExerciseSheet: Boolean = false,
+    val isCreating: Boolean = false,
+    val createError: String? = null
 ) {
     /**
      * Get exercises to display based on search and filter state.

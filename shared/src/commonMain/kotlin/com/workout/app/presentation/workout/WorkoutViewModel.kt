@@ -1,6 +1,8 @@
 package com.workout.app.presentation.workout
 
+import com.workout.app.data.repository.SessionExerciseRepository
 import com.workout.app.data.repository.SessionRepository
+import com.workout.app.data.repository.SetRepository
 import com.workout.app.domain.model.Result
 import com.workout.app.presentation.base.ViewModel
 import kotlinx.coroutines.delay
@@ -16,7 +18,9 @@ import kotlinx.coroutines.launch
  */
 class WorkoutViewModel(
     private val sessionId: String,
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
+    private val sessionExerciseRepository: SessionExerciseRepository,
+    private val setRepository: SetRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WorkoutState())
@@ -34,21 +38,46 @@ class WorkoutViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
-            when (val result = sessionRepository.getWithExercises(sessionId)) {
+            // Get session info
+            when (val sessionResult = sessionRepository.getById(sessionId)) {
                 is Result.Success -> {
-                    val sessionData = result.data
-                    if (sessionData.isNotEmpty()) {
-                        val firstSession = sessionData.first()
-                        sessionStartTime = firstSession.startTime
-                        _state.update {
-                            it.copy(
-                                isLoading = false,
-                                sessionName = firstSession.name,
-                                // TODO: Map session exercises to WorkoutExercise
-                                exercises = emptyList(),
-                                currentExerciseIndex = firstSession.currentExerciseIndex.toInt(),
-                                error = null
-                            )
+                    val session = sessionResult.data
+                    if (session != null) {
+                        sessionStartTime = session.startTime
+
+                        // Get session exercises
+                        when (val exercisesResult = sessionExerciseRepository.getBySession(sessionId)) {
+                            is Result.Success -> {
+                                val exercises = exercisesResult.data.map { se ->
+                                    WorkoutExercise(
+                                        id = se.id,
+                                        exerciseId = se.exerciseId,
+                                        name = se.exerciseName,
+                                        muscleGroup = se.muscleGroup,
+                                        targetSets = se.targetSets,
+                                        completedSets = se.completedSets
+                                    )
+                                }
+
+                                _state.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        sessionName = session.name,
+                                        exercises = exercises,
+                                        currentExerciseIndex = session.currentExerciseIndex.toInt(),
+                                        error = null
+                                    )
+                                }
+                            }
+                            is Result.Error -> {
+                                _state.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        error = exercisesResult.exception.message ?: "Failed to load exercises"
+                                    )
+                                }
+                            }
+                            is Result.Loading -> { }
                         }
                     } else {
                         _state.update {
@@ -63,7 +92,7 @@ class WorkoutViewModel(
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            error = result.exception.message ?: "Failed to load session"
+                            error = sessionResult.exception.message ?: "Failed to load session"
                         )
                     }
                 }
@@ -107,7 +136,28 @@ class WorkoutViewModel(
             val currentExercise = currentState.exercises.getOrNull(currentState.currentExerciseIndex)
                 ?: return@launch
 
-            // TODO: Save set to database via WorkoutSet repository
+            // Save set to database
+            val setResult = setRepository.createSet(
+                sessionId = sessionId,
+                sessionExerciseId = currentExercise.id,
+                exerciseId = currentExercise.exerciseId,
+                setNumber = currentExercise.completedSets + 1,
+                weight = currentState.currentWeight.toDouble(),
+                reps = currentState.currentReps,
+                rpe = currentState.currentRPE,
+                isWarmup = false,
+                notes = currentState.currentNotes.takeIf { it.isNotBlank() }
+            )
+
+            if (setResult is Result.Error) {
+                _state.update {
+                    it.copy(error = setResult.exception.message ?: "Failed to save set")
+                }
+                return@launch
+            }
+
+            // Increment completed sets in database
+            sessionExerciseRepository.incrementCompletedSets(currentExercise.id)
 
             // Update UI state
             val updatedExercises = currentState.exercises.toMutableList()
@@ -289,7 +339,8 @@ class WorkoutViewModel(
  * Exercise data for active workout.
  */
 data class WorkoutExercise(
-    val id: String,
+    val id: String,           // SessionExercise ID
+    val exerciseId: String,   // Exercise ID (for saving sets)
     val name: String,
     val muscleGroup: String,
     val targetSets: Int,

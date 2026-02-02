@@ -3,13 +3,20 @@ package com.workout.app.ui.screens.library
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -19,8 +26,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.workout.app.ui.components.exercise.AddCustomExerciseBottomSheet
+import com.workout.app.ui.components.exercise.CustomExerciseFormState
 import com.workout.app.ui.components.exercise.ExerciseLibraryItem
 import com.workout.app.ui.components.exercise.LibraryExercise
 import com.workout.app.ui.components.exercise.MuscleGroupFilters
@@ -28,6 +39,7 @@ import com.workout.app.ui.components.exercise.getMockLibraryExercises
 import com.workout.app.ui.components.headers.SectionHeader
 import com.workout.app.ui.components.inputs.SearchBar
 import com.workout.app.ui.components.navigation.BottomNavBar
+import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.theme.AppTheme
 
 /**
@@ -35,21 +47,26 @@ import com.workout.app.ui.theme.AppTheme
  * Based on mockup AN-12 and elements EL-24 through EL-35.
  *
  * Features:
- * - Library header with title (EL-24)
+ * - Library header with title and add button (EL-24)
  * - Search bar for filtering exercises (EL-25)
  * - Muscle group filter chips (EL-26/27)
  * - Exercise list grouped by category (EL-28)
  * - Exercise items with name, muscle group, favorite star (EL-29)
  * - Custom badge for user-created exercises (EL-31)
  * - More options button (EL-34)
- * - Add to workout FAB (EL-35)
+ * - Add custom exercise bottom sheet
  * - Bottom navigation bar (EL-04)
  *
  * @param onExerciseClick Callback when an exercise is clicked
  * @param onFavoriteToggle Callback when favorite star is clicked
  * @param onMoreOptionsClick Callback when more options button is clicked
  * @param onAddToWorkoutClick Callback when add to workout FAB is clicked
+ * @param onCreateExercise Callback when a custom exercise is created
  * @param onNavigate Callback for bottom navigation
+ * @param showAddExerciseSheet Whether to show the add exercise bottom sheet
+ * @param onShowAddExerciseSheet Callback to show the add exercise sheet
+ * @param onHideAddExerciseSheet Callback to hide the add exercise sheet
+ * @param isCreatingExercise Whether an exercise is being created
  * @param modifier Optional modifier for customization
  */
 @Composable
@@ -58,7 +75,12 @@ fun ExerciseLibraryScreen(
     onFavoriteToggle: (String) -> Unit = {},
     onMoreOptionsClick: (String) -> Unit = {},
     onAddToWorkoutClick: () -> Unit = {},
+    onCreateExercise: (CustomExerciseFormState) -> Unit = {},
     onNavigate: (Int) -> Unit = {},
+    showAddExerciseSheet: Boolean = false,
+    onShowAddExerciseSheet: () -> Unit = {},
+    onHideAddExerciseSheet: () -> Unit = {},
+    isCreatingExercise: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     // State management
@@ -103,8 +125,9 @@ fun ExerciseLibraryScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Library Header (EL-24)
+            // Library Header (EL-24) with Add button
             LibraryHeader(
+                onAddClick = onShowAddExerciseSheet,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = AppTheme.spacing.lg)
@@ -181,31 +204,70 @@ fun ExerciseLibraryScreen(
             }
         }
     }
+
+    // Add Custom Exercise Bottom Sheet
+    M3BottomSheet(
+        visible = showAddExerciseSheet,
+        onDismiss = onHideAddExerciseSheet,
+        skipPartiallyExpanded = true
+    ) {
+        AddCustomExerciseBottomSheet(
+            onSave = onCreateExercise,
+            onCancel = onHideAddExerciseSheet,
+            isLoading = isCreatingExercise
+        )
+    }
 }
 
 /**
- * Library header with title.
+ * Library header with title and add button.
  * Based on mockup element EL-24.
+ *
+ * @param onAddClick Callback when the add button is clicked
+ * @param modifier Modifier for the header
  */
 @Composable
 private fun LibraryHeader(
+    onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Row(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
     ) {
-        Text(
-            text = "Exercise Library",
-            style = MaterialTheme.typography.headlineLarge.copy(
-                fontWeight = FontWeight.Bold
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
+        ) {
+            Text(
+                text = "Exercise Library",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Browse and manage your exercises",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        // Add button
+        IconButton(
+            onClick = onAddClick,
+            colors = IconButtonDefaults.iconButtonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ),
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = "Browse and manage your exercises",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add custom exercise",
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }

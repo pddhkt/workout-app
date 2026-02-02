@@ -38,11 +38,25 @@ interface SessionRepository {
     suspend fun getById(id: String): Result<Session?>
 
     /**
+     * Get a session by workout ID.
+     * @param workoutId Workout ID
+     * @return Result containing the session or null if not found
+     */
+    suspend fun getByWorkoutId(workoutId: String): Result<Session?>
+
+    /**
      * Get session with all its exercises (join query).
      * @param id Session ID
      * @return Result containing session with exercises
      */
     suspend fun getWithExercises(id: String): Result<List<SelectWithExercises>>
+
+    /**
+     * Get exercises with sets for a session.
+     * @param sessionId Session ID
+     * @return Result containing list of exercises with their sets
+     */
+    suspend fun getExercisesWithSets(sessionId: String): Result<List<com.workout.app.domain.model.ExerciseWithSets>>
 
     /**
      * Get all sessions (non-reactive).

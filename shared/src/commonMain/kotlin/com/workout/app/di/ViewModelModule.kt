@@ -1,6 +1,9 @@
 package com.workout.app.di
 
+import com.workout.app.presentation.complete.WorkoutCompleteViewModel
 import com.workout.app.presentation.detail.ExerciseDetailViewModel
+import com.workout.app.presentation.history.SessionDetailViewModel
+import com.workout.app.presentation.history.SessionHistoryViewModel
 import com.workout.app.presentation.home.HomeViewModel
 import com.workout.app.presentation.library.ExerciseLibraryViewModel
 import com.workout.app.presentation.onboarding.OnboardingViewModel
@@ -28,7 +31,8 @@ val viewModelModule = module {
     factory {
         SessionPlanningViewModel(
             exerciseRepository = get(),
-            sessionRepository = get()
+            sessionRepository = get(),
+            sessionExerciseRepository = get()
         )
     }
 
@@ -36,7 +40,9 @@ val viewModelModule = module {
     factory { (sessionId: String) ->
         WorkoutViewModel(
             sessionId = sessionId,
-            sessionRepository = get()
+            sessionRepository = get(),
+            sessionExerciseRepository = get(),
+            setRepository = get()
         )
     }
 
@@ -71,6 +77,33 @@ val viewModelModule = module {
     factory {
         SettingsViewModel(
             settingsRepository = get()
+        )
+    }
+
+    // Session History ViewModel
+    factory {
+        SessionHistoryViewModel(
+            workoutRepository = get()
+        )
+    }
+
+    // Session Detail ViewModel - requires workoutId parameter
+    factory { (workoutId: String) ->
+        SessionDetailViewModel(
+            workoutId = workoutId,
+            workoutRepository = get(),
+            sessionRepository = get()
+        )
+    }
+
+    // Workout Complete ViewModel - requires sessionId parameter
+    factory { (sessionId: String) ->
+        WorkoutCompleteViewModel(
+            sessionId = sessionId,
+            sessionRepository = get(),
+            setRepository = get(),
+            workoutRepository = get(),
+            templateRepository = get()
         )
     }
 }

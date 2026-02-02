@@ -74,3 +74,41 @@ FROM Workout
 WHERE createdAt >= ?
 GROUP BY workoutDate
 ORDER BY workoutDate ASC;
+
+-- Select workouts by month (year-month format: "YYYY-MM")
+selectByMonth:
+SELECT * FROM Workout
+WHERE strftime('%Y-%m', createdAt / 1000, 'unixepoch') = ?
+ORDER BY createdAt DESC;
+
+-- Select distinct months that have workouts
+selectDistinctMonths:
+SELECT DISTINCT strftime('%Y-%m', createdAt / 1000, 'unixepoch') AS month
+FROM Workout
+ORDER BY month DESC;
+
+-- Search workouts by name
+searchWorkouts:
+SELECT * FROM Workout
+WHERE name LIKE '%' || ? || '%'
+ORDER BY createdAt DESC;
+
+-- Get workout count by month
+countByMonth:
+SELECT
+    strftime('%Y-%m', createdAt / 1000, 'unixepoch') AS month,
+    COUNT(*) AS workoutCount,
+    SUM(duration) AS totalDuration,
+    SUM(totalVolume) AS totalVolume
+FROM Workout
+GROUP BY month
+ORDER BY month DESC;
+
+-- Select workouts grouped by month with pagination
+selectAllGrouped:
+SELECT
+    *,
+    strftime('%Y-%m', createdAt / 1000, 'unixepoch') AS month
+FROM Workout
+ORDER BY createdAt DESC
+LIMIT ? OFFSET ?;

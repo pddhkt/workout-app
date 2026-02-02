@@ -24,6 +24,7 @@ import com.workout.app.ui.theme.AppTheme
  *
  * @param visible Whether the bottom sheet is visible
  * @param onDismiss Callback invoked when sheet is dismissed
+ * @param skipPartiallyExpanded Whether to skip the partially expanded state and go straight to full height
  * @param modifier Modifier to be applied to the sheet
  * @param content Bottom sheet content composable
  */
@@ -32,6 +33,7 @@ import com.workout.app.ui.theme.AppTheme
 fun M3BottomSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
+    skipPartiallyExpanded: Boolean = false,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -39,7 +41,7 @@ fun M3BottomSheet(
         ModalBottomSheet(
             onDismissRequest = onDismiss,
             sheetState = rememberModalBottomSheetState(
-                skipPartiallyExpanded = false
+                skipPartiallyExpanded = skipPartiallyExpanded
             ),
             containerColor = MaterialTheme.colorScheme.surface,
             scrimColor = Color.Black.copy(alpha = 0.5f),

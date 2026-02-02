@@ -4,7 +4,11 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.workout.app.database.Session
 import com.workout.app.database.SessionQueries
+import com.workout.app.database.SessionExerciseQueries
+import com.workout.app.database.SetQueries
 import com.workout.app.database.SelectWithExercises
+import com.workout.app.domain.model.ExerciseWithSets
+import com.workout.app.domain.model.SetData
 import com.workout.app.domain.model.Result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -15,7 +19,9 @@ import kotlinx.datetime.Clock
  * Implementation of SessionRepository using SQLDelight.
  */
 class SessionRepositoryImpl(
-    private val sessionQueries: SessionQueries
+    private val sessionQueries: SessionQueries,
+    private val sessionExerciseQueries: SessionExerciseQueries,
+    private val setQueries: SetQueries
 ) : SessionRepository {
 
     override fun observeAll(): Flow<List<Session>> {
@@ -39,6 +45,15 @@ class SessionRepositoryImpl(
     override suspend fun getById(id: String): Result<Session?> = withContext(Dispatchers.Default) {
         try {
             val session = sessionQueries.selectById(id).executeAsOneOrNull()
+            Result.Success(session)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    override suspend fun getByWorkoutId(workoutId: String): Result<Session?> = withContext(Dispatchers.Default) {
+        try {
+            val session = sessionQueries.selectByWorkoutId(workoutId).executeAsOneOrNull()
             Result.Success(session)
         } catch (e: Exception) {
             Result.Error(e)
@@ -155,6 +170,45 @@ class SessionRepositoryImpl(
             Result.Error(e)
         }
     }
+
+    override suspend fun getExercisesWithSets(sessionId: String): Result<List<ExerciseWithSets>> =
+        withContext(Dispatchers.Default) {
+            try {
+                // Get session exercises with joined exercise info
+                val sessionExercises = sessionExerciseQueries.selectBySession(sessionId).executeAsList()
+
+                // Build exercises with sets by querying sets for each exercise
+                val exercises = sessionExercises.map { se ->
+                    // Get sets for this session exercise using the simple query
+                    val setsForExercise = setQueries.selectBySessionExercise(se.id).executeAsList()
+
+                    val exerciseSets = setsForExercise.map { setRow ->
+                        SetData(
+                            id = setRow.id,
+                            setNumber = setRow.setNumber.toInt(),
+                            weight = setRow.weight,
+                            reps = setRow.reps.toInt(),
+                            rpe = setRow.rpe?.toInt(),
+                            isWarmup = setRow.isWarmup == 1L,
+                            completedAt = setRow.completedAt,
+                            isPR = false
+                        )
+                    }.sortedBy { it.setNumber }
+
+                    ExerciseWithSets(
+                        exerciseId = se.exerciseId,
+                        exerciseName = se.exerciseName ?: "Unknown",
+                        muscleGroup = se.exerciseMuscleGroup ?: "Other",
+                        category = se.exerciseCategory,
+                        sets = exerciseSets
+                    )
+                }
+
+                Result.Success(exercises)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
 
     /**
      * Generate a unique ID for a new session.

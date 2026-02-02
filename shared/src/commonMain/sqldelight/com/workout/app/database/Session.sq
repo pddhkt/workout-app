@@ -28,6 +28,10 @@ SELECT * FROM Session ORDER BY startTime DESC;
 selectById:
 SELECT * FROM Session WHERE id = ?;
 
+-- Select by workout ID
+selectByWorkoutId:
+SELECT * FROM Session WHERE workoutId = ?;
+
 -- Select active sessions
 selectActive:
 SELECT * FROM Session WHERE status = 'active' ORDER BY startTime DESC;

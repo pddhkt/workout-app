@@ -68,6 +68,8 @@ data class RecentSession(
  * - Recent Sessions section with session cards
  * - BottomNavBar with Home selected
  *
+ * @param templates List of workout templates to display
+ * @param recentSessions List of recent sessions to display
  * @param onTemplateClick Callback when a template is selected
  * @param onSessionClick Callback when a recent session is selected
  * @param onViewAllTemplates Callback for "View All" templates action
@@ -78,6 +80,8 @@ data class RecentSession(
  */
 @Composable
 fun HomeScreen(
+    templates: List<WorkoutTemplate>,
+    recentSessions: List<RecentSession>,
     onTemplateClick: (String) -> Unit = {},
     onSessionClick: (String) -> Unit = {},
     onViewAllTemplates: () -> Unit = {},
@@ -126,7 +130,7 @@ fun HomeScreen(
 
             // Quick Start Templates
             QuickStartTemplatesSection(
-                templates = getMockTemplates(),
+                templates = templates,
                 onTemplateClick = onTemplateClick,
                 onViewAll = onViewAllTemplates,
                 modifier = Modifier.fillMaxWidth()
@@ -136,7 +140,7 @@ fun HomeScreen(
 
             // Recent Sessions
             RecentSessionsSection(
-                sessions = getMockSessions(),
+                sessions = recentSessions,
                 onSessionClick = onSessionClick,
                 onViewAll = onViewAllSessions,
                 modifier = Modifier
@@ -451,68 +455,9 @@ private fun SessionStat(
 }
 
 /**
- * Mock data: Workout templates
- */
-private fun getMockTemplates(): List<WorkoutTemplate> = listOf(
-    WorkoutTemplate(
-        id = "1",
-        name = "Push Day",
-        exerciseCount = 6,
-        estimatedDuration = "60 min"
-    ),
-    WorkoutTemplate(
-        id = "2",
-        name = "Pull Day",
-        exerciseCount = 5,
-        estimatedDuration = "55 min"
-    ),
-    WorkoutTemplate(
-        id = "3",
-        name = "Leg Day",
-        exerciseCount = 7,
-        estimatedDuration = "70 min"
-    ),
-    WorkoutTemplate(
-        id = "4",
-        name = "Upper Body",
-        exerciseCount = 8,
-        estimatedDuration = "65 min"
-    )
-)
-
-/**
- * Mock data: Recent sessions
- */
-private fun getMockSessions(): List<RecentSession> = listOf(
-    RecentSession(
-        id = "1",
-        workoutName = "Push Day",
-        date = "Today",
-        duration = "58 min",
-        exerciseCount = 6,
-        totalSets = 18
-    ),
-    RecentSession(
-        id = "2",
-        workoutName = "Pull Day",
-        date = "2 days ago",
-        duration = "52 min",
-        exerciseCount = 5,
-        totalSets = 15
-    ),
-    RecentSession(
-        id = "3",
-        workoutName = "Leg Day",
-        date = "4 days ago",
-        duration = "68 min",
-        exerciseCount = 7,
-        totalSets = 21
-    )
-)
-
-/**
  * Mock data: 28-day consistency heatmap
  * Simulates workout frequency with varied intensity
+ * TODO: Load from database via ViewModel
  */
 private fun getMockHeatmapData(): List<HeatmapDay> = buildList {
     // Week 1 - High consistency

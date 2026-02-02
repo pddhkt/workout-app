@@ -1,6 +1,8 @@
 package com.workout.app.presentation.planning
 
+import com.workout.app.data.repository.AddedExerciseInput
 import com.workout.app.data.repository.ExerciseRepository
+import com.workout.app.data.repository.SessionExerciseRepository
 import com.workout.app.data.repository.SessionRepository
 import com.workout.app.database.Exercise
 import com.workout.app.domain.model.Result
@@ -18,7 +20,8 @@ import kotlinx.coroutines.launch
  */
 class SessionPlanningViewModel(
     private val exerciseRepository: ExerciseRepository,
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
+    private val sessionExerciseRepository: SessionExerciseRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SessionPlanningState())
@@ -105,9 +108,39 @@ class SessionPlanningViewModel(
             when (sessionResult) {
                 is Result.Success -> {
                     val sessionId = sessionResult.data
-                    // TODO: Add exercises to session via SessionExercise repository
-                    _state.update { it.copy(isCreatingSession = false) }
-                    Result.Success(sessionId)
+
+                    // Add exercises to session
+                    val exerciseInputs = addedExercises.entries.mapIndexed { index, entry ->
+                        AddedExerciseInput(
+                            exerciseId = entry.key,
+                            targetSets = entry.value.setCount,
+                            orderIndex = index
+                        )
+                    }
+
+                    val addResult = sessionExerciseRepository.addExercisesToSession(
+                        sessionId = sessionId,
+                        exercises = exerciseInputs
+                    )
+
+                    when (addResult) {
+                        is Result.Success -> {
+                            _state.update { it.copy(isCreatingSession = false) }
+                            Result.Success(sessionId)
+                        }
+                        is Result.Error -> {
+                            // Attempt to clean up the created session on failure
+                            sessionRepository.delete(sessionId)
+                            _state.update {
+                                it.copy(
+                                    isCreatingSession = false,
+                                    error = addResult.exception.message ?: "Failed to add exercises"
+                                )
+                            }
+                            addResult
+                        }
+                        is Result.Loading -> Result.Loading
+                    }
                 }
                 is Result.Error -> {
                     _state.update {

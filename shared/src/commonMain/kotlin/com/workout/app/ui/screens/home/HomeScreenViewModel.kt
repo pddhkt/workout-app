@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.workout.app.presentation.home.HomeViewModel
-import com.workout.app.ui.components.dataviz.HeatmapDay
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -12,24 +11,7 @@ import org.koin.compose.koinInject
 
 /**
  * Home Screen with ViewModel integration.
- * This is an example of how to integrate ViewModels with existing screens.
- *
- * Usage in AndroidMain:
- * ```
- * @Composable
- * fun HomeRoute(
- *     onNavigate: (Int) -> Unit,
- *     viewModel: HomeViewModel = koinViewModel()
- * ) {
- *     val state by viewModel.state.collectAsStateWithLifecycle()
- *
- *     HomeScreenWithViewModel(
- *         state = state,
- *         onRefresh = viewModel::refresh,
- *         onNavigate = onNavigate
- *     )
- * }
- * ```
+ * Loads real data from the database and passes it to HomeScreen.
  */
 @Composable
 fun HomeScreenWithViewModel(
@@ -38,7 +20,8 @@ fun HomeScreenWithViewModel(
     onSessionClick: (String) -> Unit = {},
     onViewAllTemplates: () -> Unit = {},
     onViewAllSessions: () -> Unit = {},
-    onNavigate: (Int) -> Unit = {}
+    onNavigate: (Int) -> Unit = {},
+    onAddClick: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -57,20 +40,31 @@ fun HomeScreenWithViewModel(
             id = workout.id,
             workoutName = workout.name,
             date = formatDate(workout.createdAt),
-            duration = "${workout.duration} min",
-            exerciseCount = workout.exerciseCount?.toInt() ?: 0,
-            totalSets = workout.totalSets?.toInt() ?: 0
+            duration = formatDuration(workout.duration),
+            exerciseCount = workout.exerciseCount.toInt(),
+            totalSets = workout.totalSets.toInt()
         )
     }
 
-    // Use the existing HomeScreen composable with data from ViewModel
+    // Pass real data to HomeScreen
     HomeScreen(
+        templates = templates,
+        recentSessions = sessions,
         onTemplateClick = onTemplateClick,
         onSessionClick = onSessionClick,
         onViewAllTemplates = onViewAllTemplates,
         onViewAllSessions = onViewAllSessions,
-        onNavigate = onNavigate
+        onNavigate = onNavigate,
+        onAddClick = onAddClick
     )
+}
+
+/**
+ * Format duration in seconds to readable string.
+ */
+private fun formatDuration(seconds: Long): String {
+    val minutes = seconds / 60
+    return "$minutes min"
 }
 
 /**

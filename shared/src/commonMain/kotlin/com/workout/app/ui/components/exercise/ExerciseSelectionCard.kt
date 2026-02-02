@@ -27,6 +27,7 @@ import com.workout.app.ui.theme.AppTheme
  */
 data class PreviousRecord(
     val date: String,
+    val sets: String,
     val reps: String,
     val weight: String
 )
@@ -141,7 +142,7 @@ private fun HistoryRow(item: PreviousRecord) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "${item.reps} reps • ${item.weight}",
+            text = "${item.sets} sets • ${item.reps} reps • ${item.weight}",
             style = MaterialTheme.typography.bodySmall.copy(
                 fontWeight = FontWeight.Medium
             ),

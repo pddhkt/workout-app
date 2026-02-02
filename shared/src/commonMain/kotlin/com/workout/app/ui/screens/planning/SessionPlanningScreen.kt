@@ -300,9 +300,9 @@ private fun SessionPlanningHeader(
  */
 private fun getMockExercises(): List<Exercise> {
     val history = listOf(
-        PreviousRecord("Jan 19", "8-10", "85-90 kg"),
-        PreviousRecord("Jan 16", "10-12", "80-85 kg"),
-        PreviousRecord("Jan 12", "8", "82.5 kg")
+        PreviousRecord("Jan 19", "3", "8-10", "85-90 kg"),
+        PreviousRecord("Jan 16", "4", "10-12", "80-85 kg"),
+        PreviousRecord("Jan 12", "3", "8", "82.5 kg")
     )
 
     return listOf(
