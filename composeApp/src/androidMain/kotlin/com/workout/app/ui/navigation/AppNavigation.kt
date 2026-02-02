@@ -254,10 +254,11 @@ fun AppNavigation(
                             targetSets = exercise.targetSets,
                             completedSets = exercise.completedSets,
                             sets = List(exercise.targetSets) { index ->
+                                val record = exercise.setRecords.getOrNull(index)
                                 SetInfo(
                                     setNumber = index + 1,
-                                    reps = 0,
-                                    weight = 0f,
+                                    reps = record?.reps ?: 0,
+                                    weight = record?.weight ?: 0f,
                                     state = when {
                                         index < exercise.completedSets -> SetState.COMPLETED
                                         index == exercise.completedSets -> SetState.ACTIVE
@@ -280,6 +281,9 @@ fun AppNavigation(
                     },
                     onSkipSet = { exerciseId ->
                         viewModel.skipSet()
+                    },
+                    onAddExercises = { exerciseIds ->
+                        viewModel.addExercises(exerciseIds)
                     },
                     onEndWorkout = {
                         scope.launch {

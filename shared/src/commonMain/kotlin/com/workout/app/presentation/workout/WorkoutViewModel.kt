@@ -1,8 +1,10 @@
 package com.workout.app.presentation.workout
 
+import com.workout.app.data.repository.AddedExerciseInput
 import com.workout.app.data.repository.SessionExerciseRepository
 import com.workout.app.data.repository.SessionRepository
 import com.workout.app.data.repository.SetRepository
+import com.workout.app.ui.components.exercise.getMockLibraryExercises
 import com.workout.app.domain.model.Result
 import com.workout.app.presentation.base.ViewModel
 import kotlinx.coroutines.delay
@@ -159,10 +161,19 @@ class WorkoutViewModel(
             // Increment completed sets in database
             sessionExerciseRepository.incrementCompletedSets(currentExercise.id)
 
+            // Create set record with current values
+            val setRecord = CompletedSetRecord(
+                setNumber = currentExercise.completedSets + 1,
+                weight = currentState.currentWeight,
+                reps = currentState.currentReps,
+                rpe = currentState.currentRPE
+            )
+
             // Update UI state
             val updatedExercises = currentState.exercises.toMutableList()
             val updated = currentExercise.copy(
-                completedSets = currentExercise.completedSets + 1
+                completedSets = currentExercise.completedSets + 1,
+                setRecords = currentExercise.setRecords + setRecord
             )
             updatedExercises[currentState.currentExerciseIndex] = updated
 
@@ -217,6 +228,43 @@ class WorkoutViewModel(
             currentState.currentExerciseIndex < currentState.exercises.size - 1) {
             _state.update {
                 it.copy(currentExerciseIndex = it.currentExerciseIndex + 1)
+            }
+        }
+    }
+
+    fun addExercises(exerciseIds: List<String>) {
+        viewModelScope.launch {
+            val currentState = _state.value
+            val currentMaxOrder = currentState.exercises.size
+
+            // Create input list for repository
+            val inputs = exerciseIds.mapIndexed { index, exerciseId ->
+                AddedExerciseInput(
+                    exerciseId = exerciseId,
+                    targetSets = 3,
+                    orderIndex = currentMaxOrder + index
+                )
+            }
+
+            // Add to database
+            sessionExerciseRepository.addExercisesToSession(sessionId, inputs)
+
+            // Update UI state with new exercises
+            val newExercises = exerciseIds.mapIndexed { index, exerciseId ->
+                val exercise = getMockLibraryExercises().find { it.id == exerciseId }
+                WorkoutExercise(
+                    id = "${sessionId}_${currentMaxOrder + index}",
+                    exerciseId = exerciseId,
+                    name = exercise?.name ?: "Unknown",
+                    muscleGroup = exercise?.muscleGroup ?: "Other",
+                    targetSets = 3,
+                    completedSets = 0,
+                    setRecords = emptyList()
+                )
+            }
+
+            _state.update {
+                it.copy(exercises = it.exercises + newExercises)
             }
         }
     }
@@ -336,6 +384,16 @@ class WorkoutViewModel(
 }
 
 /**
+ * Record of a completed set with its actual values.
+ */
+data class CompletedSetRecord(
+    val setNumber: Int,
+    val weight: Float,
+    val reps: Int,
+    val rpe: Int?
+)
+
+/**
  * Exercise data for active workout.
  */
 data class WorkoutExercise(
@@ -344,7 +402,8 @@ data class WorkoutExercise(
     val name: String,
     val muscleGroup: String,
     val targetSets: Int,
-    val completedSets: Int = 0
+    val completedSets: Int = 0,
+    val setRecords: List<CompletedSetRecord> = emptyList()
 )
 
 /**

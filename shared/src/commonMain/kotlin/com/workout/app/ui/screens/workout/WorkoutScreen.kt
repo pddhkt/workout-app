@@ -45,15 +45,22 @@ import com.workout.app.ui.components.buttons.PrimaryButton
 import com.workout.app.ui.components.buttons.SecondaryButton
 import com.workout.app.ui.components.chips.SetState
 import com.workout.app.ui.components.dataviz.CompactCircularTimer
-import com.workout.app.ui.components.exercise.ExercisePickerContent
 import com.workout.app.ui.components.exercise.ExerciseSetEditorBottomSheet
 import com.workout.app.ui.components.exercise.ExerciseWorkoutCard
 import com.workout.app.ui.components.exercise.LibraryExercise
+import com.workout.app.ui.components.exercise.MuscleGroupFilters
 import com.workout.app.ui.components.exercise.SetInfo
+import com.workout.app.ui.components.exercise.getMockLibraryExercises
+import com.workout.app.ui.components.cards.BaseCard
+import com.workout.app.ui.components.chips.Badge
+import com.workout.app.ui.components.chips.BadgeVariant
 import com.workout.app.ui.components.inputs.CompactRPESelector
 import com.workout.app.ui.components.inputs.NotesInput
+import com.workout.app.ui.components.inputs.SearchBar
 import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.theme.AppTheme
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.lazy.items
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 
@@ -117,7 +124,7 @@ fun WorkoutScreen(
     onSkipSet: (exerciseId: String) -> Unit = {},
     onExerciseExpand: (exerciseId: String) -> Unit = {},
     onEndWorkout: () -> Unit = {},
-    onAddExercise: (LibraryExercise) -> Unit = {},
+    onAddExercises: (List<String>) -> Unit = {},
     onRemoveExercise: (exerciseId: String) -> Unit = {},
     onReplaceExercise: (exerciseId: String, newExercise: LibraryExercise) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
@@ -319,19 +326,52 @@ fun WorkoutScreen(
                     }
                 }
                 SheetType.ADD_EXERCISE -> {
-                    ExercisePickerContent(
-                        onExerciseSelected = { exercise ->
-                            // Check if we're replacing an exercise
-                            val exerciseToReplace = replacingExerciseId
-                            if (exerciseToReplace != null) {
-                                onReplaceExercise(exerciseToReplace, exercise)
-                                replacingExerciseId = null
-                            } else {
-                                onAddExercise(exercise)
+                    var selectedExercises by remember { mutableStateOf(setOf<String>()) }
+
+                    // Check if we're replacing - use single-select mode
+                    val isReplacing = replacingExerciseId != null
+
+                    if (isReplacing) {
+                        // Single-select mode for replace
+                        SimpleExercisePickerContent(
+                            onExerciseSelected = { exercise ->
+                                val exerciseToReplace = replacingExerciseId
+                                if (exerciseToReplace != null) {
+                                    onReplaceExercise(exerciseToReplace, exercise)
+                                    replacingExerciseId = null
+                                }
+                                activeSheet = null
                             }
-                            activeSheet = null
+                        )
+                    } else {
+                        // Multi-select mode for adding exercises
+                        Column {
+                            MultiSelectExercisePickerForWorkout(
+                                selectedExerciseIds = selectedExercises,
+                                onExerciseToggle = { exercise ->
+                                    selectedExercises = if (selectedExercises.contains(exercise.id)) {
+                                        selectedExercises - exercise.id
+                                    } else {
+                                        selectedExercises + exercise.id
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            // Add button at bottom
+                            PrimaryButton(
+                                text = if (selectedExercises.isEmpty()) "Select Exercises" else "Add ${selectedExercises.size} Exercise(s)",
+                                onClick = {
+                                    onAddExercises(selectedExercises.toList())
+                                    selectedExercises = emptySet()
+                                    activeSheet = null
+                                },
+                                enabled = selectedExercises.isNotEmpty(),
+                                fullWidth = true,
+                                modifier = Modifier.padding(AppTheme.spacing.md)
+                            )
                         }
-                    )
+                    }
                 }
                 SheetType.EXERCISE_OPTIONS -> {
                     val exercise = selectedExerciseForOptions
@@ -411,7 +451,8 @@ private fun SessionHeader(
                 Text(
                     text = workoutName,
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
                 Row(
@@ -496,6 +537,206 @@ private fun formatTime(seconds: Int): String {
     val minutes = seconds / 60
     val secs = seconds % 60
     return "${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}"
+}
+
+/**
+ * Simple single-select exercise picker for replace functionality
+ */
+@Composable
+private fun SimpleExercisePickerContent(
+    exercises: List<LibraryExercise> = getMockLibraryExercises(),
+    onExerciseSelected: (LibraryExercise) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedMuscleGroup by remember { mutableStateOf("All") }
+
+    val filteredExercises = exercises.filter { exercise ->
+        val matchesSearch = exercise.name.contains(searchQuery, ignoreCase = true) ||
+                exercise.muscleGroup.contains(searchQuery, ignoreCase = true)
+        val matchesMuscleGroup = selectedMuscleGroup == "All" ||
+                exercise.muscleGroup == selectedMuscleGroup
+        matchesSearch && matchesMuscleGroup
+    }
+
+    val groupedExercises = filteredExercises.groupBy { it.category }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        Text(
+            text = "Replace Exercise",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+        SearchBar(
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            onSearch = { },
+            placeholder = "Search exercises...",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+        MuscleGroupFilters(
+            selectedMuscleGroup = selectedMuscleGroup,
+            onMuscleGroupSelected = { selectedMuscleGroup = it },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+        ) {
+            groupedExercises.forEach { (_, categoryExercises) ->
+                items(categoryExercises, key = { it.id }) { exercise ->
+                    BaseCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onExerciseSelected(exercise) },
+                        contentPadding = AppTheme.spacing.md
+                    ) {
+                        Column {
+                            Text(
+                                text = exercise.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = exercise.muscleGroup,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Multi-select exercise picker for adding exercises to workout
+ */
+@Composable
+private fun MultiSelectExercisePickerForWorkout(
+    exercises: List<LibraryExercise> = getMockLibraryExercises(),
+    selectedExerciseIds: Set<String>,
+    onExerciseToggle: (LibraryExercise) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedMuscleGroup by remember { mutableStateOf("All") }
+
+    val filteredExercises = exercises.filter { exercise ->
+        val matchesSearch = exercise.name.contains(searchQuery, ignoreCase = true) ||
+                exercise.muscleGroup.contains(searchQuery, ignoreCase = true)
+        val matchesMuscleGroup = selectedMuscleGroup == "All" ||
+                exercise.muscleGroup == selectedMuscleGroup
+        matchesSearch && matchesMuscleGroup
+    }
+
+    val groupedExercises = filteredExercises.groupBy { it.category }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        Text(
+            text = "Add Exercises",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+        SearchBar(
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            onSearch = { },
+            placeholder = "Search exercises...",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+        MuscleGroupFilters(
+            selectedMuscleGroup = selectedMuscleGroup,
+            onMuscleGroupSelected = { selectedMuscleGroup = it },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+        ) {
+            groupedExercises.forEach { (_, categoryExercises) ->
+                items(categoryExercises, key = { it.id }) { exercise ->
+                    val isSelected = selectedExerciseIds.contains(exercise.id)
+
+                    BaseCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onExerciseToggle(exercise) },
+                        contentPadding = AppTheme.spacing.md,
+                        border = if (isSelected) {
+                            androidx.compose.foundation.BorderStroke(
+                                width = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else null
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = exercise.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    if (exercise.isCustom) {
+                                        Badge(text = "Custom", variant = BadgeVariant.INFO)
+                                    }
+                                }
+                                Text(
+                                    text = exercise.muscleGroup,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Mock data for previews
