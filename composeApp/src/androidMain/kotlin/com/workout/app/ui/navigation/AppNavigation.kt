@@ -151,16 +151,18 @@ fun AppNavigation(
         // Session Planning (FT-013)
         composable(Route.SessionPlanning.route) {
             val viewModel: SessionPlanningViewModel = koinInject()
+            val state by viewModel.state.collectAsStateWithLifecycle()
             val scope = rememberCoroutineScope()
 
             SessionPlanningScreen(
+                state = state,
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onTemplatesClick = {
                     navController.navigateToTemplates()
                 },
-                onStartSession = { addedExercises ->
+                onStartSession = {
                     scope.launch {
                         when (val result = viewModel.createSession("Workout")) {
                             is Result.Success -> {
@@ -174,7 +176,9 @@ fun AppNavigation(
                             is Result.Loading -> { }
                         }
                     }
-                }
+                },
+                onToggleExercise = viewModel::toggleExercise,
+                onAddExercise = viewModel::addExercise
             )
         }
 
@@ -189,9 +193,11 @@ fun AppNavigation(
         ) { backStackEntry ->
             val templateId = backStackEntry.arguments?.getString(Route.SessionPlanningWithTemplate.ARG_TEMPLATE_ID)
             val viewModel: SessionPlanningViewModel = koinInject()
+            val state by viewModel.state.collectAsStateWithLifecycle()
             val scope = rememberCoroutineScope()
 
             SessionPlanningScreen(
+                state = state,
                 templateId = templateId,
                 onBackClick = {
                     navController.popBackStack()
@@ -199,7 +205,7 @@ fun AppNavigation(
                 onTemplatesClick = {
                     navController.navigateToTemplates()
                 },
-                onStartSession = { addedExercises ->
+                onStartSession = {
                     scope.launch {
                         when (val result = viewModel.createSession("Workout")) {
                             is Result.Success -> {
@@ -213,7 +219,9 @@ fun AppNavigation(
                             is Result.Loading -> { }
                         }
                     }
-                }
+                },
+                onToggleExercise = viewModel::toggleExercise,
+                onAddExercise = viewModel::addExercise
             )
         }
 
