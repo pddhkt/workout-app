@@ -42,7 +42,7 @@ sealed class Route(val route: String) {
         if (sessionId != null) "workout/$sessionId" else "workout"
     ) {
         companion object {
-            const val ROUTE = "workout?sessionId={sessionId}"
+            const val ROUTE = "workout/{sessionId}"
             const val ARG_SESSION_ID = "sessionId"
         }
     }
