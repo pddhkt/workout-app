@@ -74,7 +74,8 @@ class WorkoutRepositoryImpl(
         isPartnerWorkout: Boolean,
         totalVolume: Long,
         totalSets: Long,
-        exerciseCount: Long
+        exerciseCount: Long,
+        exerciseNames: String?
     ): Result<String> = withContext(Dispatchers.Default) {
         try {
             val id = generateId()
@@ -89,7 +90,8 @@ class WorkoutRepositoryImpl(
                 isPartnerWorkout = if (isPartnerWorkout) 1 else 0,
                 totalVolume = totalVolume,
                 totalSets = totalSets,
-                exerciseCount = exerciseCount
+                exerciseCount = exerciseCount,
+                exerciseNames = exerciseNames
             )
 
             Result.Success(id)
@@ -108,6 +110,7 @@ class WorkoutRepositoryImpl(
                 totalVolume = workout.totalVolume,
                 totalSets = workout.totalSets,
                 exerciseCount = workout.exerciseCount,
+                exerciseNames = workout.exerciseNames,
                 id = workout.id
             )
 

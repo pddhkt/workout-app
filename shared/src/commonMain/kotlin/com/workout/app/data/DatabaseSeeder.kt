@@ -369,7 +369,8 @@ class DatabaseSeeder(
             isPartnerWorkout = 0,
             totalVolume = 8500,
             totalSets = 18,
-            exerciseCount = 6
+            exerciseCount = 6,
+            exerciseNames = "Bench Press, Incline Dumbbell Press, Shoulder Press, Cable Fly, Lateral Raise, Tricep Pushdown"
         )
 
         // Create Session
@@ -450,7 +451,8 @@ class DatabaseSeeder(
             isPartnerWorkout = 0,
             totalVolume = 7200,
             totalSets = 15,
-            exerciseCount = 5
+            exerciseCount = 5,
+            exerciseNames = "Lat Pulldown, Barbell Row, Seated Cable Row, Barbell Curl, Hammer Curl"
         )
 
         sessionQueries.insert(
@@ -521,7 +523,8 @@ class DatabaseSeeder(
             isPartnerWorkout = 0,
             totalVolume = 12450,
             totalSets = 21,
-            exerciseCount = 7
+            exerciseCount = 7,
+            exerciseNames = "Barbell Squat, Leg Press, Romanian Deadlift, Leg Curl, Leg Extension, Calf Raise, Lateral Raise"
         )
 
         sessionQueries.insert(

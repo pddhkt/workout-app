@@ -57,6 +57,7 @@ interface WorkoutRepository {
      * @param totalVolume Total weight lifted in kg
      * @param totalSets Total number of sets completed
      * @param exerciseCount Number of exercises performed
+     * @param exerciseNames Comma-separated list of exercise names for display
      * @return Result containing the created workout ID
      */
     suspend fun create(
@@ -66,7 +67,8 @@ interface WorkoutRepository {
         isPartnerWorkout: Boolean = false,
         totalVolume: Long = 0,
         totalSets: Long = 0,
-        exerciseCount: Long = 0
+        exerciseCount: Long = 0,
+        exerciseNames: String? = null
     ): Result<String>
 
     /**

@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.components.cards.ElevatedCard
 import com.workout.app.ui.components.dataviz.ConsistencyHeatmap
@@ -59,7 +60,8 @@ data class RecentSession(
     val date: String,
     val duration: String,
     val exerciseCount: Int,
-    val totalSets: Int
+    val totalSets: Int,
+    val exerciseNames: String? = null
 )
 
 /**
@@ -460,6 +462,19 @@ private fun RecentSessionCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            // Exercise names or fallback to count
+            Text(
+                text = if (!session.exerciseNames.isNullOrBlank()) {
+                    session.exerciseNames
+                } else {
+                    "${session.exerciseCount} exercises"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
 
             // Session stats
             Row(

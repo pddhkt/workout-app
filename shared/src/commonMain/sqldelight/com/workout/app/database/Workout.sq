@@ -9,7 +9,8 @@ CREATE TABLE Workout (
     isPartnerWorkout INTEGER NOT NULL DEFAULT 0,
     totalVolume INTEGER NOT NULL DEFAULT 0, -- Total weight lifted in kg
     totalSets INTEGER NOT NULL DEFAULT 0,
-    exerciseCount INTEGER NOT NULL DEFAULT 0
+    exerciseCount INTEGER NOT NULL DEFAULT 0,
+    exerciseNames TEXT -- Comma-separated exercise names for display
 );
 
 -- Index for recent workouts
@@ -37,8 +38,8 @@ ORDER BY createdAt DESC;
 
 -- Insert workout
 insert:
-INSERT INTO Workout (id, name, createdAt, duration, notes, isPartnerWorkout, totalVolume, totalSets, exerciseCount)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO Workout (id, name, createdAt, duration, notes, isPartnerWorkout, totalVolume, totalSets, exerciseCount, exerciseNames)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Update workout
 update:
@@ -49,7 +50,8 @@ UPDATE Workout SET
     isPartnerWorkout = ?,
     totalVolume = ?,
     totalSets = ?,
-    exerciseCount = ?
+    exerciseCount = ?,
+    exerciseNames = ?
 WHERE id = ?;
 
 -- Delete workout

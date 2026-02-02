@@ -42,7 +42,8 @@ fun HomeScreenWithViewModel(
             date = formatDate(workout.createdAt),
             duration = formatDuration(workout.duration),
             exerciseCount = workout.exerciseCount.toInt(),
-            totalSets = workout.totalSets.toInt()
+            totalSets = workout.totalSets.toInt(),
+            exerciseNames = workout.exerciseNames
         )
     }
 
