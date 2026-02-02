@@ -93,7 +93,7 @@ data class ExerciseData(
 )
 
 private enum class SheetType {
-    OPTIONS, SET_EDITOR, ADD_EXERCISE, EXERCISE_OPTIONS
+    OPTIONS, SET_EDITOR, ADD_EXERCISE, EXERCISE_OPTIONS, FINISH_CONFIRM
 }
 
 /**
@@ -120,7 +120,7 @@ private enum class SheetType {
 @Composable
 fun WorkoutScreen(
     session: WorkoutSession,
-    onCompleteSet: (exerciseId: String, reps: Int, weight: Float, rpe: Int?) -> Unit = { _, _, _, _ -> },
+    onCompleteSet: (exerciseId: String, setNumber: Int, reps: Int, weight: Float, rpe: Int?) -> Unit = { _, _, _, _, _ -> },
     onSkipSet: (exerciseId: String) -> Unit = {},
     onExerciseExpand: (exerciseId: String) -> Unit = {},
     onEndWorkout: () -> Unit = {},
@@ -232,10 +232,11 @@ fun WorkoutScreen(
                     )
                 }
 
-                // Add Exercise Button
+                // Action Buttons (Add Exercise + Complete Workout)
                 item {
-                    AddExerciseButton(
-                        onClick = { activeSheet = SheetType.ADD_EXERCISE }
+                    WorkoutActionButtons(
+                        onAddExerciseClick = { activeSheet = SheetType.ADD_EXERCISE },
+                        onCompleteWorkoutClick = { activeSheet = SheetType.FINISH_CONFIRM }
                     )
                 }
 
@@ -263,15 +264,6 @@ fun WorkoutScreen(
                             modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
                         )
 
-                        PrimaryButton(
-                            text = "Finish Workout",
-                            onClick = {
-                                activeSheet = null
-                                onEndWorkout()
-                            },
-                            fullWidth = true
-                        )
-
                         SecondaryButton(
                             text = "Save & Exit",
                             onClick = {
@@ -282,7 +274,7 @@ fun WorkoutScreen(
                         )
 
                         SecondaryButton(
-                            text = "Cancel Workout",
+                            text = "Cancel",
                             onClick = {
                                 activeSheet = null
                             },
@@ -311,7 +303,7 @@ fun WorkoutScreen(
                                 activeSheet = null 
                             },
                             onCompleteSet = {
-                                onCompleteSet(currentExercise.id, currentReps, currentWeight, currentRPE)
+                                onCompleteSet(currentExercise.id, editingSetNumber, currentReps, currentWeight, currentRPE)
                                 activeSheet = null
 
                                 // Logic to advance set/exercise is in parent/viewmodel usually,
@@ -417,6 +409,37 @@ fun WorkoutScreen(
                         }
                     }
                 }
+                SheetType.FINISH_CONFIRM -> {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                    ) {
+                        Text(
+                            text = "Finish Workout?",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Are you sure you want to finish this workout? Your progress will be saved.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+                        PrimaryButton(
+                            text = "Finish Workout",
+                            onClick = {
+                                activeSheet = null
+                                onEndWorkout()
+                            },
+                            fullWidth = true
+                        )
+                        SecondaryButton(
+                            text = "Cancel",
+                            onClick = { activeSheet = null },
+                            fullWidth = true
+                        )
+                    }
+                }
                 null -> {}
             }
         }
@@ -494,39 +517,53 @@ private fun SessionHeader(
 }
 
 /**
- * Add Exercise button that appears at the end of the exercise list
+ * Workout action buttons (Add Exercise + Complete Workout)
  */
 @Composable
-private fun AddExerciseButton(
-    onClick: () -> Unit,
+private fun WorkoutActionButtons(
+    onAddExerciseClick: () -> Unit,
+    onCompleteWorkoutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .clickable(onClick = onClick)
-            .padding(AppTheme.spacing.md),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
+        // Add Exercise button
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .clickable(onClick = onAddExerciseClick)
+                .padding(AppTheme.spacing.md),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Text(
-                text = "Add Exercise",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "Add Exercise",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
+
+        // Complete Workout button
+        PrimaryButton(
+            text = "Complete Workout",
+            onClick = onCompleteWorkoutClick,
+            fullWidth = true
+        )
     }
 }
 

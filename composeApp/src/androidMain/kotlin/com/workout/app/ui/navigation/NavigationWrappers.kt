@@ -74,7 +74,7 @@ fun WorkoutScreen(
 
     WorkoutScreen(
         session = session,
-        onCompleteSet = { _, _, _, _ ->
+        onCompleteSet = { _, _, _, _, _ ->
             // TODO: Handle set completion
         },
         onSkipSet = { _ ->

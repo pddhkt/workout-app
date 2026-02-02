@@ -132,7 +132,7 @@ class WorkoutViewModel(
         _state.update { it.copy(currentNotes = notes) }
     }
 
-    fun completeSet() {
+    fun completeSet(setNumber: Int) {
         viewModelScope.launch {
             val currentState = _state.value
             val currentExercise = currentState.exercises.getOrNull(currentState.currentExerciseIndex)
@@ -143,7 +143,7 @@ class WorkoutViewModel(
                 sessionId = sessionId,
                 sessionExerciseId = currentExercise.id,
                 exerciseId = currentExercise.exerciseId,
-                setNumber = currentExercise.completedSets + 1,
+                setNumber = setNumber,
                 weight = currentState.currentWeight.toDouble(),
                 reps = currentState.currentReps,
                 rpe = currentState.currentRPE,
@@ -163,7 +163,7 @@ class WorkoutViewModel(
 
             // Create set record with current values
             val setRecord = CompletedSetRecord(
-                setNumber = currentExercise.completedSets + 1,
+                setNumber = setNumber,
                 weight = currentState.currentWeight,
                 reps = currentState.currentReps,
                 rpe = currentState.currentRPE

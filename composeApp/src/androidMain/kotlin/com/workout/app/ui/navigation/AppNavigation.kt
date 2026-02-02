@@ -273,11 +273,11 @@ fun AppNavigation(
 
                 WorkoutScreen(
                     session = session,
-                    onCompleteSet = { exerciseId, reps, weight, rpe ->
+                    onCompleteSet = { exerciseId, setNumber, reps, weight, rpe ->
                         viewModel.updateReps(reps)
                         viewModel.updateWeight(weight)
                         viewModel.updateRPE(rpe)
-                        viewModel.completeSet()
+                        viewModel.completeSet(setNumber)
                     },
                     onSkipSet = { exerciseId ->
                         viewModel.skipSet()
