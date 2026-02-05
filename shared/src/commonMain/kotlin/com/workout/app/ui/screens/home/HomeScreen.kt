@@ -18,13 +18,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +31,6 @@ import com.workout.app.ui.components.cards.ElevatedCard
 import com.workout.app.ui.components.dataviz.ConsistencyHeatmap
 import com.workout.app.ui.components.dataviz.HeatmapDay
 import com.workout.app.ui.components.headers.SectionHeaderWithAction
-import com.workout.app.ui.components.navigation.BottomNavBar
 import com.workout.app.ui.theme.AppTheme
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -93,80 +88,53 @@ fun HomeScreen(
     onSessionClick: (String) -> Unit = {},
     onViewAllTemplates: () -> Unit = {},
     onViewAllSessions: () -> Unit = {},
-    onNavigate: (Int) -> Unit = {},
-    onAddClick: () -> Unit = {},
     heatmapData: List<HeatmapDay> = emptyList(),
-    activeSessionId: String? = null,
-    activeSessionStartTime: Long? = null,
-    isSessionMinimized: Boolean = false,
-    onResumeSession: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var selectedNavIndex by remember { mutableIntStateOf(0) }
-
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            BottomNavBar(
-                selectedIndex = selectedNavIndex,
-                onItemSelected = { index ->
-                    selectedNavIndex = index
-                    onNavigate(index)
-                },
-                onAddClick = onAddClick,
-                activeSessionId = activeSessionId,
-                activeSessionStartTime = activeSessionStartTime,
-                isSessionMinimized = isSessionMinimized,
-                onResumeSession = onResumeSession
-            )
-        }
-    ) { paddingValues ->
-        Column(
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        // Header with greeting and date
+        HomeHeader(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Header with greeting and date
-            HomeHeader(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppTheme.spacing.lg)
-                    .padding(top = AppTheme.spacing.xl)
-            )
+                .fillMaxWidth()
+                .padding(horizontal = AppTheme.spacing.lg)
+                .padding(top = AppTheme.spacing.xl)
+        )
 
-            Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
+        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
 
-            // Consistency Heatmap (full width with internal scroll)
-            ConsistencyHeatmapSection(
-                heatmapData = heatmapData,
-                modifier = Modifier.fillMaxWidth()
-            )
+        // Consistency Heatmap (full width with internal scroll)
+        ConsistencyHeatmapSection(
+            heatmapData = heatmapData,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-            Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
+        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
 
-            // Quick Start Templates
-            QuickStartTemplatesSection(
-                templates = templates,
-                onTemplateClick = onTemplateClick,
-                onViewAll = onViewAllTemplates,
-                modifier = Modifier.fillMaxWidth()
-            )
+        // Quick Start Templates
+        QuickStartTemplatesSection(
+            templates = templates,
+            onTemplateClick = onTemplateClick,
+            onViewAll = onViewAllTemplates,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-            Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
+        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
 
-            // Recent Sessions
-            RecentSessionsSection(
-                sessions = recentSessions,
-                onSessionClick = onSessionClick,
-                onViewAll = onViewAllSessions,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppTheme.spacing.lg)
-            )
+        // Recent Sessions
+        RecentSessionsSection(
+            sessions = recentSessions,
+            onSessionClick = onSessionClick,
+            onViewAll = onViewAllSessions,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppTheme.spacing.lg)
+        )
 
-            Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
-        }
+        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
     }
 }
 

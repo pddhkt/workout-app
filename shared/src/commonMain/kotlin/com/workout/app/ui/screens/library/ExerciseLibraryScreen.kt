@@ -18,11 +18,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,7 +35,6 @@ import com.workout.app.ui.components.exercise.LibraryExercise
 import com.workout.app.ui.components.exercise.MuscleGroupFilters
 import com.workout.app.ui.components.headers.SectionHeader
 import com.workout.app.ui.components.inputs.SearchBar
-import com.workout.app.ui.components.navigation.BottomNavBar
 import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.theme.AppTheme
 
@@ -73,24 +70,17 @@ fun ExerciseLibraryScreen(
     onExerciseClick: (String) -> Unit = {},
     onFavoriteToggle: (String) -> Unit = {},
     onMoreOptionsClick: (String) -> Unit = {},
-    onAddToWorkoutClick: () -> Unit = {},
     onCreateExercise: (CustomExerciseFormState) -> Unit = {},
-    onNavigate: (Int) -> Unit = {},
     showAddExerciseSheet: Boolean = false,
     onShowAddExerciseSheet: () -> Unit = {},
     onHideAddExerciseSheet: () -> Unit = {},
     exercises: List<LibraryExercise> = emptyList(),
     isCreatingExercise: Boolean = false,
-    activeSessionId: String? = null,
-    activeSessionStartTime: Long? = null,
-    isSessionMinimized: Boolean = false,
-    onResumeSession: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // State management
     var searchQuery by remember { mutableStateOf("") }
     var selectedMuscleGroup by remember { mutableStateOf("All") }
-    var selectedNavIndex by remember { mutableIntStateOf(1) } // Library tab selected
     var favoriteExercises by remember { mutableStateOf(setOf<String>()) }
 
     // Filter exercises by search query and muscle group
@@ -108,103 +98,83 @@ fun ExerciseLibraryScreen(
     // Group exercises by category
     val groupedExercises = filteredExercises.groupBy { it.category }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            BottomNavBar(
-                selectedIndex = selectedNavIndex,
-                onItemSelected = { index ->
-                    selectedNavIndex = index
-                    onNavigate(index)
-                },
-                onAddClick = onAddToWorkoutClick,
-                activeSessionId = activeSessionId,
-                activeSessionStartTime = activeSessionStartTime,
-                isSessionMinimized = isSessionMinimized,
-                onResumeSession = onResumeSession
-            )
-        }
-    ) { paddingValues ->
-        Column(
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
+        // Library Header (EL-24) with Add button
+        LibraryHeader(
+            onAddClick = onShowAddExerciseSheet,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppTheme.spacing.lg)
+                .padding(top = AppTheme.spacing.xl, bottom = AppTheme.spacing.md)
+        )
+
+        // Search Bar (EL-25)
+        SearchBar(
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            onSearch = { /* Handle search action */ },
+            placeholder = "Search exercises...",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppTheme.spacing.lg)
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
+
+        // Filter Chips (EL-26/27)
+        MuscleGroupFilters(
+            selectedMuscleGroup = selectedMuscleGroup,
+            onMuscleGroupSelected = { selectedMuscleGroup = it },
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = AppTheme.spacing.lg)
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
+
+        // Exercise List grouped by category
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .weight(1f),
+            contentPadding = PaddingValues(
+                start = AppTheme.spacing.lg,
+                end = AppTheme.spacing.lg,
+                bottom = AppTheme.spacing.xl
+            )
         ) {
-            // Library Header (EL-24) with Add button
-            LibraryHeader(
-                onAddClick = onShowAddExerciseSheet,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppTheme.spacing.lg)
-                    .padding(top = AppTheme.spacing.xl, bottom = AppTheme.spacing.md)
-            )
-
-            // Search Bar (EL-25)
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = { searchQuery = it },
-                onSearch = { /* Handle search action */ },
-                placeholder = "Search exercises...",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppTheme.spacing.lg)
-            )
-
-            Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
-
-            // Filter Chips (EL-26/27)
-            MuscleGroupFilters(
-                selectedMuscleGroup = selectedMuscleGroup,
-                onMuscleGroupSelected = { selectedMuscleGroup = it },
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = AppTheme.spacing.lg)
-            )
-
-            Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
-
-            // Exercise List grouped by category
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentPadding = PaddingValues(
-                    start = AppTheme.spacing.lg,
-                    end = AppTheme.spacing.lg,
-                    bottom = AppTheme.spacing.xl
-                )
-            ) {
-                groupedExercises.forEach { (category, categoryExercises) ->
-                    item(key = "header_$category") {
-                        // Section Title (EL-28)
-                        SectionHeader(
-                            title = category,
-                            modifier = Modifier.padding(
-                                top = AppTheme.spacing.md,
-                                bottom = AppTheme.spacing.md
-                            )
+            groupedExercises.forEach { (category, categoryExercises) ->
+                item(key = "header_$category") {
+                    // Section Title (EL-28)
+                    SectionHeader(
+                        title = category,
+                        modifier = Modifier.padding(
+                            top = AppTheme.spacing.md,
+                            bottom = AppTheme.spacing.md
                         )
-                    }
+                    )
+                }
 
-                    items(
-                        items = categoryExercises,
-                        key = { it.id }
-                    ) { exercise ->
-                        ExerciseLibraryItem(
-                            exercise = exercise,
-                            isFavorite = favoriteExercises.contains(exercise.id) || exercise.isFavorite,
-                            onExerciseClick = { onExerciseClick(exercise.id) },
-                            onFavoriteToggle = {
-                                favoriteExercises = if (favoriteExercises.contains(exercise.id)) {
-                                    favoriteExercises - exercise.id
-                                } else {
-                                    favoriteExercises + exercise.id
-                                }
-                                onFavoriteToggle(exercise.id)
-                            },
-                            onMoreOptionsClick = { onMoreOptionsClick(exercise.id) },
-                            modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
-                        )
-                    }
+                items(
+                    items = categoryExercises,
+                    key = { it.id }
+                ) { exercise ->
+                    ExerciseLibraryItem(
+                        exercise = exercise,
+                        isFavorite = favoriteExercises.contains(exercise.id) || exercise.isFavorite,
+                        onExerciseClick = { onExerciseClick(exercise.id) },
+                        onFavoriteToggle = {
+                            favoriteExercises = if (favoriteExercises.contains(exercise.id)) {
+                                favoriteExercises - exercise.id
+                            } else {
+                                favoriteExercises + exercise.id
+                            }
+                            onFavoriteToggle(exercise.id)
+                        },
+                        onMoreOptionsClick = { onMoreOptionsClick(exercise.id) },
+                        modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
+                    )
                 }
             }
         }
