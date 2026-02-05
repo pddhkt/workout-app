@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,6 +49,7 @@ import com.workout.app.ui.screens.workout.WorkoutScreen
  * @param onEnterReorderMode Callback when entering reorder mode
  * @param onExitReorderMode Callback when exiting reorder mode
  * @param onEndWorkout Callback when ending the workout
+ * @param bottomNavHeight Height of the bottom navigation bar (for proper positioning when minimized)
  * @param modifier Modifier for the overlay container
  */
 @Composable
@@ -71,9 +73,11 @@ fun WorkoutOverlay(
     onEnterReorderMode: () -> Unit,
     onExitReorderMode: () -> Unit,
     onEndWorkout: () -> Unit,
+    bottomNavHeight: Int = 80,
     modifier: Modifier = Modifier
 ) {
-    val minimizedHeight = 64.dp
+    val minimizedHeight = 56.dp
+    val bottomNavHeightDp = bottomNavHeight.dp
 
     // Use BoxWithConstraints to get the available height
     BoxWithConstraints(
@@ -112,11 +116,22 @@ fun WorkoutOverlay(
             label = "minimizedAlpha"
         )
 
+        // Animate bottom padding for proper positioning above bottom nav
+        val bottomPadding by animateDpAsState(
+            targetValue = if (isExpanded) 0.dp else bottomNavHeightDp,
+            animationSpec = tween(
+                durationMillis = 450,
+                easing = FastOutSlowInEasing
+            ),
+            label = "bottomPadding"
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(bottom = bottomPadding)
                 .height(targetHeight)
-                .background(MaterialTheme.colorScheme.background)
+                .background(if (isExpanded) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface)
                 .align(Alignment.BottomCenter)
         ) {
             // Full workout content (fades out when collapsing)

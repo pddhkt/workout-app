@@ -1,10 +1,5 @@
 package com.workout.app.ui.components.navigation
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,14 +11,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -38,26 +30,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
-import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
 
 /**
  * Navigation item data class.
@@ -75,22 +57,19 @@ data class NavItem(
 )
 
 /**
- * Bottom navigation bar with 4 navigation items and a center floating action button.
- * Layout: Home | Library | [Plan FAB / Active Session Pill] | Template | Profile
+ * Bottom navigation bar with 4 navigation items and a center workout button.
+ * Layout: Home | Library | [Workout +] | Template | Profile
  *
- * When an active session exists and is NOT minimized, the center FAB transforms into a pill
- * showing a pulsing green dot, elapsed time, and "Resume" text.
+ * Flat design with icons and labels below each item.
+ * The center Workout button has a highlighted blue circle with + icon.
  *
- * When the session IS minimized, the MinimizedWorkoutBar appears above this nav bar instead,
- * so the pill is hidden and the FAB is shown.
- *
- * @param selectedIndex Currently selected item index (0-3)
+ * @param selectedIndex Currently selected item index (0-3, excluding center)
  * @param onItemSelected Callback invoked when a navigation item is clicked
- * @param onAddClick Callback invoked when the center planning button is clicked
+ * @param onAddClick Callback invoked when the center workout button is clicked
  * @param activeSessionId Active session ID if a workout is in progress, null otherwise
  * @param activeSessionStartTime Start time of the active session in epoch millis
  * @param isSessionMinimized Whether the workout session is in minimized state (bar shown above)
- * @param onResumeSession Callback invoked when the active session pill is tapped
+ * @param onResumeSession Callback invoked when the active session is resumed
  * @param modifier Modifier to be applied to the navigation bar
  * @param items Custom navigation items (defaults to standard 4-item layout)
  */
@@ -106,214 +85,87 @@ fun BottomNavBar(
     modifier: Modifier = Modifier,
     items: List<NavItem> = defaultNavItems()
 ) {
-    val islandShape = RoundedCornerShape(32.dp)
-    val fabSize = 56.dp
-    val fabOffset = (-20).dp
-    // Show pill only when active session exists AND is NOT minimized
-    val hasActiveSession = activeSessionId != null && !isSessionMinimized
+    val fabSize = 48.dp
 
-    // Pill width when active session is shown
-    val pillShape = RoundedCornerShape(28.dp)
-
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.surface)
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(start = AppTheme.spacing.lg, end = AppTheme.spacing.lg, bottom = AppTheme.spacing.md)
+            .padding(vertical = AppTheme.spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        // Navigation bar island
-        Row(
+        // Left side: First 2 items (Home, Library)
+        items.take(2).forEachIndexed { index, item ->
+            NavBarItem(
+                selected = selectedIndex == index,
+                onClick = { onItemSelected(index) },
+                icon = if (selectedIndex == index) item.selectedIcon else item.unselectedIcon,
+                label = item.label,
+                contentDescription = item.contentDescription,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Center: Workout button with + icon
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .shadow(
-                    elevation = 4.dp,
-                    shape = islandShape,
-                    ambientColor = Color.Black.copy(alpha = 0.1f),
-                    spotColor = Color.Black.copy(alpha = 0.15f)
-                )
-                .clip(islandShape)
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(
-                    horizontal = AppTheme.spacing.lg,
-                    vertical = AppTheme.spacing.sm
-                ),
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f),
+            contentAlignment = Alignment.Center
         ) {
-            // Left side: Home, Library
-            items.take(2).forEachIndexed { index, item ->
-                NavBarItem(
-                    selected = selectedIndex == index,
-                    onClick = { onItemSelected(index) },
-                    icon = if (selectedIndex == index) item.selectedIcon else item.unselectedIcon,
-                    label = item.label,
-                    contentDescription = item.contentDescription,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            // Center spacer for FAB/Pill
-            val centerWidth = if (hasActiveSession) 140.dp else fabSize + AppTheme.spacing.md
-            Spacer(modifier = Modifier.width(centerWidth))
-
-            // Right side: Template, Profile
-            items.drop(2).forEachIndexed { index, item ->
-                val actualIndex = index + 2
-                NavBarItem(
-                    selected = selectedIndex == actualIndex,
-                    onClick = { onItemSelected(actualIndex) },
-                    icon = if (selectedIndex == actualIndex) item.selectedIcon else item.unselectedIcon,
-                    label = item.label,
-                    contentDescription = item.contentDescription,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        if (hasActiveSession && activeSessionStartTime != null) {
-            // Active Session Pill
-            ActiveSessionPill(
-                startTime = activeSessionStartTime,
-                onClick = onResumeSession,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = fabOffset)
-            )
-        } else {
-            // Floating Add Button (centered, raised)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = fabOffset)
-                    .size(fabSize)
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = CircleShape,
-                        ambientColor = Color.Black.copy(alpha = 0.15f),
-                        spotColor = Color.Black.copy(alpha = 0.2f)
-                    )
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onAddClick
-                    )
-                    .semantics {
-                        contentDescription = "Start planning session"
-                    },
-                contentAlignment = Alignment.Center
+            androidx.compose.foundation.layout.Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp),
-                    tint = MaterialTheme.colorScheme.onPrimary
+                Box(
+                    modifier = Modifier
+                        .size(fabSize)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onAddClick
+                        )
+                        .semantics {
+                            contentDescription = "Start workout"
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Workout",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
-    }
-}
 
-/**
- * Active session pill showing pulsing dot, elapsed time, and "Resume" text.
- */
-@Composable
-private fun ActiveSessionPill(
-    startTime: Long,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val pillShape = RoundedCornerShape(28.dp)
-
-    // Elapsed time counter
-    var elapsedSeconds by remember { mutableIntStateOf(0) }
-    LaunchedEffect(startTime) {
-        while (true) {
-            elapsedSeconds = ((Clock.System.now().toEpochMilliseconds() - startTime) / 1000).toInt()
-            delay(1000)
-        }
-    }
-
-    // Pulsing animation for the dot
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
-    )
-
-    val timeText = formatElapsedTime(elapsedSeconds)
-
-    Box(
-        modifier = modifier
-            .height(56.dp)
-            .shadow(
-                elevation = 8.dp,
-                shape = pillShape,
-                ambientColor = Color.Black.copy(alpha = 0.15f),
-                spotColor = Color.Black.copy(alpha = 0.2f)
-            )
-            .clip(pillShape)
-            .background(MaterialTheme.colorScheme.primary)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = AppTheme.spacing.lg)
-            .semantics {
-                contentDescription = "Resume active workout, $timeText elapsed"
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
-        ) {
-            // Pulsing green dot
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .graphicsLayer { alpha = pulseAlpha }
-                    .clip(CircleShape)
-                    .background(AppTheme.colors.success)
-            )
-
-            // Elapsed time
-            Text(
-                text = timeText,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.Bold
-            )
-
-            // Resume text
-            Text(
-                text = "Resume",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+        // Right side: Last 2 items (Template, Profile)
+        items.drop(2).forEachIndexed { index, item ->
+            val actualIndex = index + 2
+            NavBarItem(
+                selected = selectedIndex == actualIndex,
+                onClick = { onItemSelected(actualIndex) },
+                icon = if (selectedIndex == actualIndex) item.selectedIcon else item.unselectedIcon,
+                label = item.label,
+                contentDescription = item.contentDescription,
+                modifier = Modifier.weight(1f)
             )
         }
     }
 }
 
 /**
- * Format elapsed seconds to MM:SS display.
- */
-private fun formatElapsedTime(seconds: Int): String {
-    val mins = seconds / 60
-    val secs = seconds % 60
-    return "${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}"
-}
-
-/**
- * Individual navigation bar item.
+ * Individual navigation bar item with icon and label.
  *
  * @param selected Whether the item is currently selected
  * @param onClick Callback invoked when item is clicked
@@ -332,8 +184,13 @@ private fun NavBarItem(
     modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val color = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
-    Box(
+    androidx.compose.foundation.layout.Column(
         modifier = modifier
             .selectable(
                 selected = selected,
@@ -344,18 +201,22 @@ private fun NavBarItem(
             )
             .semantics {
                 this.contentDescription = contentDescription
-            },
-        contentAlignment = Alignment.Center
+            }
+            .padding(vertical = AppTheme.spacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            }
+            tint = color
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color
         )
     }
 }
