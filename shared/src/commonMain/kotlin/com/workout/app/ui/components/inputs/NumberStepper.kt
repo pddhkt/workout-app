@@ -16,7 +16,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,8 +44,11 @@ fun NumberStepper(
     maxValue: Int = Int.MAX_VALUE,
     step: Int = 1,
     unit: String = "",
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    historyValues: List<String> = emptyList()
 ) {
+    var showNumberPad by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -88,7 +94,7 @@ fun NumberStepper(
                 )
             }
 
-            // Value display
+            // Value display (clickable to open number pad)
             Text(
                 text = if (unit.isNotEmpty()) "$value $unit" else value.toString(),
                 style = MaterialTheme.typography.titleMedium,
@@ -99,6 +105,7 @@ fun NumberStepper(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(4.dp)
                     )
+                    .clickable(enabled = enabled) { showNumberPad = true }
                     .padding(horizontal = AppTheme.spacing.lg, vertical = AppTheme.spacing.sm)
             )
 
@@ -121,6 +128,22 @@ fun NumberStepper(
                 )
             }
         }
+    }
+
+    if (showNumberPad) {
+        NumberPadDialog(
+            currentValue = value.toString(),
+            isDecimal = false,
+            historyValues = historyValues,
+            onConfirm = { result ->
+                val parsed = result.toIntOrNull()
+                if (parsed != null) {
+                    onValueChange(parsed.coerceIn(minValue, maxValue))
+                }
+                showNumberPad = false
+            },
+            onDismiss = { showNumberPad = false }
+        )
     }
 }
 
@@ -164,8 +187,24 @@ fun DecimalNumberStepper(
     step: Float = 0.5f,
     unit: String = "",
     decimalPlaces: Int = 1,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    historyValues: List<String> = emptyList()
 ) {
+    var showNumberPad by remember { mutableStateOf(false) }
+
+    val multiplier = when (decimalPlaces) {
+        0 -> 1
+        1 -> 10
+        2 -> 100
+        else -> 1000
+    }
+    val rounded = (value * multiplier).toInt().toFloat() / multiplier
+    val formattedValue = if (decimalPlaces == 0) {
+        rounded.toInt().toString()
+    } else {
+        rounded.toString()
+    }
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -211,19 +250,7 @@ fun DecimalNumberStepper(
                 )
             }
 
-            // Value display
-            val multiplier = when (decimalPlaces) {
-                0 -> 1
-                1 -> 10
-                2 -> 100
-                else -> 1000
-            }
-            val rounded = (value * multiplier).toInt().toFloat() / multiplier
-            val formattedValue = if (decimalPlaces == 0) {
-                rounded.toInt().toString()
-            } else {
-                rounded.toString()
-            }
+            // Value display (clickable to open number pad)
             Text(
                 text = if (unit.isNotEmpty()) "$formattedValue $unit" else formattedValue,
                 style = MaterialTheme.typography.titleMedium,
@@ -234,6 +261,7 @@ fun DecimalNumberStepper(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(4.dp)
                     )
+                    .clickable(enabled = enabled) { showNumberPad = true }
                     .padding(horizontal = AppTheme.spacing.lg, vertical = AppTheme.spacing.sm)
             )
 
@@ -256,5 +284,21 @@ fun DecimalNumberStepper(
                 )
             }
         }
+    }
+
+    if (showNumberPad) {
+        NumberPadDialog(
+            currentValue = formattedValue,
+            isDecimal = true,
+            historyValues = historyValues,
+            onConfirm = { result ->
+                val parsed = result.toFloatOrNull()
+                if (parsed != null) {
+                    onValueChange(parsed.coerceIn(minValue, maxValue))
+                }
+                showNumberPad = false
+            },
+            onDismiss = { showNumberPad = false }
+        )
     }
 }

@@ -61,6 +61,10 @@ import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.theme.AppTheme
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.material3.TextField
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 
@@ -89,11 +93,13 @@ data class ExerciseData(
             weight = 0f,
             state = SetState.PENDING
         )
-    }
+    },
+    val previousPerformance: String? = null,
+    val userSelectedSetIndex: Int? = null  // User-selected active set
 )
 
 private enum class SheetType {
-    OPTIONS, SET_EDITOR, ADD_EXERCISE, EXERCISE_OPTIONS, FINISH_CONFIRM
+    OPTIONS, SET_EDITOR, ADD_EXERCISE, EXERCISE_OPTIONS, FINISH_CONFIRM, CREATE_EXERCISE
 }
 
 /**
@@ -109,12 +115,19 @@ private enum class SheetType {
  * - Notes input field (EL-12)
  * - Complete set and skip set buttons (EL-14)
  * - Bottom drawer for additional options (EL-23)
+ * - Drag-to-reorder exercises with long-press detection (FT-028)
  *
  * @param session The workout session data
  * @param onCompleteSet Callback when user completes a set
  * @param onSkipSet Callback when user skips a set
  * @param onExerciseExpand Callback when an exercise card is expanded
  * @param onEndWorkout Callback when user ends the workout
+ * @param onAddExercises Callback when adding exercises to the session
+ * @param onRemoveExercise Callback when removing an exercise from the session
+ * @param onReplaceExercise Callback when replacing an exercise
+ * @param onAddSet Callback when adding a set to an exercise
+ * @param onReorderExercise Callback when reordering exercises (fromIndex, toIndex)
+ * @param onCreateExercise Callback when creating a custom exercise
  * @param modifier Optional modifier for customization
  */
 @Composable
@@ -127,15 +140,22 @@ fun WorkoutScreen(
     onAddExercises: (List<String>) -> Unit = {},
     onRemoveExercise: (exerciseId: String) -> Unit = {},
     onReplaceExercise: (exerciseId: String, newExercise: LibraryExercise) -> Unit = { _, _ -> },
+    onAddSet: (exerciseId: String) -> Unit = {},
+    onReorderExercise: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
+    onCreateExercise: (name: String, muscleGroup: String, equipment: String?, instructions: String?) -> Unit = { _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     // State management
     var currentExerciseIndex by remember { mutableIntStateOf(0) }
 
+    // State for user-selected active set per exercise
+    var userSelectedSets by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+
     // Editor State
     var activeSheet by remember { mutableStateOf<SheetType?>(null) }
     var editingSetNumber by remember { mutableIntStateOf(1) }
     var selectedExerciseForOptions by remember { mutableStateOf<ExerciseData?>(null) }
+    var selectedExerciseForEditor by remember { mutableStateOf<ExerciseData?>(null) }
     var replacingExerciseId by remember { mutableStateOf<String?>(null) }
     
     var currentReps by remember { mutableIntStateOf(0) }
@@ -149,6 +169,11 @@ fun WorkoutScreen(
     
     // Expanded state for legacy cards (though we might not need it for active card anymore)
     var expandedExerciseId by remember { mutableStateOf(session.exercises.firstOrNull()?.id) }
+
+    // Drag reorder state
+    var isDragging by remember { mutableStateOf(false) }
+    var draggedItemIndex by remember { mutableIntStateOf(-1) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
 
     // Timer for elapsed time
     LaunchedEffect(Unit) {
@@ -176,13 +201,16 @@ fun WorkoutScreen(
     
     // Update local state when opening editor or changing set
     fun openSetEditor(exercise: ExerciseData, setIndex: Int) {
+        selectedExerciseForEditor = exercise
         editingSetNumber = setIndex + 1
+        // Track user selection
+        userSelectedSets = userSelectedSets + (exercise.id to setIndex)
         val set = exercise.sets.getOrNull(setIndex)
         if (set != null) {
             currentReps = if (set.reps > 0) set.reps else 12 // Default target
             currentWeight = if (set.weight > 0f) set.weight else 100f // Default target
             // Reset RPE and Notes for new set if not stored (mock assumption)
-            currentRPE = null 
+            currentRPE = null
             // notes = ...
         }
         activeSheet = SheetType.SET_EDITOR
@@ -214,22 +242,73 @@ fun WorkoutScreen(
                 itemsIndexed(session.exercises) { index, exercise ->
                     val isCompleted = exercise.completedSets == exercise.targetSets
                     val isActive = index == currentExerciseIndex && !isCompleted
+                    val isBeingDragged = isDragging && draggedItemIndex == index
 
-                    ExerciseWorkoutCard(
-                        exerciseName = exercise.name,
-                        muscleGroup = exercise.muscleGroup,
-                        targetSummary = "${exercise.targetSets} Sets • 8-12 Reps",
-                        sets = exercise.sets,
-                        isActive = isActive,
-                        activeSetIndex = exercise.completedSets,
-                        onSetClick = { setIndex ->
-                            openSetEditor(exercise, setIndex)
-                        },
-                        onOptionsClick = {
-                            selectedExerciseForOptions = exercise
-                            activeSheet = SheetType.EXERCISE_OPTIONS
-                        }
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                // Apply visual offset and elevation during drag
+                                translationY = if (isBeingDragged) dragOffset else 0f
+                                shadowElevation = if (isBeingDragged) 8f else 0f
+                                // Scale effect on drag
+                                scaleX = if (isBeingDragged) 1.02f else 1f
+                                scaleY = if (isBeingDragged) 1.02f else 1f
+                            }
+                            .pointerInput(index, session.exercises.size) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        isDragging = true
+                                        draggedItemIndex = index
+                                        dragOffset = 0f
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffset += dragAmount.y
+                                    },
+                                    onDragEnd = {
+                                        // Calculate target index based on drag offset
+                                        // Approximate card height including spacing: 180dp card + 8dp spacing
+                                        val itemHeight = 188f
+                                        val draggedPositions = (dragOffset / itemHeight).toInt()
+                                        val targetIndex = (draggedItemIndex + draggedPositions)
+                                            .coerceIn(0, session.exercises.size - 1)
+
+                                        if (targetIndex != draggedItemIndex) {
+                                            onReorderExercise(draggedItemIndex, targetIndex)
+                                        }
+
+                                        // Reset drag state
+                                        isDragging = false
+                                        draggedItemIndex = -1
+                                        dragOffset = 0f
+                                    },
+                                    onDragCancel = {
+                                        // Reset drag state on cancel
+                                        isDragging = false
+                                        draggedItemIndex = -1
+                                        dragOffset = 0f
+                                    }
+                                )
+                            }
+                    ) {
+                        ExerciseWorkoutCard(
+                            exerciseName = exercise.name,
+                            muscleGroup = exercise.muscleGroup,
+                            targetSummary = "${exercise.targetSets} Sets • 8-12 Reps",
+                            sets = exercise.sets,
+                            isActive = isActive,
+                            activeSetIndex = userSelectedSets[exercise.id] ?: exercise.completedSets,
+                            onSetClick = { setIndex ->
+                                openSetEditor(exercise, setIndex)
+                            },
+                            onAddSet = { onAddSet(exercise.id) },
+                            onOptionsClick = {
+                                selectedExerciseForOptions = exercise
+                                activeSheet = SheetType.EXERCISE_OPTIONS
+                            }
+                        )
+                    }
                 }
 
                 // Action Buttons (Add Exercise + Complete Workout)
@@ -283,11 +362,12 @@ fun WorkoutScreen(
                     }
                 }
                 SheetType.SET_EDITOR -> {
-                    if (currentExercise != null) {
+                    val editingExercise = selectedExerciseForEditor
+                    if (editingExercise != null) {
                         ExerciseSetEditorBottomSheet(
-                            exerciseName = currentExercise.name,
+                            exerciseName = editingExercise.name,
                             setNumber = editingSetNumber,
-                            previousPerformance = "Previous: 100kg x 10", // Mock
+                            previousPerformance = editingExercise.previousPerformance ?: "First time",
                             currentWeight = currentWeight,
                             currentReps = currentReps,
                             currentRpe = currentRPE,
@@ -298,21 +378,15 @@ fun WorkoutScreen(
                             onRpeChange = { currentRPE = it },
                             onRestTimerChange = { /* Handle timer change */ },
                             onNotesChange = { notes = it },
-                            onDeleteSet = { 
+                            onDeleteSet = {
                                 // Handle delete
-                                activeSheet = null 
+                                activeSheet = null
                             },
                             onCompleteSet = {
-                                onCompleteSet(currentExercise.id, editingSetNumber, currentReps, currentWeight, currentRPE)
+                                onCompleteSet(editingExercise.id, editingSetNumber, currentReps, currentWeight, currentRPE)
+                                // Clear user selection after completing a set
+                                userSelectedSets = userSelectedSets - editingExercise.id
                                 activeSheet = null
-
-                                // Logic to advance set/exercise is in parent/viewmodel usually,
-                                // but here we update UI state locally for mock
-                                if (currentExercise.completedSets + 1 == currentExercise.targetSets) {
-                                    if (currentExerciseIndex < session.exercises.size - 1) {
-                                        currentExerciseIndex++
-                                    }
-                                }
                             }
                         )
                     }
@@ -346,6 +420,9 @@ fun WorkoutScreen(
                                     } else {
                                         selectedExercises + exercise.id
                                     }
+                                },
+                                onCreateExerciseClick = {
+                                    activeSheet = SheetType.CREATE_EXERCISE
                                 },
                                 modifier = Modifier.weight(1f)
                             )
@@ -438,6 +515,80 @@ fun WorkoutScreen(
                             onClick = { activeSheet = null },
                             fullWidth = true
                         )
+                    }
+                }
+                SheetType.CREATE_EXERCISE -> {
+                    var exerciseName by remember { mutableStateOf("") }
+                    var muscleGroup by remember { mutableStateOf("") }
+                    var equipment by remember { mutableStateOf("") }
+                    var instructions by remember { mutableStateOf("") }
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                    ) {
+                        Text(
+                            text = "Create Custom Exercise",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        TextField(
+                            value = exerciseName,
+                            onValueChange = { exerciseName = it },
+                            label = { Text("Exercise Name") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        TextField(
+                            value = muscleGroup,
+                            onValueChange = { muscleGroup = it },
+                            label = { Text("Muscle Group") },
+                            placeholder = { Text("e.g., Chest, Back, Legs") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        TextField(
+                            value = equipment,
+                            onValueChange = { equipment = it },
+                            label = { Text("Equipment (optional)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        TextField(
+                            value = instructions,
+                            onValueChange = { instructions = it },
+                            label = { Text("Instructions (optional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                        ) {
+                            SecondaryButton(
+                                text = "Cancel",
+                                onClick = { activeSheet = SheetType.ADD_EXERCISE },
+                                modifier = Modifier.weight(1f)
+                            )
+                            PrimaryButton(
+                                text = "Create & Add",
+                                onClick = {
+                                    if (exerciseName.isNotBlank() && muscleGroup.isNotBlank()) {
+                                        onCreateExercise(
+                                            exerciseName.trim(),
+                                            muscleGroup.trim(),
+                                            equipment.trim().takeIf { it.isNotBlank() },
+                                            instructions.trim().takeIf { it.isNotBlank() }
+                                        )
+                                        activeSheet = null
+                                    }
+                                },
+                                enabled = exerciseName.isNotBlank() && muscleGroup.isNotBlank(),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
                 null -> {}
@@ -664,6 +815,7 @@ private fun MultiSelectExercisePickerForWorkout(
     exercises: List<LibraryExercise> = getMockLibraryExercises(),
     selectedExerciseIds: Set<String>,
     onExerciseToggle: (LibraryExercise) -> Unit,
+    onCreateExerciseClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -688,6 +840,13 @@ private fun MultiSelectExercisePickerForWorkout(
         )
 
         Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+        SecondaryButton(
+            text = "Create New Exercise",
+            onClick = onCreateExerciseClick,
+            fullWidth = true,
+            modifier = Modifier.padding(bottom = AppTheme.spacing.md)
+        )
 
         SearchBar(
             query = searchQuery,

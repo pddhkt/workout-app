@@ -92,10 +92,50 @@ class SessionExerciseRepositoryImpl(
             }
         }
 
+    override suspend fun updateTargetSets(id: String, targetSets: Int): Result<Unit> =
+        withContext(Dispatchers.Default) {
+            try {
+                val now = Clock.System.now().toEpochMilliseconds()
+                sessionExerciseQueries.updateTargetSets(
+                    targetSets = targetSets.toLong(),
+                    updatedAt = now,
+                    id = id
+                )
+                Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
     override suspend fun deleteBySession(sessionId: String): Result<Unit> =
         withContext(Dispatchers.Default) {
             try {
                 sessionExerciseQueries.deleteBySession(sessionId)
+                Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun deleteById(id: String): Result<Unit> =
+        withContext(Dispatchers.Default) {
+            try {
+                sessionExerciseQueries.deleteById(id)
+                Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun updateOrderIndex(id: String, newOrderIndex: Int): Result<Unit> =
+        withContext(Dispatchers.Default) {
+            try {
+                val now = Clock.System.now().toEpochMilliseconds()
+                sessionExerciseQueries.updateOrderIndex(
+                    orderIndex = newOrderIndex.toLong(),
+                    updatedAt = now,
+                    id = id
+                )
                 Result.Success(Unit)
             } catch (e: Exception) {
                 Result.Error(e)

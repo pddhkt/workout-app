@@ -7,6 +7,7 @@ import com.workout.app.presentation.history.SessionHistoryViewModel
 import com.workout.app.presentation.home.HomeViewModel
 import com.workout.app.presentation.library.ExerciseLibraryViewModel
 import com.workout.app.presentation.onboarding.OnboardingViewModel
+import com.workout.app.presentation.active.ActiveSessionViewModel
 import com.workout.app.presentation.planning.SessionPlanningViewModel
 import com.workout.app.presentation.settings.SettingsViewModel
 import com.workout.app.presentation.settings.ThemeViewModel
@@ -32,7 +33,8 @@ val viewModelModule = module {
         SessionPlanningViewModel(
             exerciseRepository = get(),
             sessionRepository = get(),
-            sessionExerciseRepository = get()
+            sessionExerciseRepository = get(),
+            setRepository = get()
         )
     }
 
@@ -42,7 +44,8 @@ val viewModelModule = module {
             sessionId = sessionId,
             sessionRepository = get(),
             sessionExerciseRepository = get(),
-            setRepository = get()
+            setRepository = get(),
+            exerciseRepository = get()
         )
     }
 
@@ -57,7 +60,8 @@ val viewModelModule = module {
     factory { (exerciseId: String) ->
         ExerciseDetailViewModel(
             exerciseId = exerciseId,
-            exerciseRepository = get()
+            exerciseRepository = get(),
+            setRepository = get()
         )
     }
 
@@ -92,6 +96,13 @@ val viewModelModule = module {
         SessionDetailViewModel(
             workoutId = workoutId,
             workoutRepository = get(),
+            sessionRepository = get()
+        )
+    }
+
+    // Active Session ViewModel - Singleton for observing active workout sessions
+    single {
+        ActiveSessionViewModel(
             sessionRepository = get()
         )
     }

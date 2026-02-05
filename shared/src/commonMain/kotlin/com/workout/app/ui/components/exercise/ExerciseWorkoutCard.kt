@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
@@ -65,6 +66,7 @@ fun ExerciseWorkoutCard(
     activeSetIndex: Int = 0,
     onSetClick: (Int) -> Unit,
     onOptionsClick: (() -> Unit)? = null,
+    onAddSet: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isCompleted = sets.all { it.state == SetState.COMPLETED }
@@ -149,6 +151,27 @@ fun ExerciseWorkoutCard(
                     targetText = targetText,
                     onClick = { onSetClick(setIndex) }
                 )
+            }
+
+            if (onAddSet != null) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .width(60.dp)
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable(onClick = onAddSet),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Set",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
             }
         }
     }

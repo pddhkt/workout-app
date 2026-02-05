@@ -66,9 +66,32 @@ interface SessionExerciseRepository {
     suspend fun updateCompletedSets(id: String, completedSets: Int): Result<Unit>
 
     /**
+     * Update the target sets count for a session exercise.
+     * @param id Session exercise ID
+     * @param targetSets New target sets count
+     * @return Result indicating success or failure
+     */
+    suspend fun updateTargetSets(id: String, targetSets: Int): Result<Unit>
+
+    /**
      * Delete all exercises for a session.
      * @param sessionId Session ID
      * @return Result indicating success or failure
      */
     suspend fun deleteBySession(sessionId: String): Result<Unit>
+
+    /**
+     * Delete a session exercise by its ID.
+     * @param id Session exercise ID
+     * @return Result indicating success or failure
+     */
+    suspend fun deleteById(id: String): Result<Unit>
+
+    /**
+     * Update the order index of a session exercise (for reordering).
+     * @param id Session exercise ID
+     * @param newOrderIndex New order index value
+     * @return Result indicating success or failure
+     */
+    suspend fun updateOrderIndex(id: String, newOrderIndex: Int): Result<Unit>
 }

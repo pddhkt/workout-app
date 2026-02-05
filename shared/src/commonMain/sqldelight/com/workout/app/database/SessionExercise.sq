@@ -62,13 +62,27 @@ UPDATE SessionExercise SET
     updatedAt = ?
 WHERE id = ?;
 
--- Delete session exercise
-delete:
+-- Delete session exercise by ID
+deleteById:
 DELETE FROM SessionExercise WHERE id = ?;
 
 -- Delete all for session
 deleteBySession:
 DELETE FROM SessionExercise WHERE sessionId = ?;
+
+-- Update target sets
+updateTargetSets:
+UPDATE SessionExercise SET
+    targetSets = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+-- Update order index
+updateOrderIndex:
+UPDATE SessionExercise SET
+    orderIndex = ?,
+    updatedAt = ?
+WHERE id = ?;
 
 -- Count exercises in session
 countBySession:

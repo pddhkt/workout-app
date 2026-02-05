@@ -1,5 +1,6 @@
 package com.workout.app.ui.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -13,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.workout.app.data.repository.ThemeMode
 import com.workout.app.domain.model.Result
+import com.workout.app.presentation.active.ActiveSessionViewModel
 import com.workout.app.presentation.planning.SessionPlanningViewModel
 import com.workout.app.presentation.workout.WorkoutViewModel
 import com.workout.app.ui.components.chips.SetState
@@ -63,6 +65,18 @@ fun AppNavigation(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {}
 ) {
+    // Observe active session state for BottomNavBar indicator
+    val activeSessionViewModel: ActiveSessionViewModel = koinInject()
+    val activeSessionState by activeSessionViewModel.state.collectAsStateWithLifecycle()
+
+    val onResumeSession: () -> Unit = {
+        activeSessionState.sessionId?.let { sessionId ->
+            navController.navigateToWorkout(sessionId) {
+                launchSingleTop = true
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -121,7 +135,10 @@ fun AppNavigation(
                 },
                 onAddClick = {
                     navController.navigateToSessionPlanning()
-                }
+                },
+                activeSessionId = activeSessionState.sessionId,
+                activeSessionStartTime = activeSessionState.startTime,
+                onResumeSession = onResumeSession
             )
         }
 
@@ -144,7 +161,10 @@ fun AppNavigation(
                 },
                 onAddClick = {
                     navController.navigateToSessionPlanning()
-                }
+                },
+                activeSessionId = activeSessionState.sessionId,
+                activeSessionStartTime = activeSessionState.startTime,
+                onResumeSession = onResumeSession
             )
         }
 
@@ -178,7 +198,8 @@ fun AppNavigation(
                     }
                 },
                 onToggleExercise = viewModel::toggleExercise,
-                onAddExercise = viewModel::addExercise
+                onAddExercise = viewModel::addExercise,
+                onToggleTimeRange = viewModel::toggleTimeRange
             )
         }
 
@@ -221,7 +242,8 @@ fun AppNavigation(
                     }
                 },
                 onToggleExercise = viewModel::toggleExercise,
-                onAddExercise = viewModel::addExercise
+                onAddExercise = viewModel::addExercise,
+                onToggleTimeRange = viewModel::toggleTimeRange
             )
         }
 
@@ -243,10 +265,17 @@ fun AppNavigation(
                 val viewModel: WorkoutViewModel = koinInject { parametersOf(sessionId) }
                 val state by viewModel.state.collectAsStateWithLifecycle()
 
+                // Back press keeps session active and returns to previous screen
+                BackHandler {
+                    navController.popBackStack()
+                }
+
                 // Map ViewModel state to WorkoutSession for the UI
                 val session = WorkoutSession(
                     workoutName = state.sessionName,
                     exercises = state.exercises.map { exercise ->
+                        val completedSetNumbers = exercise.setRecords.map { it.setNumber }.toSet()
+                        val firstPendingSetNum = (1..exercise.targetSets).firstOrNull { it !in completedSetNumbers }
                         ExerciseData(
                             id = exercise.id,
                             name = exercise.name,
@@ -254,18 +283,20 @@ fun AppNavigation(
                             targetSets = exercise.targetSets,
                             completedSets = exercise.completedSets,
                             sets = List(exercise.targetSets) { index ->
-                                val record = exercise.setRecords.getOrNull(index)
+                                val setNum = index + 1
+                                val record = exercise.setRecords.find { it.setNumber == setNum }
                                 SetInfo(
-                                    setNumber = index + 1,
+                                    setNumber = setNum,
                                     reps = record?.reps ?: 0,
                                     weight = record?.weight ?: 0f,
                                     state = when {
-                                        index < exercise.completedSets -> SetState.COMPLETED
-                                        index == exercise.completedSets -> SetState.ACTIVE
+                                        record != null -> SetState.COMPLETED
+                                        setNum == firstPendingSetNum -> SetState.ACTIVE
                                         else -> SetState.PENDING
                                     }
                                 )
-                            }
+                            },
+                            previousPerformance = exercise.previousPerformance
                         )
                     },
                     startTime = System.currentTimeMillis() - (state.elapsedSeconds * 1000L)
@@ -277,13 +308,40 @@ fun AppNavigation(
                         viewModel.updateReps(reps)
                         viewModel.updateWeight(weight)
                         viewModel.updateRPE(rpe)
-                        viewModel.completeSet(setNumber)
+                        viewModel.completeSet(exerciseId, setNumber)
                     },
                     onSkipSet = { exerciseId ->
                         viewModel.skipSet()
                     },
                     onAddExercises = { exerciseIds ->
                         viewModel.addExercises(exerciseIds)
+                    },
+                    onRemoveExercise = { exerciseId ->
+                        viewModel.deleteExercise(exerciseId)
+                    },
+                    onReplaceExercise = { exerciseId, newExercise ->
+                        viewModel.replaceExercise(
+                            sessionExerciseId = exerciseId,
+                            newExerciseId = newExercise.id,
+                            newExerciseName = newExercise.name,
+                            newMuscleGroup = newExercise.muscleGroup
+                        )
+                    },
+                    onAddSet = { exerciseId ->
+                        viewModel.addSetToExercise(exerciseId)
+                    },
+                    onReorderExercise = { fromIndex, toIndex ->
+                        viewModel.reorderExercises(fromIndex, toIndex)
+                    },
+                    onCreateExercise = { name, muscleGroup, equipment, instructions ->
+                        scope.launch {
+                            viewModel.createCustomExercise(
+                                name = name,
+                                muscleGroup = muscleGroup,
+                                equipment = equipment,
+                                instructions = instructions
+                            )
+                        }
                     },
                     onEndWorkout = {
                         scope.launch {
@@ -351,6 +409,17 @@ fun AppNavigation(
             val viewModel: ExerciseLibraryViewModel = koinInject()
             val state by viewModel.state.collectAsStateWithLifecycle()
 
+            val exercises = state.displayedExercises.map { exercise ->
+                com.workout.app.ui.components.exercise.LibraryExercise(
+                    id = exercise.id,
+                    name = exercise.name,
+                    muscleGroup = exercise.muscleGroup,
+                    category = exercise.category ?: "Other",
+                    isCustom = exercise.isCustom == 1L,
+                    isFavorite = exercise.isFavorite == 1L
+                )
+            }
+
             ExerciseLibraryScreen(
                 onExerciseClick = { exerciseId ->
                     navController.navigateToExerciseDetail(exerciseId)
@@ -386,7 +455,11 @@ fun AppNavigation(
                 showAddExerciseSheet = state.showAddExerciseSheet,
                 onShowAddExerciseSheet = viewModel::showAddExerciseSheet,
                 onHideAddExerciseSheet = viewModel::hideAddExerciseSheet,
-                isCreatingExercise = state.isCreating
+                exercises = exercises,
+                isCreatingExercise = state.isCreating,
+                activeSessionId = activeSessionState.sessionId,
+                activeSessionStartTime = activeSessionState.startTime,
+                onResumeSession = onResumeSession
             )
         }
 
