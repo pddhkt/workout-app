@@ -19,13 +19,7 @@ fun HomeScreenWithViewModel(
     onTemplateClick: (String) -> Unit = {},
     onSessionClick: (String) -> Unit = {},
     onViewAllTemplates: () -> Unit = {},
-    onViewAllSessions: () -> Unit = {},
-    onNavigate: (Int) -> Unit = {},
-    onAddClick: () -> Unit = {},
-    activeSessionId: String? = null,
-    activeSessionStartTime: Long? = null,
-    isSessionMinimized: Boolean = false,
-    onResumeSession: () -> Unit = {}
+    onViewAllSessions: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -59,13 +53,7 @@ fun HomeScreenWithViewModel(
         onSessionClick = onSessionClick,
         onViewAllTemplates = onViewAllTemplates,
         onViewAllSessions = onViewAllSessions,
-        onNavigate = onNavigate,
-        onAddClick = onAddClick,
-        heatmapData = state.heatmapData,
-        activeSessionId = activeSessionId,
-        activeSessionStartTime = activeSessionStartTime,
-        isSessionMinimized = isSessionMinimized,
-        onResumeSession = onResumeSession
+        heatmapData = state.heatmapData
     )
 }
 

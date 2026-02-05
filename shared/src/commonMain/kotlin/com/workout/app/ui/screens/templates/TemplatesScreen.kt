@@ -11,12 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -29,7 +27,6 @@ import com.workout.app.domain.model.TemplateExercise
 import com.workout.app.ui.components.buttons.PrimaryButton
 import com.workout.app.ui.components.exercise.MultiSelectExercisePickerContent
 import com.workout.app.ui.components.exercise.getMockLibraryExercises
-import com.workout.app.ui.components.navigation.BottomNavBar
 import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.components.templates.TemplateListItem
 import com.workout.app.ui.theme.AppTheme
@@ -51,19 +48,12 @@ import org.koin.compose.koinInject
 @Composable
 fun TemplatesScreen(
     onTemplateClick: (String) -> Unit,
-    onNavigate: (Int) -> Unit,
-    onAddClick: () -> Unit,
-    activeSessionId: String? = null,
-    activeSessionStartTime: Long? = null,
-    isSessionMinimized: Boolean = false,
-    onResumeSession: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val templateRepository: TemplateRepository = koinInject()
     val scope = rememberCoroutineScope()
 
     // State
-    var selectedNavIndex by remember { mutableIntStateOf(2) } // Templates tab selected
     var showCreateSheet by remember { mutableStateOf(false) }
     var showEditSheet by remember { mutableStateOf(false) }
     var editingTemplate by remember { mutableStateOf<Template?>(null) }
@@ -76,99 +66,79 @@ fun TemplatesScreen(
     // Exercise data for picker
     val exercises = remember { getMockLibraryExercises() }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            BottomNavBar(
-                selectedIndex = selectedNavIndex,
-                onItemSelected = { index ->
-                    selectedNavIndex = index
-                    onNavigate(index)
-                },
-                onAddClick = onAddClick,
-                activeSessionId = activeSessionId,
-                activeSessionStartTime = activeSessionStartTime,
-                isSessionMinimized = isSessionMinimized,
-                onResumeSession = onResumeSession
-            )
-        }
-    ) { paddingValues ->
-        Column(
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
+        // Header
+        TemplatesHeader(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Header
-            TemplatesHeader(
+                .fillMaxWidth()
+                .padding(horizontal = AppTheme.spacing.lg)
+                .padding(top = AppTheme.spacing.xl, bottom = AppTheme.spacing.md)
+        )
+
+        // Create Template Button
+        PrimaryButton(
+            text = "Create Template",
+            onClick = {
+                // Reset state for new template
+                templateName = ""
+                selectedExercises = emptySet()
+                showCreateSheet = true
+            },
+            fullWidth = true,
+            modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
+        )
+
+        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
+
+        // Template List
+        if (templates.isEmpty()) {
+            EmptyTemplatesMessage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = AppTheme.spacing.lg)
-                    .padding(top = AppTheme.spacing.xl, bottom = AppTheme.spacing.md)
             )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                contentPadding = PaddingValues(
+                    start = AppTheme.spacing.lg,
+                    end = AppTheme.spacing.lg,
+                    bottom = AppTheme.spacing.xl
+                ),
+                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+            ) {
+                items(
+                    items = templates,
+                    key = { it.id }
+                ) { template ->
+                    val exerciseCount = parseExerciseCount(template.exercises)
+                    val lastUsedFormatted = formatLastUsed(template.lastUsed)
 
-            // Create Template Button
-            PrimaryButton(
-                text = "Create Template",
-                onClick = {
-                    // Reset state for new template
-                    templateName = ""
-                    selectedExercises = emptySet()
-                    showCreateSheet = true
-                },
-                fullWidth = true,
-                modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
-            )
-
-            Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
-
-            // Template List
-            if (templates.isEmpty()) {
-                EmptyTemplatesMessage(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AppTheme.spacing.lg)
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f),
-                    contentPadding = PaddingValues(
-                        start = AppTheme.spacing.lg,
-                        end = AppTheme.spacing.lg,
-                        bottom = AppTheme.spacing.xl
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
-                ) {
-                    items(
-                        items = templates,
-                        key = { it.id }
-                    ) { template ->
-                        val exerciseCount = parseExerciseCount(template.exercises)
-                        val lastUsedFormatted = formatLastUsed(template.lastUsed)
-
-                        TemplateListItem(
-                            name = template.name,
-                            exerciseCount = exerciseCount,
-                            lastUsed = lastUsedFormatted,
-                            isFavorite = template.isFavorite == 1L,
-                            onClick = { onTemplateClick(template.id) },
-                            onLongPress = {
-                                // Set up edit mode
-                                editingTemplate = template
-                                templateName = template.name
-                                selectedExercises = TemplateExercise.fromJsonArray(template.exercises)
-                                    .map { it.exerciseId }
-                                    .toSet()
-                                showEditSheet = true
-                            },
-                            onFavoriteClick = {
-                                scope.launch {
-                                    templateRepository.toggleFavorite(template.id)
-                                }
+                    TemplateListItem(
+                        name = template.name,
+                        exerciseCount = exerciseCount,
+                        lastUsed = lastUsedFormatted,
+                        isFavorite = template.isFavorite == 1L,
+                        onClick = { onTemplateClick(template.id) },
+                        onLongPress = {
+                            // Set up edit mode
+                            editingTemplate = template
+                            templateName = template.name
+                            selectedExercises = TemplateExercise.fromJsonArray(template.exercises)
+                                .map { it.exerciseId }
+                                .toSet()
+                            showEditSheet = true
+                        },
+                        onFavoriteClick = {
+                            scope.launch {
+                                templateRepository.toggleFavorite(template.id)
                             }
-                        )
-                    }
+                        }
+                    )
                 }
             }
         }

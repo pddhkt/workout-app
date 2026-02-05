@@ -9,6 +9,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,6 +26,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.workout.app.ui.components.navigation.BottomNavBar
 import com.workout.app.data.repository.ThemeMode
 import com.workout.app.domain.model.Result
 import com.workout.app.presentation.active.ActiveSessionViewModel
@@ -110,7 +113,49 @@ fun AppNavigation(
     // Show overlay when there's an active session
     val showWorkoutOverlay = activeSessionState.hasActiveSession
 
-    Box(modifier = modifier.fillMaxSize()) {
+    // Observe current route for centralized bottom nav
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // Routes that should show the bottom nav bar
+    val navBarRoutes = setOf(
+        Route.Home.route,
+        Route.ExerciseLibrary.route,
+        Route.Templates.route
+    )
+
+    // Determine if navbar should be visible (hide when workout overlay is expanded)
+    val showNavBar = currentRoute in navBarRoutes && (activeSessionState.isMinimized || !showWorkoutOverlay)
+
+    // Derive selected index from current route
+    val selectedNavIndex = BottomNavDestinations.getIndexForRoute(currentRoute)
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        bottomBar = {
+            AnimatedVisibility(
+                visible = showNavBar,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(tween(200)),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(tween(200))
+            ) {
+                BottomNavBar(
+                    selectedIndex = selectedNavIndex,
+                    onItemSelected = { index ->
+                        val route = BottomNavDestinations.getRouteForIndex(index)
+                        navController.navigate(route) {
+                            popUpTo(Route.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onAddClick = {
+                        navController.navigateToSessionPlanning()
+                    }
+                )
+            }
+        }
+    ) { paddingValues ->
+    Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
         NavHost(
             navController = navController,
             startDestination = startDestination,
@@ -158,27 +203,7 @@ fun AppNavigation(
                 },
                 onViewAllSessions = {
                     navController.navigateToSessionHistory()
-                },
-                onNavigate = { index ->
-                    // Bottom nav integration
-                    val route = BottomNavDestinations.getRouteForIndex(index)
-                    if (route != Route.Home.route) {
-                        navController.navigate(route) {
-                            // Pop to home to avoid deep stack
-                            popUpTo(Route.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                },
-                onAddClick = {
-                    navController.navigateToSessionPlanning()
-                },
-                // Pass null for session info - BottomNavBar pill is replaced by overlay's MinimizedWorkoutBar
-                activeSessionId = null,
-                activeSessionStartTime = null,
-                isSessionMinimized = true,
-                onResumeSession = { }
+                }
             )
         }
 
@@ -188,25 +213,7 @@ fun AppNavigation(
                 onTemplateClick = { templateId ->
                     // Navigate to session planning with template pre-selected
                     navController.navigateToSessionPlanningWithTemplate(templateId)
-                },
-                onNavigate = { index ->
-                    val route = BottomNavDestinations.getRouteForIndex(index)
-                    if (route != Route.Templates.route) {
-                        navController.navigate(route) {
-                            popUpTo(Route.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                },
-                onAddClick = {
-                    navController.navigateToSessionPlanning()
-                },
-                // Pass null for session info - BottomNavBar pill is replaced by overlay's MinimizedWorkoutBar
-                activeSessionId = null,
-                activeSessionStartTime = null,
-                isSessionMinimized = true,
-                onResumeSession = { }
+                }
             )
         }
 
@@ -364,10 +371,6 @@ fun AppNavigation(
                 onFavoriteToggle = { exerciseId ->
                     viewModel.toggleFavorite(exerciseId)
                 },
-                onAddToWorkoutClick = {
-                    // Navigate to session planning
-                    navController.navigateToSessionPlanning()
-                },
                 onCreateExercise = { formState ->
                     viewModel.createCustomExercise(
                         name = formState.name,
@@ -378,27 +381,11 @@ fun AppNavigation(
                         instructions = formState.instructions.takeIf { it.isNotBlank() }
                     )
                 },
-                onNavigate = { index ->
-                    // Bottom nav integration
-                    val route = BottomNavDestinations.getRouteForIndex(index)
-                    if (route != Route.ExerciseLibrary.route) {
-                        navController.navigate(route) {
-                            popUpTo(Route.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                },
                 showAddExerciseSheet = state.showAddExerciseSheet,
                 onShowAddExerciseSheet = viewModel::showAddExerciseSheet,
                 onHideAddExerciseSheet = viewModel::hideAddExerciseSheet,
                 exercises = exercises,
-                isCreatingExercise = state.isCreating,
-                // Pass null for session info - BottomNavBar pill is replaced by overlay's MinimizedWorkoutBar
-                activeSessionId = null,
-                activeSessionStartTime = null,
-                isSessionMinimized = true,
-                onResumeSession = { }
+                isCreatingExercise = state.isCreating
             )
         }
 
@@ -591,6 +578,7 @@ fun AppNavigation(
                 )
             }
         }
+    }
     }
 }
 
