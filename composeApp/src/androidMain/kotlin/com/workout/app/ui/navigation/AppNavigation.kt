@@ -1,24 +1,35 @@
 package com.workout.app.ui.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.workout.app.data.repository.ThemeMode
 import com.workout.app.domain.model.Result
 import com.workout.app.presentation.active.ActiveSessionViewModel
 import com.workout.app.presentation.planning.SessionPlanningViewModel
+import com.workout.app.presentation.workout.WorkoutState
 import com.workout.app.presentation.workout.WorkoutViewModel
-import com.workout.app.ui.components.chips.SetState
-import com.workout.app.ui.components.exercise.SetInfo
 import com.workout.app.ui.screens.complete.EnhancedWorkoutCompleteScreen
 import com.workout.app.ui.screens.detail.ExerciseDetailScreen
 import com.workout.app.ui.screens.home.HomeScreenWithViewModel
@@ -30,12 +41,9 @@ import com.workout.app.ui.screens.planning.SessionPlanningScreen
 import com.workout.app.ui.screens.settings.SettingsScreen
 import com.workout.app.ui.screens.templates.TemplatesScreen
 import com.workout.app.ui.screens.timer.RestTimerScreen
-import com.workout.app.ui.screens.workout.WorkoutScreen
-import com.workout.app.ui.screens.workout.WorkoutSession
-import com.workout.app.ui.screens.workout.ExerciseData
 import com.workout.app.ui.components.overlays.BottomSheetComparisonScreen
+import com.workout.app.ui.components.workout.WorkoutOverlay
 import com.workout.app.presentation.library.ExerciseLibraryViewModel
-import com.workout.app.ui.components.exercise.CustomExerciseFormState
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -65,23 +73,53 @@ fun AppNavigation(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {}
 ) {
-    // Observe active session state for BottomNavBar indicator
+    // Observe active session state for overlay control
     val activeSessionViewModel: ActiveSessionViewModel = koinInject()
     val activeSessionState by activeSessionViewModel.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
 
-    val onResumeSession: () -> Unit = {
-        activeSessionState.sessionId?.let { sessionId ->
-            navController.navigateToWorkout(sessionId) {
-                launchSingleTop = true
-            }
+    // Inject WorkoutViewModel when there's an active session (managed at this level for overlay)
+    val workoutViewModel: WorkoutViewModel? = if (activeSessionState.sessionId != null) {
+        koinInject { parametersOf(activeSessionState.sessionId!!) }
+    } else null
+
+    val workoutState: WorkoutState by workoutViewModel?.state?.collectAsStateWithLifecycle()
+        ?: remember { androidx.compose.runtime.mutableStateOf(WorkoutState()) }
+
+    // Sync workout progress to ActiveSessionViewModel for minimized bar display
+    LaunchedEffect(workoutState.currentExercise, workoutState.exercises.size) {
+        if (workoutViewModel != null) {
+            activeSessionViewModel.updateWorkoutProgress(
+                currentExerciseName = workoutState.currentExercise?.name,
+                currentIndex = workoutState.currentExerciseIndex,
+                totalExercises = workoutState.exercises.size
+            )
         }
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        modifier = modifier
-    ) {
+    // Callback for expanding back to full workout (from minimized bar)
+    val onExpandWorkout: () -> Unit = {
+        activeSessionViewModel.expand()
+    }
+
+    // Callback for minimizing workout (swipe back)
+    val onMinimizeWorkout: () -> Unit = {
+        activeSessionViewModel.minimize()
+    }
+
+    // Show overlay when there's an active session
+    val showWorkoutOverlay = activeSessionState.hasActiveSession
+
+    Box(modifier = modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            // Default transitions: simple crossfade for bottom nav tabs
+            enterTransition = { fadeIn(tween(200)) },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(200)) },
+            popExitTransition = { fadeOut(tween(200)) }
+        ) {
         // Onboarding Flow (FT-019)
         composable(Route.Onboarding.route) {
             OnboardingScreen(
@@ -136,9 +174,11 @@ fun AppNavigation(
                 onAddClick = {
                     navController.navigateToSessionPlanning()
                 },
-                activeSessionId = activeSessionState.sessionId,
-                activeSessionStartTime = activeSessionState.startTime,
-                onResumeSession = onResumeSession
+                // Pass null for session info - BottomNavBar pill is replaced by overlay's MinimizedWorkoutBar
+                activeSessionId = null,
+                activeSessionStartTime = null,
+                isSessionMinimized = true,
+                onResumeSession = { }
             )
         }
 
@@ -162,17 +202,23 @@ fun AppNavigation(
                 onAddClick = {
                     navController.navigateToSessionPlanning()
                 },
-                activeSessionId = activeSessionState.sessionId,
-                activeSessionStartTime = activeSessionState.startTime,
-                onResumeSession = onResumeSession
+                // Pass null for session info - BottomNavBar pill is replaced by overlay's MinimizedWorkoutBar
+                activeSessionId = null,
+                activeSessionStartTime = null,
+                isSessionMinimized = true,
+                onResumeSession = { }
             )
         }
 
         // Session Planning (FT-013)
-        composable(Route.SessionPlanning.route) {
+        composable(
+            route = Route.SessionPlanning.route,
+            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+        ) {
             val viewModel: SessionPlanningViewModel = koinInject()
             val state by viewModel.state.collectAsStateWithLifecycle()
-            val scope = rememberCoroutineScope()
+            val planningScope = rememberCoroutineScope()
 
             SessionPlanningScreen(
                 state = state,
@@ -183,12 +229,12 @@ fun AppNavigation(
                     navController.navigateToTemplates()
                 },
                 onStartSession = {
-                    scope.launch {
+                    planningScope.launch {
                         when (val result = viewModel.createSession("Workout")) {
                             is Result.Success -> {
-                                navController.navigateToWorkout(result.data) {
-                                    popUpTo(Route.SessionPlanning.route) { inclusive = true }
-                                }
+                                // Session created - overlay will automatically appear
+                                // Just pop back to home, the workout overlay handles display
+                                navController.popBackStack(Route.Home.route, inclusive = false)
                             }
                             is Result.Error -> {
                                 // Error handled by ViewModel state
@@ -210,12 +256,14 @@ fun AppNavigation(
                 navArgument(Route.SessionPlanningWithTemplate.ARG_TEMPLATE_ID) {
                     type = NavType.StringType
                 }
-            )
+            ),
+            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
         ) { backStackEntry ->
             val templateId = backStackEntry.arguments?.getString(Route.SessionPlanningWithTemplate.ARG_TEMPLATE_ID)
             val viewModel: SessionPlanningViewModel = koinInject()
             val state by viewModel.state.collectAsStateWithLifecycle()
-            val scope = rememberCoroutineScope()
+            val planningScope = rememberCoroutineScope()
 
             SessionPlanningScreen(
                 state = state,
@@ -227,12 +275,12 @@ fun AppNavigation(
                     navController.navigateToTemplates()
                 },
                 onStartSession = {
-                    scope.launch {
+                    planningScope.launch {
                         when (val result = viewModel.createSession("Workout")) {
                             is Result.Success -> {
-                                navController.navigateToWorkout(result.data) {
-                                    popUpTo(Route.SessionPlanningWithTemplate.ROUTE) { inclusive = true }
-                                }
+                                // Session created - overlay will automatically appear
+                                // Just pop back to home, the workout overlay handles display
+                                navController.popBackStack(Route.Home.route, inclusive = false)
                             }
                             is Result.Error -> {
                                 // Error handled by ViewModel state
@@ -247,120 +295,7 @@ fun AppNavigation(
             )
         }
 
-        // Active Workout (FT-014)
-        composable(
-            route = Route.Workout.ROUTE,
-            arguments = listOf(
-                navArgument(Route.Workout.ARG_SESSION_ID) {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val sessionId = backStackEntry.arguments?.getString(Route.Workout.ARG_SESSION_ID)
-            val scope = rememberCoroutineScope()
-
-            if (sessionId != null) {
-                val viewModel: WorkoutViewModel = koinInject { parametersOf(sessionId) }
-                val state by viewModel.state.collectAsStateWithLifecycle()
-
-                // Back press keeps session active and returns to previous screen
-                BackHandler {
-                    navController.popBackStack()
-                }
-
-                // Map ViewModel state to WorkoutSession for the UI
-                val session = WorkoutSession(
-                    workoutName = state.sessionName,
-                    exercises = state.exercises.map { exercise ->
-                        val completedSetNumbers = exercise.setRecords.map { it.setNumber }.toSet()
-                        val firstPendingSetNum = (1..exercise.targetSets).firstOrNull { it !in completedSetNumbers }
-                        ExerciseData(
-                            id = exercise.id,
-                            name = exercise.name,
-                            muscleGroup = exercise.muscleGroup,
-                            targetSets = exercise.targetSets,
-                            completedSets = exercise.completedSets,
-                            sets = List(exercise.targetSets) { index ->
-                                val setNum = index + 1
-                                val record = exercise.setRecords.find { it.setNumber == setNum }
-                                SetInfo(
-                                    setNumber = setNum,
-                                    reps = record?.reps ?: 0,
-                                    weight = record?.weight ?: 0f,
-                                    state = when {
-                                        record != null -> SetState.COMPLETED
-                                        setNum == firstPendingSetNum -> SetState.ACTIVE
-                                        else -> SetState.PENDING
-                                    }
-                                )
-                            },
-                            previousPerformance = exercise.previousPerformance
-                        )
-                    },
-                    startTime = System.currentTimeMillis() - (state.elapsedSeconds * 1000L)
-                )
-
-                WorkoutScreen(
-                    session = session,
-                    onCompleteSet = { exerciseId, setNumber, reps, weight, rpe ->
-                        viewModel.updateReps(reps)
-                        viewModel.updateWeight(weight)
-                        viewModel.updateRPE(rpe)
-                        viewModel.completeSet(exerciseId, setNumber)
-                    },
-                    onSkipSet = { exerciseId ->
-                        viewModel.skipSet()
-                    },
-                    onAddExercises = { exerciseIds ->
-                        viewModel.addExercises(exerciseIds)
-                    },
-                    onRemoveExercise = { exerciseId ->
-                        viewModel.deleteExercise(exerciseId)
-                    },
-                    onReplaceExercise = { exerciseId, newExercise ->
-                        viewModel.replaceExercise(
-                            sessionExerciseId = exerciseId,
-                            newExerciseId = newExercise.id,
-                            newExerciseName = newExercise.name,
-                            newMuscleGroup = newExercise.muscleGroup
-                        )
-                    },
-                    onAddSet = { exerciseId ->
-                        viewModel.addSetToExercise(exerciseId)
-                    },
-                    onReorderExercise = { fromIndex, toIndex ->
-                        viewModel.reorderExercises(fromIndex, toIndex)
-                    },
-                    onCreateExercise = { name, muscleGroup, equipment, instructions ->
-                        scope.launch {
-                            viewModel.createCustomExercise(
-                                name = name,
-                                muscleGroup = muscleGroup,
-                                equipment = equipment,
-                                instructions = instructions
-                            )
-                        }
-                    },
-                    onEndWorkout = {
-                        scope.launch {
-                            when (viewModel.finishWorkout()) {
-                                is Result.Success -> {
-                                    navController.navigateToWorkoutComplete(sessionId) {
-                                        popUpTo(Route.Home.route)
-                                    }
-                                }
-                                else -> { }
-                            }
-                        }
-                    }
-                )
-            } else {
-                // Fallback for missing sessionId - navigate back
-                navController.popBackStack()
-            }
-        }
+        // NOTE: Active Workout (FT-014) is now handled by WorkoutOverlay outside NavHost
 
         // Rest Timer (FT-015)
         // Note: This could also be implemented as a Dialog instead of a route
@@ -388,7 +323,9 @@ fun AppNavigation(
                 navArgument(Route.WorkoutComplete.ARG_SESSION_ID) {
                     type = NavType.StringType
                 }
-            )
+            ),
+            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString(Route.WorkoutComplete.ARG_SESSION_ID)
                 ?: return@composable
@@ -457,9 +394,11 @@ fun AppNavigation(
                 onHideAddExerciseSheet = viewModel::hideAddExerciseSheet,
                 exercises = exercises,
                 isCreatingExercise = state.isCreating,
-                activeSessionId = activeSessionState.sessionId,
-                activeSessionStartTime = activeSessionState.startTime,
-                onResumeSession = onResumeSession
+                // Pass null for session info - BottomNavBar pill is replaced by overlay's MinimizedWorkoutBar
+                activeSessionId = null,
+                activeSessionStartTime = null,
+                isSessionMinimized = true,
+                onResumeSession = { }
             )
         }
 
@@ -470,7 +409,9 @@ fun AppNavigation(
                 navArgument(Route.ExerciseDetail.ARG_EXERCISE_ID) {
                     type = NavType.StringType
                 }
-            )
+            ),
+            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
         ) { backStackEntry ->
             val exerciseId = backStackEntry.arguments?.getString(Route.ExerciseDetail.ARG_EXERCISE_ID)
                 ?: return@composable
@@ -493,7 +434,11 @@ fun AppNavigation(
         }
 
         // Settings Screen
-        composable(Route.Settings.route) {
+        composable(
+            route = Route.Settings.route,
+            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+        ) {
             SettingsScreen(
                 themeMode = themeMode,
                 onThemeModeChange = onThemeModeChange,
@@ -512,7 +457,11 @@ fun AppNavigation(
         }
 
         // Session History Screen
-        composable(Route.SessionHistory.route) {
+        composable(
+            route = Route.SessionHistory.route,
+            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+        ) {
             SessionHistoryScreen(
                 onBackClick = {
                     navController.popBackStack()
@@ -530,7 +479,9 @@ fun AppNavigation(
                 navArgument(Route.SessionDetail.ARG_SESSION_ID) {
                     type = NavType.StringType
                 }
-            )
+            ),
+            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString(Route.SessionDetail.ARG_SESSION_ID)
                 ?: return@composable
@@ -544,6 +495,101 @@ fun AppNavigation(
                     // TODO: Implement share functionality
                 }
             )
+        }
+    }
+
+        // Handle back press when workout overlay is expanded
+        BackHandler(enabled = showWorkoutOverlay && !activeSessionState.isMinimized) {
+            onMinimizeWorkout()
+        }
+
+        // Workout Overlay - animated shrink/expand view
+        // Appears when there's an active session, handles both expanded and minimized states
+        AnimatedVisibility(
+            visible = showWorkoutOverlay,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(200)),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            if (workoutViewModel != null && activeSessionState.startTime != null) {
+                WorkoutOverlay(
+                    isExpanded = !activeSessionState.isMinimized,
+                    workoutState = workoutState,
+                    startTime = activeSessionState.startTime!!,
+                    onMinimize = onMinimizeWorkout,
+                    onExpand = onExpandWorkout,
+                    onCompleteSet = { exerciseId, setNumber, reps, weight, rpe ->
+                        workoutViewModel.updateReps(reps)
+                        workoutViewModel.updateWeight(weight)
+                        workoutViewModel.updateRPE(rpe)
+                        workoutViewModel.completeSet(exerciseId, setNumber)
+                    },
+                    onSkipSet = { _ ->
+                        workoutViewModel.skipSet()
+                    },
+                    onAddExercises = { exerciseIds ->
+                        workoutViewModel.addExercises(exerciseIds)
+                    },
+                    onRemoveExercise = { exerciseId ->
+                        workoutViewModel.deleteExercise(exerciseId)
+                    },
+                    onReplaceExercise = { exerciseId, newExercise ->
+                        workoutViewModel.replaceExercise(
+                            sessionExerciseId = exerciseId,
+                            newExerciseId = newExercise.id,
+                            newExerciseName = newExercise.name,
+                            newMuscleGroup = newExercise.muscleGroup
+                        )
+                    },
+                    onAddSet = { exerciseId ->
+                        workoutViewModel.addSetToExercise(exerciseId)
+                    },
+                    onReorderExercise = { fromIndex, toIndex ->
+                        workoutViewModel.reorderExercises(fromIndex, toIndex)
+                    },
+                    onCreateExercise = { name, muscleGroup, equipment, instructions ->
+                        scope.launch {
+                            workoutViewModel.createCustomExercise(
+                                name = name,
+                                muscleGroup = muscleGroup,
+                                equipment = equipment,
+                                instructions = instructions
+                            )
+                        }
+                    },
+                    onGetHistoricalWeights = { exerciseId ->
+                        workoutViewModel.getHistoricalWeights(exerciseId)
+                    },
+                    onGetHistoricalReps = { exerciseId ->
+                        workoutViewModel.getHistoricalReps(exerciseId)
+                    },
+                    onSetActiveSet = { exerciseId, setIndex ->
+                        workoutViewModel.setActiveSet(exerciseId, setIndex)
+                    },
+                    onEnterReorderMode = {
+                        workoutViewModel.enterReorderMode()
+                    },
+                    onExitReorderMode = {
+                        workoutViewModel.exitReorderMode()
+                    },
+                    onEndWorkout = {
+                        scope.launch {
+                            val sessionId = activeSessionState.sessionId
+                            when (workoutViewModel.finishWorkout()) {
+                                is Result.Success -> {
+                                    activeSessionViewModel.clearMinimizedState()
+                                    if (sessionId != null) {
+                                        navController.navigateToWorkoutComplete(sessionId) {
+                                            popUpTo(Route.Home.route)
+                                        }
+                                    }
+                                }
+                                else -> { }
+                            }
+                        }
+                    }
+                )
+            }
         }
     }
 }
