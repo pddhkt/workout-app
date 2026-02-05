@@ -57,7 +57,8 @@ private fun SessionPlanningScreenPreview() {
             onTemplatesClick = {},
             onStartSession = {},
             onToggleExercise = {},
-            onAddExercise = { _, _ -> }
+            onAddExercise = { _, _ -> },
+            onToggleTimeRange = {}
         )
     }
 }
@@ -117,7 +118,8 @@ private fun SessionPlanningScreenWithExercisesPreview() {
             onTemplatesClick = {},
             onStartSession = {},
             onToggleExercise = {},
-            onAddExercise = { _, _ -> }
+            onAddExercise = { _, _ -> },
+            onToggleTimeRange = {}
         )
     }
 }
@@ -170,7 +172,8 @@ private fun SessionPlanningScreenFilteredPreview() {
             onTemplatesClick = {},
             onStartSession = {},
             onToggleExercise = {},
-            onAddExercise = { _, _ -> }
+            onAddExercise = { _, _ -> },
+            onToggleTimeRange = {}
         )
     }
 }

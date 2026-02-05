@@ -95,6 +95,11 @@ fun HomeScreen(
     onViewAllSessions: () -> Unit = {},
     onNavigate: (Int) -> Unit = {},
     onAddClick: () -> Unit = {},
+    heatmapData: List<HeatmapDay> = emptyList(),
+    activeSessionId: String? = null,
+    activeSessionStartTime: Long? = null,
+    isSessionMinimized: Boolean = false,
+    onResumeSession: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedNavIndex by remember { mutableIntStateOf(0) }
@@ -108,7 +113,11 @@ fun HomeScreen(
                     selectedNavIndex = index
                     onNavigate(index)
                 },
-                onAddClick = onAddClick
+                onAddClick = onAddClick,
+                activeSessionId = activeSessionId,
+                activeSessionStartTime = activeSessionStartTime,
+                isSessionMinimized = isSessionMinimized,
+                onResumeSession = onResumeSession
             )
         }
     ) { paddingValues ->
@@ -130,6 +139,7 @@ fun HomeScreen(
 
             // Consistency Heatmap (full width with internal scroll)
             ConsistencyHeatmapSection(
+                heatmapData = heatmapData,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -222,6 +232,7 @@ private fun HomeHeader(
  */
 @Composable
 private fun ConsistencyHeatmapSection(
+    heatmapData: List<HeatmapDay>,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -236,7 +247,7 @@ private fun ConsistencyHeatmapSection(
         )
 
         ConsistencyHeatmap(
-            days = getMockHeatmapData(),
+            days = heatmapData,
             showDayLabels = true,
             title = null,
             modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
@@ -526,45 +537,3 @@ private fun SessionStat(
     }
 }
 
-/**
- * Mock data: 28-day consistency heatmap
- * Simulates workout frequency with varied intensity
- * TODO: Load from database via ViewModel
- */
-private fun getMockHeatmapData(): List<HeatmapDay> = buildList {
-    // Week 1 - High consistency
-    add(HeatmapDay(1, 2))
-    add(HeatmapDay(2, 0))
-    add(HeatmapDay(3, 3))
-    add(HeatmapDay(4, 0))
-    add(HeatmapDay(5, 2))
-    add(HeatmapDay(6, 1))
-    add(HeatmapDay(7, 0))
-
-    // Week 2 - Medium consistency
-    add(HeatmapDay(8, 1))
-    add(HeatmapDay(9, 0))
-    add(HeatmapDay(10, 2))
-    add(HeatmapDay(11, 1))
-    add(HeatmapDay(12, 0))
-    add(HeatmapDay(13, 0))
-    add(HeatmapDay(14, 1))
-
-    // Week 3 - Low consistency
-    add(HeatmapDay(15, 0))
-    add(HeatmapDay(16, 1))
-    add(HeatmapDay(17, 0))
-    add(HeatmapDay(18, 0))
-    add(HeatmapDay(19, 1))
-    add(HeatmapDay(20, 0))
-    add(HeatmapDay(21, 0))
-
-    // Week 4 - High consistency
-    add(HeatmapDay(22, 3))
-    add(HeatmapDay(23, 0))
-    add(HeatmapDay(24, 4))
-    add(HeatmapDay(25, 2))
-    add(HeatmapDay(26, 0))
-    add(HeatmapDay(27, 3))
-    add(HeatmapDay(28, 1))
-}

@@ -53,6 +53,10 @@ fun TemplatesScreen(
     onTemplateClick: (String) -> Unit,
     onNavigate: (Int) -> Unit,
     onAddClick: () -> Unit,
+    activeSessionId: String? = null,
+    activeSessionStartTime: Long? = null,
+    isSessionMinimized: Boolean = false,
+    onResumeSession: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val templateRepository: TemplateRepository = koinInject()
@@ -81,7 +85,11 @@ fun TemplatesScreen(
                     selectedNavIndex = index
                     onNavigate(index)
                 },
-                onAddClick = onAddClick
+                onAddClick = onAddClick,
+                activeSessionId = activeSessionId,
+                activeSessionStartTime = activeSessionStartTime,
+                isSessionMinimized = isSessionMinimized,
+                onResumeSession = onResumeSession
             )
         }
     ) { paddingValues ->

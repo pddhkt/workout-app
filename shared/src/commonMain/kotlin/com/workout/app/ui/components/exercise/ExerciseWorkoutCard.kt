@@ -1,7 +1,9 @@
 package com.workout.app.ui.components.exercise
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,8 +56,11 @@ import com.workout.app.ui.theme.AppTheme
  * @param activeSetIndex Index of the currently active set (0-based)
  * @param onSetClick Callback when a set is clicked, receives set index
  * @param onOptionsClick Optional callback for options menu
+ * @param onAddSet Optional callback for adding a new set
+ * @param onLongPressTitle Optional callback when exercise title is long-pressed (for reorder mode)
  * @param modifier Modifier for customization
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ExerciseWorkoutCard(
     exerciseName: String,
@@ -67,6 +72,7 @@ fun ExerciseWorkoutCard(
     onSetClick: (Int) -> Unit,
     onOptionsClick: (() -> Unit)? = null,
     onAddSet: (() -> Unit)? = null,
+    onLongPressTitle: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isCompleted = sets.all { it.state == SetState.COMPLETED }
@@ -84,7 +90,20 @@ fun ExerciseWorkoutCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .let { mod ->
+                            if (onLongPressTitle != null) {
+                                mod.combinedClickable(
+                                    onClick = { },
+                                    onLongClick = onLongPressTitle
+                                )
+                            } else {
+                                mod
+                            }
+                        }
+                ) {
                     Text(
                         text = exerciseName,
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -136,7 +155,7 @@ fun ExerciseWorkoutCard(
         ) {
             items(sets) { set ->
                 val setIndex = set.setNumber - 1
-                val isSetActive = isActive && setIndex == activeSetIndex && set.state != SetState.COMPLETED
+                val isSetActive = setIndex == activeSetIndex && set.state != SetState.COMPLETED
                 val targetText = "Target: ${sets.firstOrNull()?.weight?.toInt() ?: 0}kg x 12"
 
                 WorkoutSetCard(

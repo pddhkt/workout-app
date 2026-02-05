@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -30,13 +30,12 @@ import com.workout.app.data.repository.TemplateRepository
 import com.workout.app.domain.model.TemplateExercise
 import com.workout.app.presentation.planning.SessionPlanningState
 import com.workout.app.ui.components.buttons.AppIconButton
-import com.workout.app.ui.components.buttons.SecondaryButton
-import com.workout.app.ui.components.chips.FilterChip
 import com.workout.app.ui.components.exercise.ExerciseSelectionCard
 import com.workout.app.ui.components.exercise.PreviousRecord
 import com.workout.app.ui.components.headers.SectionHeader
 import com.workout.app.ui.components.navigation.BottomActionBar
 import com.workout.app.ui.components.navigation.SessionSummary
+import com.workout.app.ui.components.recovery.MuscleRecoveryCard
 import com.workout.app.ui.theme.AppTheme
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -56,25 +55,14 @@ enum class MuscleGroup(val displayName: String) {
 
 /**
  * Session Planning screen for creating a workout plan.
- * Based on mockup elements EL-37, EL-38, EL-26/27, EL-39/40, EL-45, EL-46, EL-15.
  *
  * Features:
- * - Header with back navigation and title
- * - Templates quick-access button
- * - Muscle group filter chips
+ * - Header with back navigation, title, and templates icon button
+ * - Accordion muscle groups card with recovery bars and filter selection
  * - Exercise list with add/remove functionality
  * - Session summary showing exercises and total sets
  * - Start Session button in bottom bar
  * - Template pre-loading when templateId is provided
- *
- * @param state The ViewModel state containing exercises and added exercises
- * @param templateId Optional template ID to pre-populate exercises
- * @param onBackClick Callback when back button is clicked
- * @param onTemplatesClick Callback when templates button is clicked
- * @param onStartSession Callback when start session button is clicked
- * @param onToggleExercise Callback when exercise is toggled (added/removed)
- * @param onAddExercise Callback to add an exercise with specific set count
- * @param modifier Modifier to be applied to the screen
  */
 @Composable
 fun SessionPlanningScreen(
@@ -85,13 +73,14 @@ fun SessionPlanningScreen(
     onStartSession: () -> Unit,
     onToggleExercise: (String) -> Unit,
     onAddExercise: (String, Int) -> Unit,
+    onToggleTimeRange: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val templateRepository: TemplateRepository = koinInject()
     val scope = rememberCoroutineScope()
 
     // Local UI state for muscle group filter
-    var selectedMuscleGroup by remember { mutableStateOf(MuscleGroup.ALL) }
+    var selectedMuscleGroup by remember { mutableStateOf<String?>(null) }
 
     // Track if template has been loaded to avoid reloading
     var templateLoaded by remember { mutableStateOf(false) }
@@ -123,12 +112,19 @@ fun SessionPlanningScreen(
     }
 
     // Filter exercises by selected muscle group
-    val filteredExercises = if (selectedMuscleGroup == MuscleGroup.ALL) {
+    val filteredExercises = if (selectedMuscleGroup == null) {
         state.allExercises
     } else {
         state.allExercises.filter {
-            it.muscleGroup.equals(selectedMuscleGroup.name, ignoreCase = true)
+            it.muscleGroup.equals(selectedMuscleGroup, ignoreCase = true)
         }
+    }
+
+    // Exercise header label
+    val exerciseHeaderTitle = if (selectedMuscleGroup != null) {
+        "Exercises ($selectedMuscleGroup)"
+    } else {
+        "Exercises"
     }
 
     // Calculate session summary
@@ -158,58 +154,36 @@ fun SessionPlanningScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Header (EL-37)
+            // Header with back button, title, and templates icon
             SessionPlanningHeader(
                 onBackClick = onBackClick,
+                onTemplatesClick = onTemplatesClick,
                 modifier = Modifier.padding(
                     horizontal = AppTheme.spacing.lg,
                     vertical = AppTheme.spacing.md
                 )
             )
 
-            Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
+            Spacer(modifier = Modifier.height(AppTheme.spacing.md))
 
-            // Templates Button (EL-38)
-            SecondaryButton(
-                text = "Browse Templates",
-                onClick = onTemplatesClick,
-                fullWidth = true,
+            // Muscle Groups Accordion with recovery bars
+            MuscleRecoveryCard(
+                muscleRecoveryList = state.muscleRecovery,
+                selectedMuscleGroup = selectedMuscleGroup,
+                onMuscleGroupSelected = { selectedMuscleGroup = it },
+                timeRange = state.recoveryTimeRange,
+                onToggleTimeRange = onToggleTimeRange,
                 modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
             )
 
-            Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
-
-            // Filter Chips Section (EL-26/27)
-            Column(
-                modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
-            ) {
-                SectionHeader(
-                    title = "Muscle Groups",
-                    modifier = Modifier.padding(bottom = AppTheme.spacing.md)
-                )
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
-                    contentPadding = PaddingValues(bottom = AppTheme.spacing.md)
-                ) {
-                    items(MuscleGroup.entries) { muscleGroup ->
-                        FilterChip(
-                            text = muscleGroup.displayName,
-                            isActive = selectedMuscleGroup == muscleGroup,
-                            onClick = { selectedMuscleGroup = muscleGroup }
-                        )
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
 
-            // Exercise Selection Cards (EL-39/40)
+            // Exercise Selection Cards
             Column(
                 modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
             ) {
                 SectionHeader(
-                    title = "Exercises",
+                    title = exerciseHeaderTitle,
                     modifier = Modifier.padding(bottom = AppTheme.spacing.md)
                 )
             }
@@ -236,7 +210,7 @@ fun SessionPlanningScreen(
                         exerciseName = exercise.name,
                         exerciseCategory = categoryDisplay,
                         isAdded = isAdded,
-                        history = emptyList(), // TODO: Load history from repository
+                        history = emptyList(),
                         onToggle = { onToggleExercise(exercise.id) }
                     )
                 }
@@ -246,33 +220,43 @@ fun SessionPlanningScreen(
 }
 
 /**
- * Session planning header with back navigation and title.
- * Based on mockup element EL-37.
+ * Session planning header with back navigation, title, and templates icon button.
  */
 @Composable
 private fun SessionPlanningHeader(
     onBackClick: () -> Unit,
+    onTemplatesClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AppIconButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Navigate back",
+                onClick = onBackClick,
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(modifier = Modifier.padding(start = AppTheme.spacing.sm))
+
+            Text(
+                text = "Plan Session",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
         AppIconButton(
-            icon = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "Navigate back",
-            onClick = onBackClick,
+            icon = Icons.Outlined.ContentCopy,
+            contentDescription = "Browse Templates",
+            onClick = onTemplatesClick,
             tint = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.padding(start = AppTheme.spacing.sm))
-
-        Text(
-            text = "Plan Session",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }
-

@@ -1,8 +1,10 @@
 package com.workout.app.presentation.detail
 
 import com.workout.app.data.repository.ExerciseRepository
+import com.workout.app.data.repository.SetRepository
 import com.workout.app.database.Exercise
 import com.workout.app.domain.model.Result
+import com.workout.app.domain.model.SetData
 import com.workout.app.presentation.base.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,8 +18,8 @@ import kotlinx.coroutines.launch
  */
 class ExerciseDetailViewModel(
     private val exerciseId: String,
-    private val exerciseRepository: ExerciseRepository
-    // TODO: Add WorkoutSetRepository for history and stats
+    private val exerciseRepository: ExerciseRepository,
+    private val setRepository: SetRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ExerciseDetailState())
@@ -25,7 +27,8 @@ class ExerciseDetailViewModel(
 
     init {
         loadExercise()
-        // TODO: Load performance stats and history
+        loadPerformanceStats()
+        loadWorkoutHistory()
     }
 
     private fun loadExercise() {
@@ -67,6 +70,88 @@ class ExerciseDetailViewModel(
         }
     }
 
+    private fun loadPerformanceStats() {
+        viewModelScope.launch {
+            val statsResult = setRepository.getExerciseStats(exerciseId)
+            val prResult = setRepository.getPersonalRecord(exerciseId)
+
+            val stats = (statsResult as? Result.Success)?.data
+            val pr = (prResult as? Result.Success)?.data
+
+            if (stats != null) {
+                _state.update {
+                    it.copy(
+                        performanceStats = PerformanceStats(
+                            oneRepMax = pr?.toFloat(),
+                            totalVolume = stats.totalVolume.toLong(),
+                            totalSets = stats.totalSets,
+                            maxWeight = stats.maxWeight,
+                            avgReps = stats.avgReps,
+                            lastPerformed = stats.lastPerformed
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun loadWorkoutHistory() {
+        viewModelScope.launch {
+            when (val result = setRepository.getByExercise(exerciseId)) {
+                is Result.Success -> {
+                    val allSets = result.data
+                    val grouped = allSets.groupBy { it.sessionId }
+
+                    val historyItems = grouped.map { (sessionId, sets) ->
+                        val sortedSets = sets.sortedBy { it.setNumber }
+                        val workingSets = sortedSets.filter { !it.isWarmup }
+                        val totalReps = workingSets.sumOf { it.reps }
+                        val totalVolume = workingSets.sumOf { (it.weight * it.reps).toLong() }
+                        val bestWeight = workingSets.maxOfOrNull { it.weight } ?: 0.0
+                        val rpeValues = workingSets.mapNotNull { it.rpe }
+                        val avgRpe = if (rpeValues.isNotEmpty()) {
+                            rpeValues.average().toFloat()
+                        } else null
+                        val date = sets.maxOf { it.completedAt }
+
+                        WorkoutHistoryItem(
+                            id = sessionId,
+                            workoutDate = date,
+                            sets = workingSets.size,
+                            totalReps = totalReps,
+                            totalVolume = totalVolume,
+                            bestWeight = bestWeight,
+                            averageRPE = avgRpe,
+                            setDetails = sortedSets
+                        )
+                    }.sortedByDescending { it.workoutDate }
+
+                    // Compute averages for QuickStats
+                    val avgSets = if (historyItems.isNotEmpty()) {
+                        historyItems.map { it.sets }.average().toFloat()
+                    } else 0f
+                    val totalWorkingSets = historyItems.sumOf { it.sets }
+                    val totalRepsAll = historyItems.sumOf { it.totalReps }
+                    val avgReps = if (totalWorkingSets > 0) {
+                        totalRepsAll.toFloat() / totalWorkingSets
+                    } else 0f
+
+                    _state.update {
+                        it.copy(
+                            workoutHistory = historyItems,
+                            averageSetsPerSession = avgSets,
+                            averageRepsPerSet = avgReps
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    // History loading failure is non-fatal; leave empty
+                }
+                is Result.Loading -> {}
+            }
+        }
+    }
+
     fun toggleInstructionsExpanded() {
         _state.update { it.copy(isInstructionsExpanded = !it.isInstructionsExpanded) }
     }
@@ -83,7 +168,6 @@ class ExerciseDetailViewModel(
 
     fun selectView(view: ExerciseView) {
         _state.update { it.copy(selectedView = view) }
-        // TODO: Load partner stats if switching to Partner view
     }
 
     fun toggleFavorite() {
@@ -132,6 +216,8 @@ data class PerformanceStats(
     val oneRepMax: Float? = null,
     val totalVolume: Long = 0,
     val totalSets: Long = 0,
+    val maxWeight: Double = 0.0,
+    val avgReps: Double = 0.0,
     val lastPerformed: Long? = null
 )
 
@@ -144,7 +230,9 @@ data class WorkoutHistoryItem(
     val sets: Int,
     val totalReps: Int,
     val totalVolume: Long,
-    val averageRPE: Float?
+    val bestWeight: Double = 0.0,
+    val averageRPE: Float?,
+    val setDetails: List<SetData> = emptyList()
 )
 
 /**
@@ -158,23 +246,16 @@ data class ExerciseDetailState(
     val expandedHistoryItems: Set<String> = emptySet(),
     val performanceStats: PerformanceStats = PerformanceStats(),
     val workoutHistory: List<WorkoutHistoryItem> = emptyList(),
+    val averageSetsPerSession: Float = 0f,
+    val averageRepsPerSet: Float = 0f,
     val error: String? = null
 ) {
-    /**
-     * Whether instructions section can be expanded.
-     */
     val hasInstructions: Boolean
         get() = !exercise?.instructions.isNullOrBlank()
 
-    /**
-     * Whether exercise has workout history.
-     */
     val hasHistory: Boolean
         get() = workoutHistory.isNotEmpty()
 
-    /**
-     * Whether exercise is favorited.
-     */
     val isFavorite: Boolean
         get() = exercise?.isFavorite == 1L
 }

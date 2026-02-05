@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,9 +23,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -36,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,9 +44,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.workout.app.presentation.detail.ExerciseDetailViewModel
+import com.workout.app.presentation.detail.ExerciseView
 import com.workout.app.ui.components.buttons.AppIconButton
 import com.workout.app.ui.components.buttons.PrimaryButton
 import com.workout.app.ui.components.buttons.ToggleButton
@@ -56,6 +57,13 @@ import com.workout.app.ui.components.chips.Badge
 import com.workout.app.ui.components.chips.BadgeVariant
 import com.workout.app.ui.components.headers.SectionHeader
 import com.workout.app.ui.theme.AppTheme
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
+import kotlin.math.roundToInt
 
 /**
  * Exercise data model for detail screen
@@ -109,23 +117,23 @@ data class HistoryItem(
     val reps: String,
     val weight: String,
     val volume: String,
+    val rpe: Int?,
+    val setDetails: List<SetDetail> = emptyList()
+)
+
+/**
+ * Individual set detail for expanded history view
+ */
+data class SetDetail(
+    val setNumber: Int,
+    val reps: Int,
+    val weight: Double,
     val rpe: Int?
 )
 
 /**
  * Exercise Detail screen showing comprehensive exercise information.
  * Based on mockup AN-13 and elements EL-03, EL-86 through EL-94.
- *
- * Features:
- * - Top app bar with back navigation (EL-03)
- * - Hero image with play button (EL-86)
- * - Quick stats tiles (EL-87)
- * - Collapsible instructions card (EL-88)
- * - Performance stats card (EL-89)
- * - Muscle target card (EL-90)
- * - History items with expandable details (EL-91/92)
- * - Me/Partner toggle for stats view (EL-94)
- * - Sticky footer button to add to workout (EL-93)
  *
  * @param exerciseId ID of the exercise to display
  * @param onBackClick Callback when back button is clicked
@@ -142,16 +150,97 @@ fun ExerciseDetailScreen(
     onPlayVideo: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // State management
-    var showMeStats by remember { mutableStateOf(true) }
-    var isInstructionsExpanded by remember { mutableStateOf(false) }
+    val viewModel: ExerciseDetailViewModel = koinInject { parametersOf(exerciseId) }
+    val state by viewModel.state.collectAsState()
 
-    // Mock data
-    val exercise = remember { getMockExerciseDetail(exerciseId) }
-    val quickStats = remember { getMockQuickStats() }
-    val performanceStats = remember { getMockPerformanceStats(showMeStats) }
-    val muscleTarget = remember { getMockMuscleTarget() }
-    val historyItems = remember { getMockHistoryItems(showMeStats) }
+    val exercise = state.exercise
+    val isLoading = state.isLoading
+
+    // Map DB Exercise to UI ExerciseDetail
+    val exerciseDetail = exercise?.let {
+        ExerciseDetail(
+            id = it.id,
+            name = it.name,
+            muscleGroup = it.muscleGroup,
+            category = it.category ?: "Unknown",
+            equipment = it.equipment ?: "None",
+            difficulty = it.difficulty ?: "Unknown",
+            instructions = it.instructions ?: "",
+            videoUrl = it.videoUrl,
+            thumbnailUrl = null
+        )
+    }
+
+    // Map state to QuickStats
+    val quickStats = QuickStats(
+        targetSets = if (state.hasHistory) "~${state.averageSetsPerSession.roundToInt()}" else "--",
+        targetReps = if (state.hasHistory) "~${state.averageRepsPerSet.roundToInt()}" else "--",
+        primaryMuscle = exercise?.muscleGroup ?: "--"
+    )
+
+    // Map state to PerformanceStats
+    val perfStats = state.performanceStats
+    val performanceStats = PerformanceStats(
+        oneRepMax = perfStats.oneRepMax?.let { "${it.roundToInt()} kg" },
+        totalVolume = if (perfStats.totalVolume > 0) formatVolume(perfStats.totalVolume) else "--",
+        totalSets = perfStats.totalSets.toInt(),
+        lastPerformed = perfStats.lastPerformed?.let { formatRelativeDate(it) }
+    )
+
+    // Map state to MuscleTarget
+    val muscleTarget = MuscleTarget(
+        primaryMuscles = exercise?.muscleGroup?.let { listOf(it) } ?: emptyList(),
+        secondaryMuscles = emptyList()
+    )
+
+    // Map state to HistoryItems
+    val historyItems = state.workoutHistory.map { historyItem ->
+        HistoryItem(
+            id = historyItem.id,
+            date = formatDate(historyItem.workoutDate),
+            sets = historyItem.sets,
+            reps = historyItem.setDetails
+                .filter { !it.isWarmup }
+                .joinToString(", ") { "${it.reps}" },
+            weight = "${historyItem.bestWeight.roundToInt()} kg",
+            volume = formatVolume(historyItem.totalVolume),
+            rpe = historyItem.averageRPE?.roundToInt(),
+            setDetails = historyItem.setDetails.map { set ->
+                SetDetail(
+                    setNumber = set.setNumber,
+                    reps = set.reps,
+                    weight = set.weight,
+                    rpe = set.rpe
+                )
+            }
+        )
+    }
+
+    val showMeStats = state.selectedView == ExerciseView.ME
+
+    if (isLoading) {
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (exerciseDetail == null) {
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = state.error ?: "Exercise not found",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        return
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -159,7 +248,7 @@ fun ExerciseDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = exercise.name,
+                        text = exerciseDetail.name,
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.SemiBold
                         )
@@ -194,8 +283,8 @@ fun ExerciseDetailScreen(
             // Hero Image with Play Button (EL-86)
             item {
                 HeroImage(
-                    thumbnailUrl = exercise.thumbnailUrl,
-                    onPlayClick = { exercise.videoUrl?.let(onPlayVideo) },
+                    thumbnailUrl = exerciseDetail.thumbnailUrl,
+                    onPlayClick = { exerciseDetail.videoUrl?.let(onPlayVideo) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -214,7 +303,7 @@ fun ExerciseDetailScreen(
             // Exercise Info
             item {
                 ExerciseInfo(
-                    exercise = exercise,
+                    exercise = exerciseDetail,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = AppTheme.spacing.lg)
@@ -223,23 +312,29 @@ fun ExerciseDetailScreen(
             }
 
             // Instructions Card (EL-88)
-            item {
-                InstructionsCard(
-                    instructions = exercise.instructions,
-                    isExpanded = isInstructionsExpanded,
-                    onToggleExpand = { isInstructionsExpanded = !isInstructionsExpanded },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AppTheme.spacing.lg)
-                        .padding(top = AppTheme.spacing.lg)
-                )
+            if (exerciseDetail.instructions.isNotBlank()) {
+                item {
+                    InstructionsCard(
+                        instructions = exerciseDetail.instructions,
+                        isExpanded = state.isInstructionsExpanded,
+                        onToggleExpand = { viewModel.toggleInstructionsExpanded() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppTheme.spacing.lg)
+                            .padding(top = AppTheme.spacing.lg)
+                    )
+                }
             }
 
             // Me/Partner Toggle (EL-94)
             item {
                 MePartnerToggle(
                     showMeStats = showMeStats,
-                    onToggle = { showMeStats = it },
+                    onToggle = { isMe ->
+                        viewModel.selectView(
+                            if (isMe) ExerciseView.ME else ExerciseView.PARTNER
+                        )
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = AppTheme.spacing.lg)
@@ -247,46 +342,83 @@ fun ExerciseDetailScreen(
                 )
             }
 
-            // Performance Stats Card (EL-89)
-            item {
-                PerformanceStatsCard(
-                    stats = performanceStats,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AppTheme.spacing.lg)
-                        .padding(top = AppTheme.spacing.lg)
-                )
-            }
+            if (showMeStats) {
+                // Performance Stats Card (EL-89)
+                item {
+                    PerformanceStatsCard(
+                        stats = performanceStats,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppTheme.spacing.lg)
+                            .padding(top = AppTheme.spacing.lg)
+                    )
+                }
 
-            // Muscle Target Card (EL-90)
-            item {
-                MuscleTargetCard(
-                    target = muscleTarget,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AppTheme.spacing.lg)
-                        .padding(top = AppTheme.spacing.lg)
-                )
-            }
+                // Muscle Target Card (EL-90)
+                item {
+                    MuscleTargetCard(
+                        target = muscleTarget,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppTheme.spacing.lg)
+                            .padding(top = AppTheme.spacing.lg)
+                    )
+                }
 
-            // History Section (EL-91/92)
-            item {
-                SectionHeader(
-                    title = "History",
-                    modifier = Modifier
-                        .padding(horizontal = AppTheme.spacing.lg)
-                        .padding(top = AppTheme.spacing.xl, bottom = AppTheme.spacing.md)
-                )
-            }
+                // History Section (EL-91/92)
+                item {
+                    SectionHeader(
+                        title = "History",
+                        modifier = Modifier
+                            .padding(horizontal = AppTheme.spacing.lg)
+                            .padding(top = AppTheme.spacing.xl, bottom = AppTheme.spacing.md)
+                    )
+                }
 
-            items(historyItems, key = { it.id }) { item ->
-                HistoryItemCard(
-                    item = item,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AppTheme.spacing.lg)
-                        .padding(bottom = AppTheme.spacing.sm)
-                )
+                if (historyItems.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppTheme.spacing.lg)
+                                .padding(vertical = AppTheme.spacing.xl),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No workout history yet",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    items(historyItems, key = { it.id }) { item ->
+                        HistoryItemCard(
+                            item = item,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppTheme.spacing.lg)
+                                .padding(bottom = AppTheme.spacing.sm)
+                        )
+                    }
+                }
+            } else {
+                // Partner tab empty state
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppTheme.spacing.lg)
+                            .padding(vertical = AppTheme.spacing.xl),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No partner data yet",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }
@@ -645,14 +777,18 @@ private fun MuscleTargetCard(
             Column(
                 verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
             ) {
-                MuscleList(
-                    label = "Primary",
-                    muscles = target.primaryMuscles
-                )
-                MuscleList(
-                    label = "Secondary",
-                    muscles = target.secondaryMuscles
-                )
+                if (target.primaryMuscles.isNotEmpty()) {
+                    MuscleList(
+                        label = "Primary",
+                        muscles = target.primaryMuscles
+                    )
+                }
+                if (target.secondaryMuscles.isNotEmpty()) {
+                    MuscleList(
+                        label = "Secondary",
+                        muscles = target.secondaryMuscles
+                    )
+                }
             }
         }
     }
@@ -749,16 +885,46 @@ private fun HistoryItemCard(
                 ) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        DetailItem(label = "Reps", value = item.reps)
-                        DetailItem(label = "Weight", value = item.weight)
-                        DetailItem(
-                            label = "RPE",
-                            value = item.rpe?.toString() ?: "N/A"
-                        )
+                    if (item.setDetails.isNotEmpty()) {
+                        // Per-set breakdown
+                        item.setDetails.forEach { set ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = AppTheme.spacing.xs),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Set ${set.setNumber}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "${set.reps} reps × ${set.weight.roundToInt()} kg",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = set.rpe?.let { "RPE $it" } ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            DetailItem(label = "Reps", value = item.reps)
+                            DetailItem(label = "Weight", value = item.weight)
+                            DetailItem(
+                                label = "RPE",
+                                value = item.rpe?.toString() ?: "N/A"
+                            )
+                        }
                     }
                 }
             }
@@ -830,152 +996,59 @@ private fun StickyFooterButton(
 }
 
 /**
- * Mock data: Exercise detail
+ * Format epoch millis to "Jan 19, 2026" style date string.
  */
-private fun getMockExerciseDetail(exerciseId: String): ExerciseDetail {
-    return ExerciseDetail(
-        id = exerciseId,
-        name = "Barbell Bench Press",
-        muscleGroup = "Chest",
-        category = "Compound",
-        equipment = "Barbell",
-        difficulty = "Intermediate",
-        instructions = """
-            1. Lie flat on a bench with your feet planted firmly on the ground.
-            2. Grip the barbell slightly wider than shoulder-width apart.
-            3. Unrack the bar and lower it slowly to your chest.
-            4. Press the bar back up explosively until your arms are fully extended.
-            5. Keep your shoulder blades retracted throughout the movement.
-            6. Maintain a slight arch in your lower back.
-        """.trimIndent(),
-        videoUrl = "https://example.com/video.mp4",
-        thumbnailUrl = "https://example.com/thumbnail.jpg"
-    )
+private fun formatDate(epochMillis: Long): String {
+    val instant = Instant.fromEpochMilliseconds(epochMillis)
+    val localDate = instant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val month = when (localDate.monthNumber) {
+        1 -> "Jan"
+        2 -> "Feb"
+        3 -> "Mar"
+        4 -> "Apr"
+        5 -> "May"
+        6 -> "Jun"
+        7 -> "Jul"
+        8 -> "Aug"
+        9 -> "Sep"
+        10 -> "Oct"
+        11 -> "Nov"
+        12 -> "Dec"
+        else -> "???"
+    }
+    return "$month ${localDate.dayOfMonth}, ${localDate.year}"
 }
 
 /**
- * Mock data: Quick stats
+ * Format epoch millis to relative date string like "2 days ago", "1 week ago".
  */
-private fun getMockQuickStats(): QuickStats {
-    return QuickStats(
-        targetSets = "3-4",
-        targetReps = "8-12",
-        primaryMuscle = "Chest"
-    )
-}
+private fun formatRelativeDate(epochMillis: Long): String {
+    val now = Clock.System.now().toEpochMilliseconds()
+    val diffMs = now - epochMillis
+    val diffDays = diffMs / (1000 * 60 * 60 * 24)
 
-/**
- * Mock data: Performance stats
- */
-private fun getMockPerformanceStats(isMe: Boolean): PerformanceStats {
-    return if (isMe) {
-        PerformanceStats(
-            oneRepMax = "225 lbs",
-            totalVolume = "24,500 lbs",
-            totalSets = 156,
-            lastPerformed = "2 days ago"
-        )
-    } else {
-        PerformanceStats(
-            oneRepMax = "185 lbs",
-            totalVolume = "18,200 lbs",
-            totalSets = 124,
-            lastPerformed = "3 days ago"
-        )
+    return when {
+        diffDays < 1 -> "Today"
+        diffDays < 2 -> "Yesterday"
+        diffDays < 7 -> "${diffDays.toInt()} days ago"
+        diffDays < 14 -> "1 week ago"
+        diffDays < 30 -> "${(diffDays / 7).toInt()} weeks ago"
+        diffDays < 60 -> "1 month ago"
+        else -> "${(diffDays / 30).toInt()} months ago"
     }
 }
 
 /**
- * Mock data: Muscle target
+ * Format volume as "24,500 kg" with thousands separator.
  */
-private fun getMockMuscleTarget(): MuscleTarget {
-    return MuscleTarget(
-        primaryMuscles = listOf("Pectoralis Major", "Anterior Deltoid"),
-        secondaryMuscles = listOf("Triceps", "Serratus Anterior")
-    )
-}
+private fun formatVolume(volume: Long): String {
+    if (volume < 1000) return "$volume kg"
 
-/**
- * Mock data: History items
- */
-private fun getMockHistoryItems(isMe: Boolean): List<HistoryItem> {
-    return if (isMe) {
-        listOf(
-            HistoryItem(
-                id = "1",
-                date = "Jan 19, 2026",
-                sets = 4,
-                reps = "10, 10, 8, 8",
-                weight = "185 lbs",
-                volume = "6,660 lbs",
-                rpe = 8
-            ),
-            HistoryItem(
-                id = "2",
-                date = "Jan 16, 2026",
-                sets = 4,
-                reps = "12, 10, 10, 8",
-                weight = "175 lbs",
-                volume = "7,000 lbs",
-                rpe = 7
-            ),
-            HistoryItem(
-                id = "3",
-                date = "Jan 12, 2026",
-                sets = 3,
-                reps = "12, 12, 10",
-                weight = "165 lbs",
-                volume = "5,610 lbs",
-                rpe = 7
-            ),
-            HistoryItem(
-                id = "4",
-                date = "Jan 9, 2026",
-                sets = 4,
-                reps = "10, 10, 10, 8",
-                weight = "175 lbs",
-                volume = "6,650 lbs",
-                rpe = 8
-            ),
-            HistoryItem(
-                id = "5",
-                date = "Jan 5, 2026",
-                sets = 3,
-                reps = "12, 10, 10",
-                weight = "165 lbs",
-                volume = "5,280 lbs",
-                rpe = 6
-            )
-        )
+    val thousands = volume / 1000
+    val remainder = ((volume % 1000) / 100).toInt()
+    return if (remainder > 0) {
+        "$thousands,${(volume % 1000).toString().padStart(3, '0')} kg"
     } else {
-        listOf(
-            HistoryItem(
-                id = "6",
-                date = "Jan 18, 2026",
-                sets = 3,
-                reps = "10, 10, 8",
-                weight = "155 lbs",
-                volume = "4,340 lbs",
-                rpe = 7
-            ),
-            HistoryItem(
-                id = "7",
-                date = "Jan 14, 2026",
-                sets = 4,
-                reps = "12, 10, 10, 8",
-                weight = "145 lbs",
-                volume = "5,800 lbs",
-                rpe = 8
-            ),
-            HistoryItem(
-                id = "8",
-                date = "Jan 11, 2026",
-                sets = 3,
-                reps = "10, 10, 10",
-                weight = "155 lbs",
-                volume = "4,650 lbs",
-                rpe = 7
-            )
-        )
+        "$thousands,000 kg"
     }
 }

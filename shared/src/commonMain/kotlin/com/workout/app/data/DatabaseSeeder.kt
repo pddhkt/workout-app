@@ -27,16 +27,29 @@ class DatabaseSeeder(
      * Seeds the database with sample data if the database is empty.
      */
     suspend fun seedIfEmpty() = withContext(Dispatchers.Default) {
-        val existingWorkouts = workoutQueries.selectAll().executeAsList().size
         val existingExercises = exerciseQueries.selectAll().executeAsList().size
 
         if (existingExercises == 0) {
             seedExercises()
         }
 
-        if (existingWorkouts == 0) {
-            seedWorkoutsWithExercises()
+        // Clean up any previously seeded sample workouts
+        cleanupSeededWorkouts()
+    }
+
+    /**
+     * Removes known seeded sample workouts and their associated data.
+     */
+    private fun cleanupSeededWorkouts() {
+        val seededWorkoutIds = listOf("1", "2", "3")
+        val seededSessionIds = listOf("session_1", "session_2", "session_3")
+
+        seededSessionIds.forEach { sessionId ->
+            setQueries.deleteBySession(sessionId)
+            sessionExerciseQueries.deleteBySession(sessionId)
+            sessionQueries.delete(sessionId)
         }
+        seededWorkoutIds.forEach { workoutQueries.delete(it) }
     }
 
     /**

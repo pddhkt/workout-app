@@ -102,6 +102,14 @@ interface SessionRepository {
     suspend fun complete(id: String): Result<Unit>
 
     /**
+     * Update the workout ID for a session, linking it to a saved workout.
+     * @param id Session ID
+     * @param workoutId Workout ID to link
+     * @return Result indicating success or failure
+     */
+    suspend fun updateWorkoutId(id: String, workoutId: String): Result<Unit>
+
+    /**
      * Delete a session.
      * @param id Session ID
      * @return Result indicating success or failure

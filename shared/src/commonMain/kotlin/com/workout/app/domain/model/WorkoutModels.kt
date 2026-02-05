@@ -68,7 +68,8 @@ data class SetData(
     val rpe: Int?,
     val isWarmup: Boolean,
     val completedAt: Long,
-    val isPR: Boolean = false
+    val isPR: Boolean = false,
+    val sessionId: String = ""
 )
 
 /**
@@ -135,6 +136,86 @@ enum class WorkoutType {
 enum class Participant {
     ME,
     PARTNER
+}
+
+/**
+ * Time range for muscle recovery display.
+ */
+enum class RecoveryTimeRange(val label: String) {
+    WEEKLY("Weekly"),
+    MONTHLY("Monthly");
+
+    fun next(): RecoveryTimeRange = when (this) {
+        WEEKLY -> MONTHLY
+        MONTHLY -> WEEKLY
+    }
+}
+
+/**
+ * Recovery status for a muscle group.
+ */
+enum class RecoveryStatus(val label: String) {
+    REST("Rest"),
+    RECOVERING("Recov."),
+    READY("Ready"),
+    TRAIN("Train!"),
+    NEW("New")
+}
+
+/**
+ * Muscle recovery data for planning screen.
+ */
+data class MuscleRecovery(
+    val muscleGroup: String,
+    val daysSinceLastTrained: Int?,
+    val status: RecoveryStatus,
+    val progress: Float // 0f..1f for bar fill
+)
+
+/**
+ * Determine recovery status from days since last trained.
+ */
+fun calculateRecoveryStatus(
+    daysSinceLastTrained: Int?,
+    timeRange: RecoveryTimeRange = RecoveryTimeRange.WEEKLY
+): RecoveryStatus = when (timeRange) {
+    RecoveryTimeRange.WEEKLY -> when {
+        daysSinceLastTrained == null -> RecoveryStatus.NEW
+        daysSinceLastTrained <= 1 -> RecoveryStatus.REST
+        daysSinceLastTrained <= 3 -> RecoveryStatus.RECOVERING
+        daysSinceLastTrained <= 6 -> RecoveryStatus.READY
+        else -> RecoveryStatus.TRAIN
+    }
+    RecoveryTimeRange.MONTHLY -> when {
+        daysSinceLastTrained == null -> RecoveryStatus.NEW
+        daysSinceLastTrained <= 3 -> RecoveryStatus.REST
+        daysSinceLastTrained <= 7 -> RecoveryStatus.RECOVERING
+        daysSinceLastTrained <= 14 -> RecoveryStatus.READY
+        else -> RecoveryStatus.TRAIN
+    }
+}
+
+/**
+ * Calculate recovery bar progress from days since last trained.
+ */
+fun calculateRecoveryProgress(
+    daysSinceLastTrained: Int?,
+    timeRange: RecoveryTimeRange = RecoveryTimeRange.WEEKLY
+): Float = when (timeRange) {
+    RecoveryTimeRange.WEEKLY -> when {
+        daysSinceLastTrained == null -> 1f
+        daysSinceLastTrained <= 1 -> 0.2f
+        daysSinceLastTrained <= 3 -> 0.5f
+        daysSinceLastTrained <= 6 -> 0.8f
+        else -> 1f
+    }
+    RecoveryTimeRange.MONTHLY -> when {
+        daysSinceLastTrained == null -> 1f
+        daysSinceLastTrained <= 3 -> 0.2f
+        daysSinceLastTrained <= 7 -> 0.4f
+        daysSinceLastTrained <= 14 -> 0.7f
+        else -> 1f
+    }
 }
 
 /**

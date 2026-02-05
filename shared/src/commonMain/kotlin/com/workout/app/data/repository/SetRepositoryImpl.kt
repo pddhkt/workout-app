@@ -65,7 +65,8 @@ class SetRepositoryImpl(
                         rpe = set.rpe?.toInt(),
                         isWarmup = set.isWarmup == 1L,
                         completedAt = set.completedAt,
-                        isPR = false // TODO: Calculate PR status
+                        isPR = false,
+                        sessionId = set.sessionId
                     )
                 }
 
@@ -89,7 +90,8 @@ class SetRepositoryImpl(
                         rpe = set.rpe?.toInt(),
                         isWarmup = set.isWarmup == 1L,
                         completedAt = set.completedAt,
-                        isPR = false
+                        isPR = false,
+                        sessionId = set.sessionId
                     )
                 }
 
@@ -120,11 +122,113 @@ class SetRepositoryImpl(
             }
         }
 
+    override suspend fun getPreviousByExercise(
+        exerciseId: String,
+        excludeSessionId: String,
+        limit: Int
+    ): Result<List<SetData>> = withContext(Dispatchers.Default) {
+        try {
+            val sets = setQueries.selectPreviousByExercise(
+                exerciseId,
+                excludeSessionId,
+                limit.toLong()
+            ).executeAsList()
+
+            val result = sets.map { set ->
+                SetData(
+                    id = set.id,
+                    setNumber = set.setNumber.toInt(),
+                    weight = set.weight,
+                    reps = set.reps.toInt(),
+                    rpe = set.rpe?.toInt(),
+                    isWarmup = set.isWarmup == 1L,
+                    completedAt = set.completedAt,
+                    isPR = false,
+                    sessionId = set.sessionId
+                )
+            }
+
+            Result.Success(result)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
     override suspend fun deleteBySession(sessionId: String): Result<Unit> =
         withContext(Dispatchers.Default) {
             try {
                 setQueries.deleteBySession(sessionId)
                 Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun getByExercise(exerciseId: String): Result<List<SetData>> =
+        withContext(Dispatchers.Default) {
+            try {
+                val sets = setQueries.selectByExercise(exerciseId).executeAsList()
+
+                val result = sets.map { set ->
+                    SetData(
+                        id = set.id,
+                        setNumber = set.setNumber.toInt(),
+                        weight = set.weight,
+                        reps = set.reps.toInt(),
+                        rpe = set.rpe?.toInt(),
+                        isWarmup = set.isWarmup == 1L,
+                        completedAt = set.completedAt,
+                        isPR = false,
+                        sessionId = set.sessionId
+                    )
+                }
+
+                Result.Success(result)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun getExerciseStats(exerciseId: String): Result<ExerciseStats> =
+        withContext(Dispatchers.Default) {
+            try {
+                val stats = setQueries.getExerciseStats(exerciseId).executeAsOne()
+                Result.Success(
+                    ExerciseStats(
+                        totalSets = stats.totalSets,
+                        totalVolume = stats.totalVolume ?: 0.0,
+                        maxWeight = stats.maxWeight ?: 0.0,
+                        avgReps = stats.avgReps ?: 0.0,
+                        lastPerformed = stats.lastPerformed
+                    )
+                )
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun getPersonalRecord(exerciseId: String): Result<Double?> =
+        withContext(Dispatchers.Default) {
+            try {
+                val record = setQueries.getPersonalRecord(exerciseId).executeAsOneOrNull()
+                Result.Success(record?.maxWeight)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
+    override suspend fun getLastTrainedPerMuscleGroup(): Result<Map<String, Long>> =
+        withContext(Dispatchers.Default) {
+            try {
+                val rows = setQueries.getLastTrainedPerMuscleGroup().executeAsList()
+                val result = mutableMapOf<String, Long>()
+                rows.forEach { row ->
+                    val ts = row.lastTrainedAt
+                    if (ts != null) {
+                        result[row.muscleGroup] = ts
+                    }
+                }
+                Result.Success(result)
             } catch (e: Exception) {
                 Result.Error(e)
             }

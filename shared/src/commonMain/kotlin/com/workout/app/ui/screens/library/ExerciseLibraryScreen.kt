@@ -35,7 +35,6 @@ import com.workout.app.ui.components.exercise.CustomExerciseFormState
 import com.workout.app.ui.components.exercise.ExerciseLibraryItem
 import com.workout.app.ui.components.exercise.LibraryExercise
 import com.workout.app.ui.components.exercise.MuscleGroupFilters
-import com.workout.app.ui.components.exercise.getMockLibraryExercises
 import com.workout.app.ui.components.headers.SectionHeader
 import com.workout.app.ui.components.inputs.SearchBar
 import com.workout.app.ui.components.navigation.BottomNavBar
@@ -80,7 +79,12 @@ fun ExerciseLibraryScreen(
     showAddExerciseSheet: Boolean = false,
     onShowAddExerciseSheet: () -> Unit = {},
     onHideAddExerciseSheet: () -> Unit = {},
+    exercises: List<LibraryExercise> = emptyList(),
     isCreatingExercise: Boolean = false,
+    activeSessionId: String? = null,
+    activeSessionStartTime: Long? = null,
+    isSessionMinimized: Boolean = false,
+    onResumeSession: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // State management
@@ -88,9 +92,6 @@ fun ExerciseLibraryScreen(
     var selectedMuscleGroup by remember { mutableStateOf("All") }
     var selectedNavIndex by remember { mutableIntStateOf(1) } // Library tab selected
     var favoriteExercises by remember { mutableStateOf(setOf<String>()) }
-
-    // Mock exercise data
-    val exercises = remember { getMockLibraryExercises() }
 
     // Filter exercises by search query and muscle group
     val filteredExercises = exercises.filter { exercise ->
@@ -116,7 +117,11 @@ fun ExerciseLibraryScreen(
                     selectedNavIndex = index
                     onNavigate(index)
                 },
-                onAddClick = onAddToWorkoutClick
+                onAddClick = onAddToWorkoutClick,
+                activeSessionId = activeSessionId,
+                activeSessionStartTime = activeSessionStartTime,
+                isSessionMinimized = isSessionMinimized,
+                onResumeSession = onResumeSession
             )
         }
     ) { paddingValues ->

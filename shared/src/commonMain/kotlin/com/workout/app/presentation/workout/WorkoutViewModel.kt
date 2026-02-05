@@ -615,7 +615,11 @@ class WorkoutViewModel(
                 userSelectedSetIndex = setIndex
             )
 
-            currentState.copy(exercises = updatedExercises)
+            // Update currentExerciseIndex to the tapped exercise
+            currentState.copy(
+                exercises = updatedExercises,
+                currentExerciseIndex = exerciseIndex
+            )
         }
     }
 
@@ -742,6 +746,14 @@ class WorkoutViewModel(
         _state.update { it.copy(error = null) }
     }
 
+    fun enterReorderMode() {
+        _state.update { it.copy(isReorderMode = true) }
+    }
+
+    fun exitReorderMode() {
+        _state.update { it.copy(isReorderMode = false) }
+    }
+
     override fun onCleared() {
         super.onCleared()
         restTimerJob?.cancel()
@@ -791,6 +803,7 @@ data class WorkoutState(
     val currentNotes: String = "",
     val isRestTimerActive: Boolean = false,
     val restTimerRemaining: Int = 0,
+    val isReorderMode: Boolean = false,
     val error: String? = null
 ) {
     /**

@@ -64,39 +64,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.material3.TextField
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.datetime.Clock
-
-/**
- * Data class representing a workout session
- */
-data class WorkoutSession(
-    val workoutName: String,
-    val exercises: List<ExerciseData>,
-    val startTime: Long = Clock.System.now().toEpochMilliseconds()
-)
-
-/**
- * Data class representing an exercise in a workout
- */
-data class ExerciseData(
-    val id: String,
-    val name: String,
-    val muscleGroup: String,
-    val targetSets: Int,
-    val completedSets: Int = 0,
-    val sets: List<SetInfo> = List(targetSets) { index ->
-        SetInfo(
-            setNumber = index + 1,
-            reps = 0,
-            weight = 0f,
-            state = SetState.PENDING
-        )
-    },
-    val previousPerformance: String? = null,
-    val userSelectedSetIndex: Int? = null  // User-selected active set
-)
+import com.workout.app.presentation.workout.WorkoutState
+import com.workout.app.presentation.workout.WorkoutExercise
 
 private enum class SheetType {
     OPTIONS, SET_EDITOR, ADD_EXERCISE, EXERCISE_OPTIONS, FINISH_CONFIRM, CREATE_EXERCISE
@@ -116,8 +96,9 @@ private enum class SheetType {
  * - Complete set and skip set buttons (EL-14)
  * - Bottom drawer for additional options (EL-23)
  * - Drag-to-reorder exercises with long-press detection (FT-028)
+ * - Reorder mode overlay for easy exercise reordering
  *
- * @param session The workout session data
+ * @param state The workout state from ViewModel (single source of truth)
  * @param onCompleteSet Callback when user completes a set
  * @param onSkipSet Callback when user skips a set
  * @param onExerciseExpand Callback when an exercise card is expanded
@@ -128,11 +109,13 @@ private enum class SheetType {
  * @param onAddSet Callback when adding a set to an exercise
  * @param onReorderExercise Callback when reordering exercises (fromIndex, toIndex)
  * @param onCreateExercise Callback when creating a custom exercise
+ * @param onEnterReorderMode Callback when user wants to enter reorder mode
+ * @param onExitReorderMode Callback when user wants to exit reorder mode
  * @param modifier Optional modifier for customization
  */
 @Composable
 fun WorkoutScreen(
-    session: WorkoutSession,
+    state: WorkoutState,
     onCompleteSet: (exerciseId: String, setNumber: Int, reps: Int, weight: Float, rpe: Int?) -> Unit = { _, _, _, _, _ -> },
     onSkipSet: (exerciseId: String) -> Unit = {},
     onExerciseExpand: (exerciseId: String) -> Unit = {},
@@ -143,45 +126,52 @@ fun WorkoutScreen(
     onAddSet: (exerciseId: String) -> Unit = {},
     onReorderExercise: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
     onCreateExercise: (name: String, muscleGroup: String, equipment: String?, instructions: String?) -> Unit = { _, _, _, _ -> },
+    onGetHistoricalWeights: suspend (String) -> List<String> = { emptyList() },
+    onGetHistoricalReps: suspend (String) -> List<String> = { emptyList() },
+    onSetActiveSet: (exerciseId: String, setIndex: Int) -> Unit = { _, _ -> },
+    onEnterReorderMode: () -> Unit = {},
+    onExitReorderMode: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // State management
-    var currentExerciseIndex by remember { mutableIntStateOf(0) }
+    // Coroutine scope for async operations
+    val scope = rememberCoroutineScope()
 
-    // State for user-selected active set per exercise
-    var userSelectedSets by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    // Use currentExerciseIndex from state (single source of truth)
+    val currentExerciseIndex = state.currentExerciseIndex
 
     // Editor State
     var activeSheet by remember { mutableStateOf<SheetType?>(null) }
     var editingSetNumber by remember { mutableIntStateOf(1) }
-    var selectedExerciseForOptions by remember { mutableStateOf<ExerciseData?>(null) }
-    var selectedExerciseForEditor by remember { mutableStateOf<ExerciseData?>(null) }
+    var selectedExerciseForOptions by remember { mutableStateOf<WorkoutExercise?>(null) }
+    var selectedExerciseForEditor by remember { mutableStateOf<WorkoutExercise?>(null) }
     var replacingExerciseId by remember { mutableStateOf<String?>(null) }
-    
+
     var currentReps by remember { mutableIntStateOf(0) }
     var currentWeight by remember { mutableFloatStateOf(0f) }
     var currentRPE by remember { mutableStateOf<Int?>(null) }
     var notes by remember { mutableStateOf("") }
-    
+
+    // History values for NumberPad quick selection
+    var currentWeightHistory by remember { mutableStateOf<List<String>>(emptyList()) }
+    var currentRepsHistory by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    // Previous set info for quick-select in set editor
+    var previousSetNumber by remember { mutableStateOf<Int?>(null) }
+    var previousSetWeight by remember { mutableStateOf<Float?>(null) }
+
     var showRestTimer by remember { mutableStateOf(false) }
     var restTimeRemaining by remember { mutableIntStateOf(90) }
-    var elapsedTime by remember { mutableIntStateOf(0) }
-    
+
     // Expanded state for legacy cards (though we might not need it for active card anymore)
-    var expandedExerciseId by remember { mutableStateOf(session.exercises.firstOrNull()?.id) }
+    var expandedExerciseId by remember { mutableStateOf(state.exercises.firstOrNull()?.id) }
 
     // Drag reorder state
     var isDragging by remember { mutableStateOf(false) }
     var draggedItemIndex by remember { mutableIntStateOf(-1) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
-
-    // Timer for elapsed time
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(1000)
-            elapsedTime = ((Clock.System.now().toEpochMilliseconds() - session.startTime) / 1000).toInt()
-        }
-    }
+    var hoverIndex by remember { mutableIntStateOf(-1) }
+    val itemHeights = remember { mutableStateMapOf<Int, Float>() }
+    val density = LocalDensity.current
 
     // Rest timer countdown
     LaunchedEffect(showRestTimer) {
@@ -197,22 +187,41 @@ fun WorkoutScreen(
         }
     }
 
-    val currentExercise = session.exercises.getOrNull(currentExerciseIndex)
-    
+    val currentExercise = state.exercises.getOrNull(currentExerciseIndex)
+
     // Update local state when opening editor or changing set
-    fun openSetEditor(exercise: ExerciseData, setIndex: Int) {
+    fun openSetEditor(exercise: WorkoutExercise, setIndex: Int) {
         selectedExerciseForEditor = exercise
         editingSetNumber = setIndex + 1
-        // Track user selection
-        userSelectedSets = userSelectedSets + (exercise.id to setIndex)
-        val set = exercise.sets.getOrNull(setIndex)
-        if (set != null) {
-            currentReps = if (set.reps > 0) set.reps else 12 // Default target
-            currentWeight = if (set.weight > 0f) set.weight else 100f // Default target
-            // Reset RPE and Notes for new set if not stored (mock assumption)
-            currentRPE = null
-            // notes = ...
+
+        // Call ViewModel to sync active set state
+        onSetActiveSet(exercise.id, setIndex)
+
+        // Fetch history values for NumberPad
+        scope.launch {
+            currentWeightHistory = onGetHistoricalWeights(exercise.exerciseId)
+            currentRepsHistory = onGetHistoricalReps(exercise.exerciseId)
         }
+
+        // Compute previous set info (for sets 2+)
+        // setIndex is 0-indexed, so for set 2 (setIndex=1), we look for setNumber=1
+        val prevSetNum = setIndex  // setIndex 1 means set 2, so prev is setNumber 1
+        if (prevSetNum > 0) {
+            val prevRecord = exercise.setRecords.find { it.setNumber == prevSetNum }
+            previousSetNumber = if (prevRecord?.weight != null) prevSetNum else null
+            previousSetWeight = prevRecord?.weight
+        } else {
+            previousSetNumber = null
+            previousSetWeight = null
+        }
+
+        // Get set info from exercise's setRecords
+        val setNum = setIndex + 1
+        val record = exercise.setRecords.find { it.setNumber == setNum }
+        currentReps = record?.reps?.takeIf { it > 0 } ?: 12 // Default target
+        currentWeight = record?.weight?.takeIf { it > 0f } ?: 100f // Default target
+        // Reset RPE and Notes for new set if not stored
+        currentRPE = null
         activeSheet = SheetType.SET_EDITOR
     }
 
@@ -224,10 +233,10 @@ fun WorkoutScreen(
         ) {
             // Session Header
             SessionHeader(
-                workoutName = session.workoutName,
-                elapsedTime = elapsedTime,
-                completedExercises = session.exercises.count { it.completedSets == it.targetSets },
-                totalExercises = session.exercises.size,
+                workoutName = state.sessionName,
+                elapsedTime = state.elapsedSeconds,
+                completedExercises = state.exercises.count { it.completedSets == it.targetSets },
+                totalExercises = state.exercises.size,
                 onMoreClick = { activeSheet = SheetType.OPTIONS }
             )
 
@@ -239,40 +248,77 @@ fun WorkoutScreen(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(AppTheme.spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
             ) {
-                itemsIndexed(session.exercises) { index, exercise ->
+                itemsIndexed(state.exercises) { index, exercise ->
                     val isCompleted = exercise.completedSets == exercise.targetSets
-                    val isActive = index == currentExerciseIndex && !isCompleted
+                    val isActive = index == state.currentExerciseIndex && !isCompleted
                     val isBeingDragged = isDragging && draggedItemIndex == index
+
+                    // Calculate shift for non-dragged items
+                    val targetOffsetY = if (isDragging && index != draggedItemIndex && hoverIndex != -1) {
+                        // Use measured height of dragged item, fallback to estimate
+                        val draggedItemHeight = itemHeights[draggedItemIndex] ?: 200f
+                        val spacingPx = with(density) { 12.dp.toPx() } // AppTheme.spacing.md
+                        val totalItemHeight = draggedItemHeight + spacingPx
+                        when {
+                            // Dragged from above, item needs to shift up
+                            draggedItemIndex < index && hoverIndex >= index -> -totalItemHeight
+                            // Dragged from below, item needs to shift down
+                            draggedItemIndex > index && hoverIndex <= index -> totalItemHeight
+                            else -> 0f
+                        }
+                    } else 0f
+
+                    val animatedOffsetY by animateFloatAsState(
+                        targetValue = targetOffsetY,
+                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
+                        label = "itemShift"
+                    )
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .onGloballyPositioned { coordinates ->
+                                val heightPx = coordinates.size.height.toFloat()
+                                if (itemHeights[index] != heightPx) {
+                                    itemHeights[index] = heightPx
+                                }
+                            }
+                            .zIndex(if (isBeingDragged) 1f else 0f)
                             .graphicsLayer {
                                 // Apply visual offset and elevation during drag
-                                translationY = if (isBeingDragged) dragOffset else 0f
+                                translationY = if (isBeingDragged) dragOffset else animatedOffsetY
                                 shadowElevation = if (isBeingDragged) 8f else 0f
                                 // Scale effect on drag
                                 scaleX = if (isBeingDragged) 1.02f else 1f
                                 scaleY = if (isBeingDragged) 1.02f else 1f
                             }
-                            .pointerInput(index, session.exercises.size) {
+                            .pointerInput(index, state.exercises.size) {
                                 detectDragGesturesAfterLongPress(
                                     onDragStart = {
                                         isDragging = true
                                         draggedItemIndex = index
                                         dragOffset = 0f
+                                        hoverIndex = index
                                     },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
                                         dragOffset += dragAmount.y
+                                        // Calculate hover index using measured heights
+                                        val draggedItemHeight = itemHeights[draggedItemIndex] ?: 200f
+                                        val spacingPx = with(density) { 12.dp.toPx() }
+                                        val totalItemHeight = draggedItemHeight + spacingPx
+                                        val draggedPositions = (dragOffset / totalItemHeight).toInt()
+                                        hoverIndex = (draggedItemIndex + draggedPositions)
+                                            .coerceIn(0, state.exercises.size - 1)
                                     },
                                     onDragEnd = {
-                                        // Calculate target index based on drag offset
-                                        // Approximate card height including spacing: 180dp card + 8dp spacing
-                                        val itemHeight = 188f
-                                        val draggedPositions = (dragOffset / itemHeight).toInt()
+                                        // Calculate target index using measured heights
+                                        val draggedItemHeight = itemHeights[draggedItemIndex] ?: 200f
+                                        val spacingPx = with(density) { 12.dp.toPx() }
+                                        val totalItemHeight = draggedItemHeight + spacingPx
+                                        val draggedPositions = (dragOffset / totalItemHeight).toInt()
                                         val targetIndex = (draggedItemIndex + draggedPositions)
-                                            .coerceIn(0, session.exercises.size - 1)
+                                            .coerceIn(0, state.exercises.size - 1)
 
                                         if (targetIndex != draggedItemIndex) {
                                             onReorderExercise(draggedItemIndex, targetIndex)
@@ -282,23 +328,50 @@ fun WorkoutScreen(
                                         isDragging = false
                                         draggedItemIndex = -1
                                         dragOffset = 0f
+                                        hoverIndex = -1
                                     },
                                     onDragCancel = {
                                         // Reset drag state on cancel
                                         isDragging = false
                                         draggedItemIndex = -1
                                         dragOffset = 0f
+                                        hoverIndex = -1
                                     }
                                 )
                             }
                     ) {
+                        // Compute sets inline from WorkoutExercise
+                        val sets = List(exercise.targetSets) { setIndex ->
+                            val setNum = setIndex + 1
+                            val record = exercise.setRecords.find { it.setNumber == setNum }
+                            val completedSetNumbers = exercise.setRecords.map { it.setNumber }.toSet()
+                            val firstPendingSetNum = (1..exercise.targetSets).firstOrNull { it !in completedSetNumbers }
+                            SetInfo(
+                                setNumber = setNum,
+                                reps = record?.reps ?: 0,
+                                weight = record?.weight ?: 0f,
+                                state = when {
+                                    record != null -> SetState.COMPLETED
+                                    setNum == firstPendingSetNum -> SetState.ACTIVE
+                                    else -> SetState.PENDING
+                                }
+                            )
+                        }
+
                         ExerciseWorkoutCard(
                             exerciseName = exercise.name,
                             muscleGroup = exercise.muscleGroup,
                             targetSummary = "${exercise.targetSets} Sets • 8-12 Reps",
-                            sets = exercise.sets,
+                            sets = sets,
                             isActive = isActive,
-                            activeSetIndex = userSelectedSets[exercise.id] ?: exercise.completedSets,
+                            activeSetIndex = when {
+                                // User explicitly selected a set on this exercise
+                                exercise.userSelectedSetIndex != null -> exercise.userSelectedSetIndex!!
+                                // This is the current exercise - show next pending set as auto-active
+                                isActive -> exercise.completedSets
+                                // Non-current exercise with no user selection - no active set
+                                else -> -1
+                            },
                             onSetClick = { setIndex ->
                                 openSetEditor(exercise, setIndex)
                             },
@@ -306,7 +379,8 @@ fun WorkoutScreen(
                             onOptionsClick = {
                                 selectedExerciseForOptions = exercise
                                 activeSheet = SheetType.EXERCISE_OPTIONS
-                            }
+                            },
+                            onLongPressTitle = onEnterReorderMode
                         )
                     }
                 }
@@ -371,7 +445,7 @@ fun WorkoutScreen(
                             currentWeight = currentWeight,
                             currentReps = currentReps,
                             currentRpe = currentRPE,
-                            restTimerSeconds = 120, // Mock default
+                            restTimerSeconds = 120,
                             notes = notes,
                             onWeightChange = { currentWeight = it },
                             onRepsChange = { currentReps = it },
@@ -379,14 +453,24 @@ fun WorkoutScreen(
                             onRestTimerChange = { /* Handle timer change */ },
                             onNotesChange = { notes = it },
                             onDeleteSet = {
-                                // Handle delete
+                                previousSetNumber = null
+                                previousSetWeight = null
                                 activeSheet = null
                             },
                             onCompleteSet = {
                                 onCompleteSet(editingExercise.id, editingSetNumber, currentReps, currentWeight, currentRPE)
-                                // Clear user selection after completing a set
-                                userSelectedSets = userSelectedSets - editingExercise.id
+                                currentWeightHistory = emptyList()
+                                currentRepsHistory = emptyList()
+                                previousSetNumber = null
+                                previousSetWeight = null
                                 activeSheet = null
+                            },
+                            weightHistoryValues = currentWeightHistory,
+                            repsHistoryValues = currentRepsHistory,
+                            previousSetNumber = previousSetNumber,
+                            previousSetWeight = previousSetWeight,
+                            onApplyPreviousWeight = {
+                                previousSetWeight?.let { currentWeight = it }
                             }
                         )
                     }
@@ -593,6 +677,17 @@ fun WorkoutScreen(
                 }
                 null -> {}
             }
+        }
+
+        // Reorder Mode Overlay
+        if (state.isReorderMode) {
+            WorkoutReorderOverlay(
+                exercises = state.exercises,
+                onReorder = { fromIndex, toIndex ->
+                    onReorderExercise(fromIndex, toIndex)
+                },
+                onDismiss = onExitReorderMode
+            )
         }
     }
 }
@@ -936,61 +1031,47 @@ private fun MultiSelectExercisePickerForWorkout(
 }
 
 // Mock data for previews
-internal fun createMockWorkoutSession(): WorkoutSession {
-    return WorkoutSession(
-        workoutName = "Upper Body Strength",
+internal fun createMockWorkoutState(): WorkoutState {
+    return WorkoutState(
+        sessionName = "Upper Body Strength",
+        elapsedSeconds = 300, // 5 minutes
         exercises = listOf(
-            ExerciseData(
+            WorkoutExercise(
                 id = "1",
+                exerciseId = "ex_1",
                 name = "Bench Press",
                 muscleGroup = "Chest",
                 targetSets = 4,
                 completedSets = 2,
-                sets = listOf(
-                    SetInfo(setNumber = 1, reps = 10, weight = 80f, state = SetState.COMPLETED),
-                    SetInfo(setNumber = 2, reps = 10, weight = 80f, state = SetState.COMPLETED),
-                    SetInfo(setNumber = 3, reps = 0, weight = 0f, state = SetState.ACTIVE),
-                    SetInfo(setNumber = 4, reps = 0, weight = 0f, state = SetState.PENDING)
+                setRecords = listOf(
+                    com.workout.app.presentation.workout.CompletedSetRecord(setNumber = 1, weight = 80f, reps = 10, rpe = null),
+                    com.workout.app.presentation.workout.CompletedSetRecord(setNumber = 2, weight = 80f, reps = 10, rpe = null)
                 )
             ),
-            ExerciseData(
+            WorkoutExercise(
                 id = "2",
+                exerciseId = "ex_2",
                 name = "Overhead Press",
                 muscleGroup = "Shoulders",
                 targetSets = 3,
-                completedSets = 0,
-                sets = listOf(
-                    SetInfo(setNumber = 1, reps = 0, weight = 0f, state = SetState.PENDING),
-                    SetInfo(setNumber = 2, reps = 0, weight = 0f, state = SetState.PENDING),
-                    SetInfo(setNumber = 3, reps = 0, weight = 0f, state = SetState.PENDING)
-                )
+                completedSets = 0
             ),
-            ExerciseData(
+            WorkoutExercise(
                 id = "3",
+                exerciseId = "ex_3",
                 name = "Barbell Row",
                 muscleGroup = "Back",
                 targetSets = 4,
-                completedSets = 0,
-                sets = listOf(
-                    SetInfo(setNumber = 1, reps = 0, weight = 0f, state = SetState.PENDING),
-                    SetInfo(setNumber = 2, reps = 0, weight = 0f, state = SetState.PENDING),
-                    SetInfo(setNumber = 3, reps = 0, weight = 0f, state = SetState.PENDING),
-                    SetInfo(setNumber = 4, reps = 0, weight = 0f, state = SetState.PENDING)
-                )
+                completedSets = 0
             ),
-            ExerciseData(
+            WorkoutExercise(
                 id = "4",
+                exerciseId = "ex_4",
                 name = "Bicep Curl",
                 muscleGroup = "Arms",
                 targetSets = 3,
-                completedSets = 0,
-                sets = listOf(
-                    SetInfo(setNumber = 1, reps = 0, weight = 0f, state = SetState.PENDING),
-                    SetInfo(setNumber = 2, reps = 0, weight = 0f, state = SetState.PENDING),
-                    SetInfo(setNumber = 3, reps = 0, weight = 0f, state = SetState.PENDING)
-                )
+                completedSets = 0
             )
-        ),
-        startTime = Clock.System.now().toEpochMilliseconds() - 300000 // Started 5 minutes ago
+        )
     )
 }

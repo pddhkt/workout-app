@@ -14,9 +14,9 @@ import com.workout.app.ui.screens.timer.ExerciseContext
 import com.workout.app.ui.screens.timer.RestTimerScreen
 import com.workout.app.ui.screens.timer.RestTimerState
 import com.workout.app.ui.screens.timer.UpNextExercise
-import com.workout.app.ui.screens.workout.ExerciseData
 import com.workout.app.ui.screens.workout.WorkoutScreen
-import com.workout.app.ui.screens.workout.WorkoutSession
+import com.workout.app.presentation.workout.WorkoutState
+import com.workout.app.presentation.workout.WorkoutExercise
 
 /**
  * Navigation wrappers for screens that require state management.
@@ -42,27 +42,30 @@ fun WorkoutScreen(
     onCancelWorkout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Mock session data
-    val session = remember {
-        WorkoutSession(
-            workoutName = "Push Day",
+    // Mock state data for preview/development
+    val state = remember {
+        WorkoutState(
+            sessionName = "Push Day",
             exercises = listOf(
-                ExerciseData(
+                WorkoutExercise(
                     id = "1",
+                    exerciseId = "ex_1",
                     name = "Barbell Bench Press",
                     muscleGroup = "Chest",
                     targetSets = 4,
                     completedSets = 0
                 ),
-                ExerciseData(
+                WorkoutExercise(
                     id = "2",
+                    exerciseId = "ex_2",
                     name = "Overhead Press",
                     muscleGroup = "Shoulders",
                     targetSets = 3,
                     completedSets = 0
                 ),
-                ExerciseData(
+                WorkoutExercise(
                     id = "3",
+                    exerciseId = "ex_3",
                     name = "Incline Dumbbell Press",
                     muscleGroup = "Chest",
                     targetSets = 3,
@@ -72,8 +75,11 @@ fun WorkoutScreen(
         )
     }
 
+    var isReorderMode by remember { mutableStateOf(false) }
+    val currentState = state.copy(isReorderMode = isReorderMode)
+
     WorkoutScreen(
-        session = session,
+        state = currentState,
         onCompleteSet = { _, _, _, _, _ ->
             // TODO: Handle set completion
         },
@@ -87,6 +93,8 @@ fun WorkoutScreen(
             // Show bottom sheet or navigate
             onCompleteWorkout("session_123")
         },
+        onEnterReorderMode = { isReorderMode = true },
+        onExitReorderMode = { isReorderMode = false },
         modifier = modifier
     )
 }

@@ -4,6 +4,17 @@ import com.workout.app.domain.model.Result
 import com.workout.app.domain.model.SetData
 
 /**
+ * Aggregate statistics for an exercise across all sessions.
+ */
+data class ExerciseStats(
+    val totalSets: Long,
+    val totalVolume: Double,
+    val maxWeight: Double,
+    val avgReps: Double,
+    val lastPerformed: Long?
+)
+
+/**
  * Repository for managing workout sets.
  * Handles individual set records within workout sessions.
  */
@@ -63,9 +74,49 @@ interface SetRepository {
     suspend fun countBySession(sessionId: String): Result<Long>
 
     /**
+     * Get previous sets for an exercise from completed sessions.
+     * @param exerciseId Exercise ID
+     * @param excludeSessionId Session ID to exclude (current session)
+     * @param limit Maximum number of sets to return
+     * @return Result containing list of sets
+     */
+    suspend fun getPreviousByExercise(
+        exerciseId: String,
+        excludeSessionId: String,
+        limit: Int = 10
+    ): Result<List<SetData>>
+
+    /**
      * Delete all sets for a session.
      * @param sessionId Session ID
      * @return Result indicating success or failure
      */
     suspend fun deleteBySession(sessionId: String): Result<Unit>
+
+    /**
+     * Get all sets for an exercise across all sessions.
+     * @param exerciseId Exercise ID
+     * @return Result containing list of sets ordered by completedAt DESC
+     */
+    suspend fun getByExercise(exerciseId: String): Result<List<SetData>>
+
+    /**
+     * Get aggregate statistics for an exercise.
+     * @param exerciseId Exercise ID
+     * @return Result containing exercise stats
+     */
+    suspend fun getExerciseStats(exerciseId: String): Result<ExerciseStats>
+
+    /**
+     * Get the personal record (max weight at 1 rep) for an exercise.
+     * @param exerciseId Exercise ID
+     * @return Result containing max weight or null if no 1RM exists
+     */
+    suspend fun getPersonalRecord(exerciseId: String): Result<Double?>
+
+    /**
+     * Get the last trained timestamp per muscle group from completed sessions.
+     * @return Result containing a map of muscleGroup name to lastTrainedAt epoch millis
+     */
+    suspend fun getLastTrainedPerMuscleGroup(): Result<Map<String, Long>>
 }

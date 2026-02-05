@@ -195,27 +195,23 @@ class WorkoutCompleteViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
 
-            // Build exercise names from loaded exercises
             val exerciseNames = workout.exercises
                 .map { it.exerciseName }
                 .joinToString(", ")
 
-            // Update workout with notes, RPE, and exercise names
-            val updatedWorkout = com.workout.app.database.Workout(
-                id = workout.id,
+            when (val result = workoutRepository.create(
                 name = workout.name,
-                createdAt = workout.createdAt,
                 duration = workout.duration,
                 notes = currentState.notes.takeIf { it.isNotBlank() },
-                isPartnerWorkout = if (workout.isPartnerWorkout) 1L else 0L,
+                isPartnerWorkout = workout.isPartnerWorkout,
                 totalVolume = workout.totalVolume,
                 totalSets = workout.totalSets,
                 exerciseCount = workout.exerciseCount,
                 exerciseNames = exerciseNames.takeIf { it.isNotBlank() }
-            )
-
-            when (val result = workoutRepository.update(updatedWorkout)) {
+            )) {
                 is Result.Success -> {
+                    // Link the session to the saved workout so history can find it
+                    sessionRepository.updateWorkoutId(sessionId, result.data)
                     _state.update { it.copy(isSaving = false) }
                     onComplete()
                 }

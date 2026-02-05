@@ -53,7 +53,12 @@ fun ExerciseSetEditorBottomSheet(
     onNotesChange: (String) -> Unit,
     onDeleteSet: () -> Unit,
     onCompleteSet: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    weightHistoryValues: List<String> = emptyList(),
+    repsHistoryValues: List<String> = emptyList(),
+    previousSetNumber: Int? = null,
+    previousSetWeight: Float? = null,
+    onApplyPreviousWeight: () -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -95,6 +100,35 @@ fun ExerciseSetEditorBottomSheet(
             )
         }
 
+        // Previous Set Weight Quick-Apply (only shown for set 2+)
+        if (previousSetNumber != null && previousSetWeight != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Set $previousSetNumber:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(AppTheme.colors.success.copy(alpha = 0.15f))
+                        .clickable(onClick = onApplyPreviousWeight)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "${formatWeight(previousSetWeight)} kg",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AppTheme.colors.success
+                    )
+                }
+            }
+        }
+
         // Input Grid
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -106,6 +140,7 @@ fun ExerciseSetEditorBottomSheet(
                     value = currentWeight,
                     onValueChange = onWeightChange,
                     label = "WEIGHT (KG)",
+                    historyValues = weightHistoryValues,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -116,6 +151,7 @@ fun ExerciseSetEditorBottomSheet(
                     value = currentReps,
                     onValueChange = onRepsChange,
                     label = "REPS",
+                    historyValues = repsHistoryValues,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -225,4 +261,12 @@ private fun formatTime(seconds: Int): String {
     val minutes = seconds / 60
     val secs = seconds % 60
     return "${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}"
+}
+
+private fun formatWeight(weight: Float): String {
+    return if (weight == weight.toLong().toFloat()) {
+        weight.toLong().toString()
+    } else {
+        "%.1f".format(weight)
+    }
 }

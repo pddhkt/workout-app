@@ -116,6 +116,27 @@ SELECT
 FROM WorkoutSet
 WHERE exerciseId = ?;
 
+-- Select previous sets by exercise (from completed sessions, excluding current)
+selectPreviousByExercise:
+SELECT ws.* FROM WorkoutSet ws
+INNER JOIN Session s ON ws.sessionId = s.id
+WHERE ws.exerciseId = ?
+  AND ws.sessionId != ?
+  AND s.status = 'completed'
+ORDER BY ws.completedAt DESC
+LIMIT ?;
+
 -- Count sets in session
 countBySession:
 SELECT COUNT(*) AS setCount FROM WorkoutSet WHERE sessionId = ?;
+
+-- Get last trained date per muscle group (from completed sessions)
+getLastTrainedPerMuscleGroup:
+SELECT
+    e.muscleGroup,
+    MAX(ws.completedAt) AS lastTrainedAt
+FROM WorkoutSet ws
+INNER JOIN Exercise e ON ws.exerciseId = e.id
+INNER JOIN Session s ON ws.sessionId = s.id
+WHERE s.status = 'completed'
+GROUP BY e.muscleGroup;

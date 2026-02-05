@@ -86,6 +86,10 @@ UPDATE Session SET
     updatedAt = ?
 WHERE id = ?;
 
+-- Update workout ID (links session to its saved workout)
+updateWorkoutId:
+UPDATE Session SET workoutId = ?, updatedAt = ? WHERE id = ?;
+
 -- Delete session
 delete:
 DELETE FROM Session WHERE id = ?;

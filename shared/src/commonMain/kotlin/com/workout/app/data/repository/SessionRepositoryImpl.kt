@@ -152,6 +152,17 @@ class SessionRepositoryImpl(
         }
     }
 
+    override suspend fun updateWorkoutId(id: String, workoutId: String): Result<Unit> =
+        withContext(Dispatchers.Default) {
+            try {
+                val now = Clock.System.now().toEpochMilliseconds()
+                sessionQueries.updateWorkoutId(workoutId = workoutId, updatedAt = now, id = id)
+                Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
     override suspend fun delete(id: String): Result<Unit> = withContext(Dispatchers.Default) {
         try {
             sessionQueries.delete(id)

@@ -4,8 +4,13 @@ import com.workout.app.data.repository.AddedExerciseInput
 import com.workout.app.data.repository.ExerciseRepository
 import com.workout.app.data.repository.SessionExerciseRepository
 import com.workout.app.data.repository.SessionRepository
+import com.workout.app.data.repository.SetRepository
 import com.workout.app.database.Exercise
+import com.workout.app.domain.model.MuscleRecovery
+import com.workout.app.domain.model.RecoveryTimeRange
 import com.workout.app.domain.model.Result
+import com.workout.app.domain.model.calculateRecoveryProgress
+import com.workout.app.domain.model.calculateRecoveryStatus
 import com.workout.app.presentation.base.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 /**
  * ViewModel for Session Planning screen.
@@ -21,7 +27,8 @@ import kotlinx.coroutines.launch
 class SessionPlanningViewModel(
     private val exerciseRepository: ExerciseRepository,
     private val sessionRepository: SessionRepository,
-    private val sessionExerciseRepository: SessionExerciseRepository
+    private val sessionExerciseRepository: SessionExerciseRepository,
+    private val setRepository: SetRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SessionPlanningState())
@@ -29,6 +36,7 @@ class SessionPlanningViewModel(
 
     init {
         loadExercises()
+        loadMuscleRecovery()
     }
 
     private fun loadExercises() {
@@ -54,6 +62,49 @@ class SessionPlanningViewModel(
                     }
                 }
         }
+    }
+
+    // Cached days-since data for recalculation on time range change
+    private var muscleGroupDays: Map<String, Int?> = emptyMap()
+
+    private fun loadMuscleRecovery() {
+        viewModelScope.launch {
+            when (val result = setRepository.getLastTrainedPerMuscleGroup()) {
+                is Result.Success -> {
+                    val nowMillis = Clock.System.now().toEpochMilliseconds()
+                    val muscleGroups = listOf("Chest", "Back", "Legs", "Shoulders", "Arms", "Core")
+                    muscleGroupDays = muscleGroups.associateWith { group ->
+                        val lastTrained = result.data[group]
+                        if (lastTrained != null) {
+                            ((nowMillis - lastTrained) / (1000L * 60 * 60 * 24)).toInt()
+                        } else {
+                            null
+                        }
+                    }
+                    rebuildRecoveryList()
+                }
+                is Result.Error -> { /* silently ignore, section just won't show */ }
+                is Result.Loading -> {}
+            }
+        }
+    }
+
+    private fun rebuildRecoveryList() {
+        val timeRange = _state.value.recoveryTimeRange
+        val recoveryList = muscleGroupDays.map { (group, daysSince) ->
+            MuscleRecovery(
+                muscleGroup = group,
+                daysSinceLastTrained = daysSince,
+                status = calculateRecoveryStatus(daysSince, timeRange),
+                progress = calculateRecoveryProgress(daysSince, timeRange)
+            )
+        }
+        _state.update { it.copy(muscleRecovery = recoveryList) }
+    }
+
+    fun toggleTimeRange() {
+        _state.update { it.copy(recoveryTimeRange = it.recoveryTimeRange.next()) }
+        rebuildRecoveryList()
     }
 
     fun selectMuscleGroup(muscleGroup: String?) {
@@ -188,6 +239,8 @@ data class SessionPlanningState(
     val allExercises: List<Exercise> = emptyList(),
     val addedExercises: Map<String, AddedExerciseData> = emptyMap(),
     val selectedMuscleGroup: String? = null,
+    val muscleRecovery: List<MuscleRecovery> = emptyList(),
+    val recoveryTimeRange: RecoveryTimeRange = RecoveryTimeRange.WEEKLY,
     val error: String? = null
 ) {
     /**
