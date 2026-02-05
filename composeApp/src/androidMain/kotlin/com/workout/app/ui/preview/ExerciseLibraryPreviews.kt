@@ -36,12 +36,6 @@ private fun ExerciseLibraryScreenPreview() {
                 },
                 onMoreOptionsClick = { exerciseId ->
                     println("More options clicked: $exerciseId")
-                },
-                onAddToWorkoutClick = {
-                    println("Add to workout clicked")
-                },
-                onNavigate = { index ->
-                    println("Navigation clicked: $index")
                 }
             )
         }
@@ -74,19 +68,6 @@ private fun ExerciseLibraryScreenInteractivePreview() {
                 },
                 onMoreOptionsClick = { exerciseId ->
                     println("Opening options menu for: $exerciseId")
-                },
-                onAddToWorkoutClick = {
-                    println("Opening add to workout dialog")
-                },
-                onNavigate = { index ->
-                    val screen = when (index) {
-                        0 -> "Home"
-                        1 -> "Library"
-                        2 -> "Workout"
-                        3 -> "Profile"
-                        else -> "Unknown"
-                    }
-                    println("Navigating to: $screen")
                 }
             )
         }
@@ -113,9 +94,7 @@ private fun AllExerciseLibraryStatesPreview() {
             ExerciseLibraryScreen(
                 onExerciseClick = { },
                 onFavoriteToggle = { },
-                onMoreOptionsClick = { },
-                onAddToWorkoutClick = { },
-                onNavigate = { }
+                onMoreOptionsClick = { }
             )
         }
     }

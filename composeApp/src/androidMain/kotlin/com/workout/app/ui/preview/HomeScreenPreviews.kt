@@ -103,9 +103,6 @@ private fun HomeScreenInteractivePreview() {
             },
             onViewAllSessions = {
                 println("View all sessions")
-            },
-            onNavigate = { index ->
-                println("Navigate to index: $index")
             }
         )
     }
