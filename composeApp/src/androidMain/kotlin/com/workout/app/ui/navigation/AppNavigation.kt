@@ -14,10 +14,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -130,6 +135,10 @@ fun AppNavigation(
     // Derive selected index from current route
     val selectedNavIndex = BottomNavDestinations.getIndexForRoute(currentRoute)
 
+    // Measure actual bottom nav bar height for overlay positioning
+    val density = LocalDensity.current
+    var measuredNavBarHeight by remember { mutableStateOf(0.dp) }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
@@ -150,12 +159,18 @@ fun AppNavigation(
                     },
                     onAddClick = {
                         navController.navigateToSessionPlanning()
+                    },
+                    modifier = Modifier.onSizeChanged { size ->
+                        with(density) {
+                            measuredNavBarHeight = size.height.toDp()
+                        }
                     }
                 )
             }
         }
     ) { paddingValues ->
-    Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
         NavHost(
             navController = navController,
             startDestination = startDestination,
@@ -484,6 +499,7 @@ fun AppNavigation(
             )
         }
     }
+        } // Close inner padded Box
 
         // Handle back press when workout overlay is expanded
         BackHandler(enabled = showWorkoutOverlay && !activeSessionState.isMinimized) {
@@ -491,7 +507,8 @@ fun AppNavigation(
         }
 
         // Workout Overlay - animated shrink/expand view
-        // Appears when there's an active session, handles both expanded and minimized states
+        // Positioned outside the padded content Box so it can fill the full screen
+        // when expanded, and correctly position above the nav bar when minimized
         AnimatedVisibility(
             visible = showWorkoutOverlay,
             enter = fadeIn(tween(200)),
@@ -574,11 +591,12 @@ fun AppNavigation(
                                 else -> { }
                             }
                         }
-                    }
+                    },
+                    bottomNavHeight = measuredNavBarHeight
                 )
             }
         }
-    }
+    } // Close outer full-size Box
     }
 }
 
