@@ -1,7 +1,7 @@
 package com.workout.app.ui.components.workout
 
 import androidx.compose.animation.animateColor
-import androidx.compose.animation.animateDp
+import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
