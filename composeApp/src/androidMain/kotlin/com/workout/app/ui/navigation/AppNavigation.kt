@@ -117,12 +117,14 @@ fun AppNavigation(
         activeSessionViewModel.minimize()
     }
 
-    // Show overlay when there's an active session
-    val showWorkoutOverlay = activeSessionState.hasActiveSession
-
     // Observe current route for centralized bottom nav
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // Show overlay when there's an active session
+    // Minimized bar only shows on the Home screen; expanded overlay shows anywhere
+    val isOnHomeScreen = currentRoute == Route.Home.route
+    val showWorkoutOverlay = activeSessionState.hasActiveSession && (!activeSessionState.isMinimized || isOnHomeScreen)
 
     // Routes that should show the bottom nav bar
     val navBarRoutes = setOf(
