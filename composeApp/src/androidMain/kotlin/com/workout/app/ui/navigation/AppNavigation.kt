@@ -2,7 +2,9 @@ package com.workout.app.ui.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -170,7 +172,7 @@ fun AppNavigation(
         }
     ) { paddingValues ->
     Box(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier.fillMaxSize().padding(top = paddingValues.calculateTopPadding())) {
         NavHost(
             navController = navController,
             startDestination = startDestination,
@@ -235,8 +237,8 @@ fun AppNavigation(
         // Session Planning (FT-013)
         composable(
             route = Route.SessionPlanning.route,
-            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
-            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+            enterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(300)) }
         ) {
             val viewModel: SessionPlanningViewModel = koinInject()
             val state by viewModel.state.collectAsStateWithLifecycle()
@@ -279,8 +281,8 @@ fun AppNavigation(
                     type = NavType.StringType
                 }
             ),
-            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
-            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+            enterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(300)) }
         ) { backStackEntry ->
             val templateId = backStackEntry.arguments?.getString(Route.SessionPlanningWithTemplate.ARG_TEMPLATE_ID)
             val viewModel: SessionPlanningViewModel = koinInject()
@@ -412,8 +414,10 @@ fun AppNavigation(
                     type = NavType.StringType
                 }
             ),
-            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
-            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)) + fadeOut(tween(300)) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
         ) { backStackEntry ->
             val exerciseId = backStackEntry.arguments?.getString(Route.ExerciseDetail.ARG_EXERCISE_ID)
                 ?: return@composable
@@ -438,8 +442,10 @@ fun AppNavigation(
         // Settings Screen
         composable(
             route = Route.Settings.route,
-            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
-            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)) + fadeOut(tween(300)) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
         ) {
             SettingsScreen(
                 themeMode = themeMode,
@@ -461,8 +467,10 @@ fun AppNavigation(
         // Session History Screen
         composable(
             route = Route.SessionHistory.route,
-            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
-            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)) + fadeOut(tween(300)) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
         ) {
             SessionHistoryScreen(
                 onBackClick = {
@@ -482,8 +490,10 @@ fun AppNavigation(
                     type = NavType.StringType
                 }
             ),
-            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
-            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)) + fadeOut(tween(300)) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString(Route.SessionDetail.ARG_SESSION_ID)
                 ?: return@composable
