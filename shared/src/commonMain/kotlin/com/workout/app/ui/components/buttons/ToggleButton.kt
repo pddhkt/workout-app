@@ -63,7 +63,7 @@ fun ToggleButton(
         onClick = onClick,
         modifier = modifier.height(40.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(AppTheme.spacing.sm),
+        shape = RoundedCornerShape(2.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (enabled) containerColor else containerColor.copy(alpha = 0.38f),
             contentColor = if (enabled) contentColor else contentColor.copy(alpha = 0.38f),

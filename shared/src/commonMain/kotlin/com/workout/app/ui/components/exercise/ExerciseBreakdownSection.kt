@@ -83,7 +83,7 @@ private fun ExerciseBreakdownCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(MaterialTheme.colorScheme.surface)
             .clickable { showSets = !showSets }
             .padding(AppTheme.spacing.md)

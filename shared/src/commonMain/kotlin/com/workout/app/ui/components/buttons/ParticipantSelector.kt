@@ -28,7 +28,7 @@ fun ParticipantSelector(
 ) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(AppTheme.spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)

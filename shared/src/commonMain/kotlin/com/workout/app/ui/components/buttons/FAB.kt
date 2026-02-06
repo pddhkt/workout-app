@@ -35,7 +35,7 @@ fun AppFloatingActionButton(
     FloatingActionButton(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(AppTheme.spacing.lg),
+        shape = RoundedCornerShape(2.dp),
         containerColor = containerColor,
         contentColor = contentColor,
         elevation = FloatingActionButtonDefaults.elevation(

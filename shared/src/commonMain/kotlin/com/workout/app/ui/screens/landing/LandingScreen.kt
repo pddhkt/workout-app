@@ -317,11 +317,11 @@ private fun FeaturedWorkoutCard(
             .scale(scale)
             .shadow(
                 elevation = 16.dp,
-                shape = RoundedCornerShape(40.dp),
+                shape = RoundedCornerShape(2.dp),
                 ambientColor = Primary.copy(alpha = 0.2f),
                 spotColor = Primary.copy(alpha = 0.15f)
             )
-            .clip(RoundedCornerShape(40.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(Secondary, Tertiary)
@@ -348,7 +348,7 @@ private fun FeaturedWorkoutCard(
                 // Duration badge
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(2.dp))
                         .background(Color.White.copy(alpha = 0.3f))
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
@@ -410,7 +410,7 @@ private fun FeaturedWorkoutCard(
                 // Start button
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(2.dp))
                         .background(Charcoal)
                         .padding(horizontal = 20.dp, vertical = 12.dp)
                 ) {
@@ -472,12 +472,12 @@ private fun CompactWorkoutCard(
             .fillMaxWidth()
             .height(136.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(40.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(40.dp)
+                shape = RoundedCornerShape(2.dp)
             )
             .clickable(
                 interactionSource = interactionSource,
@@ -495,7 +495,7 @@ private fun CompactWorkoutCard(
                 modifier = Modifier
                     .weight(0.35f)
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(32.dp))
+                    .clip(RoundedCornerShape(2.dp))
                     .background(cardBackground),
                 contentAlignment = Alignment.Center
             ) {
@@ -516,7 +516,7 @@ private fun CompactWorkoutCard(
                 // Difficulty badge
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(2.dp))
                         .background(accentColor.copy(alpha = 0.2f))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
@@ -627,7 +627,7 @@ private fun QuickStartFab(
     FloatingActionButton(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(2.dp),
         containerColor = Charcoal,
         contentColor = Color.White
     ) {
@@ -676,14 +676,14 @@ private fun LandingBottomNav(
                 .height(64.dp)
                 .shadow(
                     elevation = 24.dp,
-                    shape = RoundedCornerShape(32.dp)
+                    shape = RoundedCornerShape(2.dp)
                 )
-                .clip(RoundedCornerShape(32.dp))
+                .clip(RoundedCornerShape(2.dp))
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.outline,
-                    shape = RoundedCornerShape(32.dp)
+                    shape = RoundedCornerShape(2.dp)
                 )
         ) {
             Row(

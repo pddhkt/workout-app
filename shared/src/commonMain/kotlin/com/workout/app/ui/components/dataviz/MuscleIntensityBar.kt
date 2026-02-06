@@ -83,14 +83,14 @@ fun MuscleIntensityBar(
             modifier = Modifier
                 .weight(0.5f)
                 .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(2.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(animatedProgress)
                     .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(2.dp))
                     .background(intensityColor)
             )
         }
@@ -138,7 +138,7 @@ fun MusclesTargetedSection(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(2.dp)
         ) {
             Column(
                 modifier = Modifier.padding(AppTheme.spacing.md),
@@ -208,7 +208,7 @@ private fun MetricCard(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(MaterialTheme.colorScheme.surface)
             .padding(AppTheme.spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally

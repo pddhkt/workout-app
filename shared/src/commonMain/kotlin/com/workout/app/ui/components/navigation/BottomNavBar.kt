@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -90,7 +92,7 @@ fun BottomNavBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(Color.Black)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(vertical = AppTheme.spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -121,7 +123,7 @@ fun BottomNavBar(
                 Box(
                     modifier = Modifier
                         .size(fabSize)
-                        .clip(CircleShape)
+                        .clip(RoundedCornerShape(2.dp))
                         .background(MaterialTheme.colorScheme.primary)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -144,7 +146,7 @@ fun BottomNavBar(
                 Text(
                     text = "Workout",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    color = Color.White
                 )
             }
         }
@@ -185,9 +187,9 @@ private fun NavBarItem(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val color = if (selected) {
-        MaterialTheme.colorScheme.primary
+        Color.White
     } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+        Color.White.copy(alpha = 0.6f)
     }
 
     androidx.compose.foundation.layout.Column(

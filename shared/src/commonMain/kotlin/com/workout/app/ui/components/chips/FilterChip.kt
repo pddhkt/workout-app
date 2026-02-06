@@ -54,12 +54,12 @@ fun FilterChip(
 
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(backgroundColor)
             .border(
                 width = 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(2.dp)
             )
             .clickable(onClick = onClick)
             .padding(

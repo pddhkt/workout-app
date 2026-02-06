@@ -1,5 +1,6 @@
 package com.workout.app.ui.screens.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -23,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -96,45 +99,52 @@ fun HomeScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // Header with greeting and date
-        HomeHeader(
+        // TOP SECTION - Yellow background
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AppTheme.spacing.lg)
+                .background(Color(0xFFFFE302))
+                .padding(bottom = AppTheme.spacing.xl)
+        ) {
+            // Header with greeting and date
+            HomeHeader(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppTheme.spacing.lg)
+                    .padding(top = AppTheme.spacing.xl)
+            )
+
+            Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
+
+            // Consistency Heatmap - smaller and centered
+            ConsistencyHeatmapSection(
+                heatmapData = heatmapData,
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+        }
+
+        // BOTTOM SECTION - Light gray background
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFF4F4F4))
                 .padding(top = AppTheme.spacing.xl)
-        )
+                .padding(bottom = AppTheme.spacing.xl)
+        ) {
+            // Recent Sessions (no Quick Start)
+            RecentSessionsSection(
+                sessions = recentSessions,
+                onSessionClick = onSessionClick,
+                onViewAll = onViewAllSessions,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppTheme.spacing.lg)
+            )
 
-        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
-
-        // Consistency Heatmap (full width with internal scroll)
-        ConsistencyHeatmapSection(
-            heatmapData = heatmapData,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
-
-        // Quick Start Templates
-        QuickStartTemplatesSection(
-            templates = templates,
-            onTemplateClick = onTemplateClick,
-            onViewAll = onViewAllTemplates,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
-
-        // Recent Sessions
-        RecentSessionsSection(
-            sessions = recentSessions,
-            onSessionClick = onSessionClick,
-            onViewAll = onViewAllSessions,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AppTheme.spacing.lg)
-        )
-
-        Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
+            Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
+        }
     }
 }
 
@@ -185,12 +195,12 @@ private fun HomeHeader(
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
-            color = MaterialTheme.colorScheme.onBackground
+            color = Color(0xFF000000)
         )
         Text(
             text = currentDate,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = Color(0xFF000000).copy(alpha = 0.7f)
         )
     }
 }
@@ -207,18 +217,10 @@ private fun ConsistencyHeatmapSection(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
     ) {
-        Text(
-            text = "Workout Consistency",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
-        )
-
         ConsistencyHeatmap(
             days = heatmapData,
             showDayLabels = true,
-            title = null,
-            modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
+            title = null
         )
     }
 }

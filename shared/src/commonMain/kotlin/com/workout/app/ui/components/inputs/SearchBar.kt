@@ -69,12 +69,12 @@ fun SearchBar(
                     .fillMaxWidth()
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(24.dp)
+                        shape = RoundedCornerShape(2.dp)
                     )
                     .border(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outline,
-                        shape = RoundedCornerShape(24.dp)
+                        shape = RoundedCornerShape(2.dp)
                     )
                     .padding(
                         horizontal = AppTheme.spacing.lg,

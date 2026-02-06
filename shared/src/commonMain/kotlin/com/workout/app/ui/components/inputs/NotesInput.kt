@@ -102,7 +102,7 @@ fun NotesInput(
                                 maxCharacters != null && value.length > maxCharacters -> MaterialTheme.colorScheme.error
                                 else -> MaterialTheme.colorScheme.outline
                             },
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(2.dp)
                         )
                         .padding(AppTheme.spacing.md)
                         .verticalScroll(scrollState)

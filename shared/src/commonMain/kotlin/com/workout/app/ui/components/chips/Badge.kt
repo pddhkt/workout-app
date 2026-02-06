@@ -64,7 +64,7 @@ fun Badge(
 
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(backgroundColor)
             .padding(
                 horizontal = AppTheme.spacing.sm,

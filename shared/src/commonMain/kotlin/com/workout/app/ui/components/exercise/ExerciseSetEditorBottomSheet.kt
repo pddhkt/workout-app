@@ -71,7 +71,7 @@ fun ExerciseSetEditorBottomSheet(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(2.dp))
                         .background(AppTheme.colors.success.copy(alpha = 0.2f))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
@@ -115,7 +115,7 @@ fun ExerciseSetEditorBottomSheet(
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(2.dp))
                         .background(AppTheme.colors.success.copy(alpha = 0.15f))
                         .clickable(onClick = onApplyPreviousWeight)
                         .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -176,7 +176,7 @@ fun ExerciseSetEditorBottomSheet(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(AppTheme.spacing.md))
+                    .clip(RoundedCornerShape(2.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable { /* Open timer picker */ }
                     .padding(AppTheme.spacing.sm)
@@ -235,7 +235,7 @@ fun ExerciseSetEditorBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = RoundedCornerShape(AppTheme.spacing.md),
+            shape = RoundedCornerShape(2.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary

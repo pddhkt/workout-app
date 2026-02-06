@@ -77,7 +77,7 @@ fun FilledIconButton(
         onClick = onClick,
         modifier = modifier.size(40.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(AppTheme.spacing.sm),
+        shape = RoundedCornerShape(2.dp),
         colors = IconButtonDefaults.filledIconButtonColors(
             containerColor = containerColor,
             contentColor = contentColor,

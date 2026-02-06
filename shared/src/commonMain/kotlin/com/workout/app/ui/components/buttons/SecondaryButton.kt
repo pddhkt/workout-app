@@ -46,7 +46,7 @@ fun SecondaryButton(
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .height(48.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(AppTheme.spacing.sm),
+        shape = RoundedCornerShape(2.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = contentColor,

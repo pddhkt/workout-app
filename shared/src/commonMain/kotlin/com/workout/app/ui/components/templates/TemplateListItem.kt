@@ -52,7 +52,7 @@ fun TemplateListItem(
     onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val cardShape = RoundedCornerShape(12.dp)
+    val cardShape = RoundedCornerShape(2.dp)
 
     Card(
         modifier = modifier

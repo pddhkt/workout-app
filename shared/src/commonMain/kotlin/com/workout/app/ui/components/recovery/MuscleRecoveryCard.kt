@@ -156,7 +156,7 @@ private fun MuscleRecoveryRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(
                 if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                 else MaterialTheme.colorScheme.surface.copy(alpha = 0f)
@@ -190,14 +190,14 @@ private fun MuscleRecoveryRow(
             modifier = Modifier
                 .weight(1f)
                 .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(2.dp))
                 .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(fraction = animatedProgress)
                     .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(2.dp))
                     .background(barColor)
             )
         }

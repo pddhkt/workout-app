@@ -121,12 +121,12 @@ private fun RPEButton(
     Box(
         modifier = Modifier
             .size(56.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(backgroundColor)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
                 color = if (isSelected) rpeColor else MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(2.dp)
             )
             .clickable(
                 enabled = enabled,
@@ -198,7 +198,7 @@ fun CompactRPESelector(
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.outline,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(2.dp)
                 )
                 .padding(AppTheme.spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
@@ -300,7 +300,7 @@ fun RPEProgressDisplay(
                 modifier = Modifier
                     .weight(1f)
                     .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(2.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .onSizeChanged { trackWidth = it.width.toFloat() }
                     .then(

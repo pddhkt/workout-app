@@ -78,7 +78,7 @@ fun DropdownSelector(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(2.dp))
                     .border(
                         width = 1.dp,
                         color = when {
@@ -86,7 +86,7 @@ fun DropdownSelector(
                             expanded -> MaterialTheme.colorScheme.primary
                             else -> MaterialTheme.colorScheme.outline
                         },
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(2.dp)
                     )
                     .background(
                         if (enabled) MaterialTheme.colorScheme.surface

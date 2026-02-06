@@ -81,12 +81,12 @@ fun SetChip(
 
     Row(
         modifier = chipModifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(backgroundColor)
             .border(
                 width = 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(2.dp)
             )
             .padding(
                 horizontal = AppTheme.spacing.md,

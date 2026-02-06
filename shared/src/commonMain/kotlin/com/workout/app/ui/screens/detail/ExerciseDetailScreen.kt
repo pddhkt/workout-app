@@ -762,7 +762,7 @@ private fun MuscleTargetCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
-                    .clip(RoundedCornerShape(AppTheme.spacing.sm))
+                    .clip(RoundedCornerShape(2.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {

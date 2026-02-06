@@ -69,7 +69,7 @@ fun NumberStepper(
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.outline,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(2.dp)
                 )
                 .padding(AppTheme.spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
@@ -103,7 +103,7 @@ fun NumberStepper(
                 modifier = Modifier
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(2.dp)
                     )
                     .clickable(enabled = enabled) { showNumberPad = true }
                     .padding(horizontal = AppTheme.spacing.lg, vertical = AppTheme.spacing.sm)
@@ -225,7 +225,7 @@ fun DecimalNumberStepper(
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.outline,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(2.dp)
                 )
                 .padding(AppTheme.spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
@@ -259,7 +259,7 @@ fun DecimalNumberStepper(
                 modifier = Modifier
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(2.dp)
                     )
                     .clickable(enabled = enabled) { showNumberPad = true }
                     .padding(horizontal = AppTheme.spacing.lg, vertical = AppTheme.spacing.sm)

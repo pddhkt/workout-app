@@ -57,7 +57,7 @@ fun NumberPadDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = AppTheme.spacing.lg),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(2.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
@@ -81,7 +81,7 @@ fun NumberPadDialog(
                             .weight(1f)
                             .background(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(2.dp)
                             )
                             .padding(horizontal = AppTheme.spacing.lg, vertical = AppTheme.spacing.md)
                     )
@@ -194,7 +194,7 @@ private fun NumberPadKey(
     Box(
         modifier = modifier
             .size(72.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center

@@ -77,7 +77,7 @@ fun WorkoutReorderOverlay(
                 .fillMaxWidth()
                 .padding(AppTheme.spacing.lg)
                 .padding(top = 48.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(2.dp))
                 .background(MaterialTheme.colorScheme.surface)
                 .clickable(enabled = false) { } // Prevent click-through
                 .padding(AppTheme.spacing.lg),
@@ -189,7 +189,7 @@ fun WorkoutReorderOverlay(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(2.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable(onClick = onDismiss)
                     .padding(AppTheme.spacing.md),

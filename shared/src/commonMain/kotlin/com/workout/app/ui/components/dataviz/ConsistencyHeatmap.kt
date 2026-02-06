@@ -220,7 +220,7 @@ private fun HeatmapCell(
         modifier = Modifier
             .width(size)
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(AppTheme.spacing.xs))
+            .clip(RoundedCornerShape(2.dp))
             .background(cellColor)
     )
 }
@@ -266,7 +266,7 @@ private fun HeatmapLegend(
                 modifier = Modifier
                     .width(16.dp)
                     .height(16.dp)
-                    .clip(RoundedCornerShape(AppTheme.spacing.xs))
+                    .clip(RoundedCornerShape(2.dp))
                     .background(color)
             )
         }

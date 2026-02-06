@@ -153,7 +153,7 @@ private fun ActiveSetCard(
         modifier = Modifier
             .width(160.dp)
             .height(140.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(primaryColor)
             .clickable(onClick = onClick)
             .padding(16.dp)
@@ -177,7 +177,7 @@ private fun ActiveSetCard(
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(2.dp))
                         .background(onPrimaryColor.copy(alpha = 0.2f))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
@@ -240,7 +240,7 @@ private fun PendingSetCard(
         modifier = Modifier
             .width(140.dp) // Slightly smaller width for non-active
             .height(140.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant) // Using theme surface variant
             .clickable(onClick = onClick)
             .padding(16.dp)

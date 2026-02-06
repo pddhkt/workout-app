@@ -42,7 +42,7 @@ fun ExerciseReorderItem(
         modifier = modifier
             .fillMaxWidth()
             .height(52.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(
                 if (isBeingDragged) {
                     MaterialTheme.colorScheme.primaryContainer

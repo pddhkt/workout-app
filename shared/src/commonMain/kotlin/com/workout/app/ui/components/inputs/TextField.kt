@@ -79,7 +79,7 @@ fun AppTextField(
                                 isError -> MaterialTheme.colorScheme.error
                                 else -> MaterialTheme.colorScheme.outline
                             },
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(2.dp)
                         )
                         .padding(AppTheme.spacing.md),
                     verticalAlignment = Alignment.CenterVertically

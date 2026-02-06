@@ -178,7 +178,7 @@ fun ExerciseWorkoutCard(
                         modifier = Modifier
                             .width(60.dp)
                             .height(140.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(2.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .clickable(onClick = onAddSet),
                         contentAlignment = Alignment.Center
@@ -237,7 +237,7 @@ fun WorkoutSetCard(
         modifier = modifier
             .width(cardWidth)
             .height(140.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(2.dp))
             .background(backgroundColor)
             .clickable(onClick = onClick)
             .padding(16.dp)
@@ -263,7 +263,7 @@ fun WorkoutSetCard(
                     WorkoutSetState.ACTIVE -> {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(2.dp))
                                 .background(contentColor.copy(alpha = 0.2f))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
