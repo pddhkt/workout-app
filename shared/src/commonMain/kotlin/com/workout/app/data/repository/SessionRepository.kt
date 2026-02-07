@@ -87,6 +87,14 @@ interface SessionRepository {
     suspend fun update(session: Session): Result<Unit>
 
     /**
+     * Update session name.
+     * @param id Session ID
+     * @param name New name
+     * @return Result indicating success or failure
+     */
+    suspend fun updateName(id: String, name: String): Result<Unit>
+
+    /**
      * Update session status.
      * @param id Session ID
      * @param status New status
@@ -100,6 +108,14 @@ interface SessionRepository {
      * @return Result indicating success or failure
      */
     suspend fun complete(id: String): Result<Unit>
+
+    /**
+     * Update session notes.
+     * @param id Session ID
+     * @param notes New notes text
+     * @return Result indicating success or failure
+     */
+    suspend fun updateNotes(id: String, notes: String?): Result<Unit>
 
     /**
      * Update the workout ID for a session, linking it to a saved workout.

@@ -372,7 +372,7 @@ private fun getRPEColor(rpe: Int, colors: ExtendedColors): Color {
     return when (rpe) {
         in 1..3 -> colors.info
         in 4..6 -> colors.success
-        in 7..8 -> colors.warning
+        in 7..8 -> colors.primaryText
         else -> colors.error
     }
 }

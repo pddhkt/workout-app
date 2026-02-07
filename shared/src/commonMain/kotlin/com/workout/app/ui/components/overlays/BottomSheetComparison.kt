@@ -135,7 +135,7 @@ private fun BottomSheetContent(title: String) {
         Text(
             text = "Scrim should be dark (black with 50% alpha) in both themes.",
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = AppTheme.colors.primaryText,
             textAlign = TextAlign.Center
         )
 

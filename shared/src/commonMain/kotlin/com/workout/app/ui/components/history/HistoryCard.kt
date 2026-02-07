@@ -77,7 +77,7 @@ fun HistoryCard(
                             imageVector = Icons.Filled.EmojiEvents,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = AppTheme.colors.warning
+                            tint = AppTheme.colors.primaryText
                         )
                         Badge(
                             text = "${workout.prCount} PRs",

@@ -315,7 +315,7 @@ private fun StatCard(
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = AppTheme.colors.primaryText,
                 fontWeight = FontWeight.Bold
             )
 
@@ -470,7 +470,7 @@ fun EnhancedWorkoutCompleteScreen(
                     onRpeChange = viewModel::updateRpe,
                     onSaveAsTemplate = viewModel::saveAsTemplate,
                     onShare = onShareClick,
-                    onFinish = { viewModel.saveWorkout(onDoneClick) },
+                    onFinish = onDoneClick,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -631,9 +631,8 @@ private fun EnhancedWorkoutCompleteContent(
             )
 
             PrimaryButton(
-                text = "Finish Workout",
+                text = "Close",
                 onClick = onFinish,
-                enabled = !state.isSaving,
                 modifier = Modifier.fillMaxWidth()
             )
         }

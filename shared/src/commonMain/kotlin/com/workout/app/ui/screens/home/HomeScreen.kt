@@ -2,6 +2,7 @@ package com.workout.app.ui.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,11 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
@@ -97,7 +95,6 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
     ) {
         // TOP SECTION - Yellow background
         Column(
@@ -116,12 +113,12 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
 
-            // Consistency Heatmap - smaller and centered
+            // Consistency Heatmap - full width with padding
             ConsistencyHeatmapSection(
                 heatmapData = heatmapData,
                 modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .align(Alignment.CenterHorizontally)
+                    .fillMaxWidth()
+                    .padding(horizontal = AppTheme.spacing.lg)
             )
         }
 
@@ -129,6 +126,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .background(Color(0xFFF4F4F4))
                 .padding(top = AppTheme.spacing.xl)
                 .padding(bottom = AppTheme.spacing.xl)
@@ -292,7 +290,7 @@ private fun AddTemplateCard(
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Add template",
-                tint = MaterialTheme.colorScheme.primary
+                tint = AppTheme.colors.primaryText
             )
             Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
             Text(
@@ -300,7 +298,7 @@ private fun AddTemplateCard(
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = MaterialTheme.colorScheme.primary
+                color = AppTheme.colors.primaryText
             )
             Text(
                 text = "Create your first workout",
@@ -346,7 +344,7 @@ private fun TemplateCard(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.primary
+                        color = AppTheme.colors.primaryText
                     )
                     Text(
                         text = "Exercises",
@@ -361,7 +359,7 @@ private fun TemplateCard(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.primary
+                        color = AppTheme.colors.primaryText
                     )
                     Text(
                         text = "Duration",
@@ -497,7 +495,7 @@ private fun SessionStat(
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Bold
             ),
-            color = MaterialTheme.colorScheme.primary
+            color = AppTheme.colors.primaryText
         )
         Text(
             text = label,

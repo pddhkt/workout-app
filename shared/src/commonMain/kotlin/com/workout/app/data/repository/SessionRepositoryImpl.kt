@@ -131,6 +131,17 @@ class SessionRepositoryImpl(
         }
     }
 
+    override suspend fun updateName(id: String, name: String): Result<Unit> =
+        withContext(Dispatchers.Default) {
+            try {
+                val now = Clock.System.now().toEpochMilliseconds()
+                sessionQueries.updateName(name = name, updatedAt = now, id = id)
+                Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
     override suspend fun updateStatus(id: String, status: String): Result<Unit> =
         withContext(Dispatchers.Default) {
             try {
@@ -151,6 +162,17 @@ class SessionRepositoryImpl(
             Result.Error(e)
         }
     }
+
+    override suspend fun updateNotes(id: String, notes: String?): Result<Unit> =
+        withContext(Dispatchers.Default) {
+            try {
+                val now = Clock.System.now().toEpochMilliseconds()
+                sessionQueries.updateNotes(notes = notes, updatedAt = now, id = id)
+                Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
 
     override suspend fun updateWorkoutId(id: String, workoutId: String): Result<Unit> =
         withContext(Dispatchers.Default) {

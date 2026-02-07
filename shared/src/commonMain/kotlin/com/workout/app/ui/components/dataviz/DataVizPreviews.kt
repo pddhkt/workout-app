@@ -180,6 +180,6 @@ private fun SectionTitle(text: String) {
         style = MaterialTheme.typography.titleLarge.copy(
             fontWeight = FontWeight.Bold
         ),
-        color = MaterialTheme.colorScheme.primary
+        color = AppTheme.colors.primaryText
     )
 }

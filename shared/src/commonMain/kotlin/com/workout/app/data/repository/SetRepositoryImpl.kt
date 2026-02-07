@@ -234,6 +234,21 @@ class SetRepositoryImpl(
             }
         }
 
+    override suspend fun getWeeklySetCountPerMuscleGroup(): Result<Map<String, Long>> =
+        withContext(Dispatchers.Default) {
+            try {
+                val sevenDaysAgo = Clock.System.now().toEpochMilliseconds() - (7L * 24 * 60 * 60 * 1000)
+                val rows = setQueries.getWeeklySetCountPerMuscleGroup(sevenDaysAgo).executeAsList()
+                val result = mutableMapOf<String, Long>()
+                rows.forEach { row ->
+                    result[row.muscleGroup] = row.setCount
+                }
+                Result.Success(result)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+
     /**
      * Generate a unique ID for a new set.
      */

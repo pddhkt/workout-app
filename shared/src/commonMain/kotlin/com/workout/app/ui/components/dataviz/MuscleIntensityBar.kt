@@ -206,6 +206,12 @@ private fun MetricCard(
     showTrophy: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val valueStyle = when {
+        value.length > 6 -> MaterialTheme.typography.bodyLarge
+        value.length > 4 -> MaterialTheme.typography.titleMedium
+        else -> MaterialTheme.typography.titleLarge
+    }.copy(fontWeight = FontWeight.Bold)
+
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(2.dp))
@@ -219,10 +225,9 @@ private fun MetricCard(
         ) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = if (showTrophy) AppTheme.colors.warning else MaterialTheme.colorScheme.primary
+                style = valueStyle,
+                color = AppTheme.colors.primaryText,
+                maxLines = 1
             )
         }
 

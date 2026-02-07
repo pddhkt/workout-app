@@ -90,6 +90,8 @@ sealed class Route(val route: String) {
      */
     data object BottomSheetComparison : Route("debug/bottomsheet_comparison")
 
+    data object WorkoutLayoutExperiment : Route("debug/workout_layout_experiment")
+
     /**
      * Templates screen for managing workout templates
      */
@@ -166,6 +168,10 @@ fun NavController.navigateToSettings(builder: NavOptionsBuilder.() -> Unit = {})
 
 fun NavController.navigateToBottomSheetComparison(builder: NavOptionsBuilder.() -> Unit = {}) {
     navigate(Route.BottomSheetComparison.route, builder)
+}
+
+fun NavController.navigateToWorkoutLayoutExperiment(builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.WorkoutLayoutExperiment.route, builder)
 }
 
 fun NavController.navigateToTemplates(builder: NavOptionsBuilder.() -> Unit = {}) {

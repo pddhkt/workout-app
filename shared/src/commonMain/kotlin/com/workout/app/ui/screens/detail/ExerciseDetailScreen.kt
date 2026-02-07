@@ -520,7 +520,7 @@ private fun QuickStatTile(
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = MaterialTheme.colorScheme.primary
+                color = AppTheme.colors.primaryText
             )
             Text(
                 text = label,

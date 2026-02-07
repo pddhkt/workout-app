@@ -70,7 +70,7 @@ fun ConsistencyHeatmap(
     title: String? = null
 ) {
     val colors = AppTheme.colors
-    val resolvedLowIntensityColor = lowIntensityColor ?: colors.warning.copy(alpha = 0.3f)
+    val resolvedLowIntensityColor = lowIntensityColor ?: colors.success.copy(alpha = 0.3f)
     val resolvedMediumIntensityColor = mediumIntensityColor ?: colors.success.copy(alpha = 0.6f)
     val resolvedHighIntensityColor = highIntensityColor ?: colors.success
     Column(
@@ -103,11 +103,11 @@ fun ConsistencyHeatmap(
             val labelSpace = if (showDayLabels) dayLabelWidth + cellSpacing else 0.dp
             val gridWidth = availableWidth - labelSpace
 
-            // Target around 12dp cells, calculate how many weeks fit
-            val targetCellSize = 12.dp
+            // Target around 16dp cells, calculate how many weeks fit
+            val targetCellSize = 16.dp
             val weeksCount = ((gridWidth + cellSpacing) / (targetCellSize + cellSpacing)).toInt().coerceAtLeast(1)
 
-            // Recalculate cell size to exactly fill the width
+            // Calculate actual cell size for alignment
             val cellSize = (gridWidth - (cellSpacing * (weeksCount - 1))) / weeksCount
 
             // Data weeks (ceiling division)
@@ -119,7 +119,7 @@ fun ConsistencyHeatmap(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(cellSpacing)
             ) {
-                // Day labels column (left side)
+                // Day labels column (left side) - fixed width, no weight
                 if (showDayLabels) {
                     Column(
                         modifier = Modifier.width(dayLabelWidth),
@@ -128,23 +128,25 @@ fun ConsistencyHeatmap(
                     ) {
                         dayLabels.forEach { label ->
                             Box(
-                                modifier = Modifier.height(cellSize),
-                                contentAlignment = Alignment.CenterEnd
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(cellSize),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = label,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(end = AppTheme.spacing.xs)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
                 }
 
-                // Heatmap grid - each week is a column
+                // Heatmap grid - each week is a column with equal weight
                 repeat(weeksCount) { weekIndex ->
                     Column(
+                        modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(cellSpacing)
                     ) {
                         repeat(7) { dayIndex ->
@@ -156,7 +158,6 @@ fun ConsistencyHeatmap(
                                 val day = days[dataIndex]
                                 HeatmapCell(
                                     count = day.count,
-                                    size = cellSize,
                                     lowIntensityColor = resolvedLowIntensityColor,
                                     mediumIntensityColor = resolvedMediumIntensityColor,
                                     highIntensityColor = resolvedHighIntensityColor,
@@ -166,7 +167,6 @@ fun ConsistencyHeatmap(
                                 // Empty cell (no data for this position)
                                 HeatmapCell(
                                     count = 0,
-                                    size = cellSize,
                                     lowIntensityColor = resolvedLowIntensityColor,
                                     mediumIntensityColor = resolvedMediumIntensityColor,
                                     highIntensityColor = resolvedHighIntensityColor,
@@ -194,7 +194,6 @@ fun ConsistencyHeatmap(
  * Color intensity is determined by workout count
  *
  * @param count Number of workouts
- * @param size Size of the cell
  * @param lowIntensityColor Color for 1 workout
  * @param mediumIntensityColor Color for 2-3 workouts
  * @param highIntensityColor Color for 4+ workouts
@@ -203,7 +202,6 @@ fun ConsistencyHeatmap(
 @Composable
 private fun HeatmapCell(
     count: Int,
-    size: Dp,
     lowIntensityColor: Color,
     mediumIntensityColor: Color,
     highIntensityColor: Color,
@@ -218,7 +216,7 @@ private fun HeatmapCell(
 
     Box(
         modifier = Modifier
-            .width(size)
+            .fillMaxWidth()
             .aspectRatio(1f)
             .clip(RoundedCornerShape(2.dp))
             .background(cellColor)
@@ -298,7 +296,7 @@ fun CompactConsistencyHeatmap(
     cellSpacing: Dp = 2.dp
 ) {
     val colors = AppTheme.colors
-    val lowIntensityColor = colors.warning.copy(alpha = 0.3f)
+    val lowIntensityColor = colors.success.copy(alpha = 0.3f)
     val mediumIntensityColor = colors.success.copy(alpha = 0.6f)
     val highIntensityColor = colors.success
     val emptyColor = MaterialTheme.colorScheme.surfaceVariant
@@ -312,9 +310,6 @@ fun CompactConsistencyHeatmap(
         val targetCellSize = 10.dp
         val weeksCount = ((availableWidth + cellSpacing) / (targetCellSize + cellSpacing)).toInt().coerceAtLeast(1)
 
-        // Recalculate cell size to exactly fill the width
-        val cellSize = (availableWidth - (cellSpacing * (weeksCount - 1))) / weeksCount
-
         // Data weeks (ceiling division)
         val dataWeeksCount = (days.size + 6) / 7
 
@@ -326,6 +321,7 @@ fun CompactConsistencyHeatmap(
         ) {
             repeat(weeksCount) { weekIndex ->
                 Column(
+                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(cellSpacing)
                 ) {
                     repeat(7) { dayIndex ->
@@ -337,7 +333,6 @@ fun CompactConsistencyHeatmap(
                             val day = days[dataIndex]
                             HeatmapCell(
                                 count = day.count,
-                                size = cellSize,
                                 lowIntensityColor = lowIntensityColor,
                                 mediumIntensityColor = mediumIntensityColor,
                                 highIntensityColor = highIntensityColor,
@@ -347,7 +342,6 @@ fun CompactConsistencyHeatmap(
                             // Empty cell (no data for this position)
                             HeatmapCell(
                                 count = 0,
-                                size = cellSize,
                                 lowIntensityColor = lowIntensityColor,
                                 mediumIntensityColor = mediumIntensityColor,
                                 highIntensityColor = highIntensityColor,

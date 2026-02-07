@@ -2,8 +2,11 @@ package com.workout.app.ui.components.overlays
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -34,6 +37,7 @@ fun M3BottomSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
     skipPartiallyExpanded: Boolean = false,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -43,14 +47,16 @@ fun M3BottomSheet(
             sheetState = rememberModalBottomSheetState(
                 skipPartiallyExpanded = skipPartiallyExpanded
             ),
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = containerColor,
             scrimColor = Color.Black.copy(alpha = 0.5f),
+            windowInsets = WindowInsets(0, 0, 0, 0),
             modifier = modifier
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = AppTheme.spacing.lg)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
             ) {
                 content()
             }

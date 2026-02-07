@@ -78,7 +78,7 @@ fun ExerciseExecutionCard(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.primary
+                        color = AppTheme.colors.primaryText
                     )
                     Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
                     Text(

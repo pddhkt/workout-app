@@ -328,7 +328,7 @@ private fun MultiSelectExerciseItem(
                 Icon(
                     imageVector = Icons.Filled.Star,
                     contentDescription = "Favorite",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = AppTheme.colors.primaryText,
                     modifier = Modifier.size(20.dp)
                 )
             }

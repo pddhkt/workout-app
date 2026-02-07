@@ -60,7 +60,10 @@ fun Badge(
     }
 
     val backgroundColor = variantColor.copy(alpha = 0.15f)
-    val textColor = variantColor
+    val textColor = when (variant) {
+        BadgeVariant.WARNING -> AppTheme.colors.primaryText
+        else -> variantColor
+    }
 
     Row(
         modifier = modifier

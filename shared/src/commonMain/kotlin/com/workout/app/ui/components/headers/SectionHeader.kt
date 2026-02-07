@@ -1,14 +1,19 @@
 package com.workout.app.ui.components.headers
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.workout.app.ui.components.chips.CountBadge
 import com.workout.app.ui.components.chips.BadgeVariant
 import com.workout.app.ui.theme.AppTheme
@@ -100,13 +105,18 @@ fun SectionHeaderWithAction(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        TextButton(
-            onClick = onActionClick
+        Button(
+            onClick = onActionClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(2.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Text(
                 text = actionText,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
+                style = MaterialTheme.typography.labelLarge
             )
         }
     }
@@ -153,13 +163,18 @@ fun SectionHeaderWithCountAndAction(
             )
         }
 
-        TextButton(
-            onClick = onActionClick
+        Button(
+            onClick = onActionClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(2.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Text(
                 text = actionText,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
+                style = MaterialTheme.typography.labelLarge
             )
         }
     }

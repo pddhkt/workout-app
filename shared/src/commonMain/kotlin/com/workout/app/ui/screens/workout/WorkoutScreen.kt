@@ -1,33 +1,63 @@
 package com.workout.app.ui.screens.workout
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,671 +69,930 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.workout.app.ui.components.buttons.PrimaryButton
 import com.workout.app.ui.components.buttons.SecondaryButton
-import com.workout.app.ui.components.chips.SetState
-import com.workout.app.ui.components.dataviz.CompactCircularTimer
-import com.workout.app.ui.components.exercise.ExerciseSetEditorBottomSheet
-import com.workout.app.ui.components.exercise.ExerciseWorkoutCard
-import com.workout.app.ui.components.exercise.LibraryExercise
-import com.workout.app.ui.components.exercise.MuscleGroupFilters
-import com.workout.app.ui.components.exercise.SetInfo
-import com.workout.app.ui.components.exercise.getMockLibraryExercises
 import com.workout.app.ui.components.cards.BaseCard
 import com.workout.app.ui.components.chips.Badge
 import com.workout.app.ui.components.chips.BadgeVariant
-import com.workout.app.ui.components.inputs.CompactRPESelector
-import com.workout.app.ui.components.inputs.NotesInput
+import com.workout.app.ui.components.exercise.LibraryExercise
+import com.workout.app.ui.components.exercise.MuscleGroupFilters
+import com.workout.app.ui.components.exercise.getMockLibraryExercises
 import com.workout.app.ui.components.inputs.SearchBar
 import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.theme.AppTheme
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.ui.zIndex
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.material3.TextField
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.datetime.Clock
 import com.workout.app.presentation.workout.WorkoutState
 import com.workout.app.presentation.workout.WorkoutExercise
 
 private enum class SheetType {
-    OPTIONS, SET_EDITOR, ADD_EXERCISE, EXERCISE_OPTIONS, FINISH_CONFIRM, CREATE_EXERCISE
+    OPTIONS, ADD_EXERCISE, EXERCISE_OPTIONS, FINISH_CONFIRM, CREATE_EXERCISE
 }
 
+private data class SetPage(
+    val setNumber: Int,
+    val isEndPage: Boolean = false,
+    val isCompleted: Boolean = false
+)
+
 /**
- * Workout Screen - Active workout session with exercise tracking
+ * Workout Screen - Active workout session with two-pane layout
  *
- * Features:
- * - Session header with elapsed time and exercise count (EL-02)
- * - Exercise list with current exercise expanded (EL-09/10/79)
- * - Set chips showing progress (EL-17/18/19)
- * - Set input form with weight/reps steppers (EL-11)
- * - RPE selector after completing sets (EL-13)
- * - Rest timer inline trigger (EL-20)
- * - Notes input field (EL-12)
- * - Complete set and skip set buttons (EL-14)
- * - Bottom drawer for additional options (EL-23)
- * - Drag-to-reorder exercises with long-press detection (FT-028)
- * - Reorder mode overlay for easy exercise reordering
- *
- * @param state The workout state from ViewModel (single source of truth)
- * @param onCompleteSet Callback when user completes a set
- * @param onSkipSet Callback when user skips a set
- * @param onExerciseExpand Callback when an exercise card is expanded
- * @param onEndWorkout Callback when user ends the workout
- * @param onAddExercises Callback when adding exercises to the session
- * @param onRemoveExercise Callback when removing an exercise from the session
- * @param onReplaceExercise Callback when replacing an exercise
- * @param onAddSet Callback when adding a set to an exercise
- * @param onReorderExercise Callback when reordering exercises (fromIndex, toIndex)
- * @param onCreateExercise Callback when creating a custom exercise
- * @param onEnterReorderMode Callback when user wants to enter reorder mode
- * @param onExitReorderMode Callback when user wants to exit reorder mode
- * @param modifier Optional modifier for customization
+ * Top pane: scrollable exercise cards (compact) with swipe-to-delete and drag-to-reorder
+ * Bottom pane: inline set input with swipeable set pages
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutScreen(
     state: WorkoutState,
     onCompleteSet: (exerciseId: String, setNumber: Int, reps: Int, weight: Float, rpe: Int?) -> Unit = { _, _, _, _, _ -> },
-    onSkipSet: (exerciseId: String) -> Unit = {},
     onExerciseExpand: (exerciseId: String) -> Unit = {},
     onEndWorkout: () -> Unit = {},
+    onCancelWorkout: () -> Unit = {},
+    onRenameWorkout: (String) -> Unit = {},
     onAddExercises: (List<String>) -> Unit = {},
     onRemoveExercise: (exerciseId: String) -> Unit = {},
     onReplaceExercise: (exerciseId: String, newExercise: LibraryExercise) -> Unit = { _, _ -> },
     onAddSet: (exerciseId: String) -> Unit = {},
     onReorderExercise: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
     onCreateExercise: (name: String, muscleGroup: String, equipment: String?, instructions: String?) -> Unit = { _, _, _, _ -> },
-    onGetHistoricalWeights: suspend (String) -> List<String> = { emptyList() },
-    onGetHistoricalReps: suspend (String) -> List<String> = { emptyList() },
-    onSetActiveSet: (exerciseId: String, setIndex: Int) -> Unit = { _, _ -> },
-    onEnterReorderMode: () -> Unit = {},
-    onExitReorderMode: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // Coroutine scope for async operations
-    val scope = rememberCoroutineScope()
-
-    // Use currentExerciseIndex from state (single source of truth)
-    val currentExerciseIndex = state.currentExerciseIndex
-
-    // Editor State
+    // Sheet state
     var activeSheet by remember { mutableStateOf<SheetType?>(null) }
-    var editingSetNumber by remember { mutableIntStateOf(1) }
     var selectedExerciseForOptions by remember { mutableStateOf<WorkoutExercise?>(null) }
-    var selectedExerciseForEditor by remember { mutableStateOf<WorkoutExercise?>(null) }
     var replacingExerciseId by remember { mutableStateOf<String?>(null) }
 
-    var currentReps by remember { mutableIntStateOf(0) }
-    var currentWeight by remember { mutableFloatStateOf(0f) }
-    var currentRPE by remember { mutableStateOf<Int?>(null) }
-    var notes by remember { mutableStateOf("") }
+    // Selected exercise and set page tracking
+    var selectedExerciseIndex by remember { mutableIntStateOf(state.currentExerciseIndex) }
+    var currentPageIndex by remember { mutableIntStateOf(0) }
+    var weightInput by remember { mutableStateOf("0") }
+    var repsInput by remember { mutableStateOf("10") }
+    var swipeDirection by remember { mutableIntStateOf(1) }
+    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
 
-    // History values for NumberPad quick selection
-    var currentWeightHistory by remember { mutableStateOf<List<String>>(emptyList()) }
-    var currentRepsHistory by remember { mutableStateOf<List<String>>(emptyList()) }
+    // Drag-to-reorder state
+    val density = LocalDensity.current
+    val itemHeightDp = 72.dp
+    val itemSpacingDp = AppTheme.spacing.md
+    val itemHeightPx = with(density) { itemHeightDp.toPx() }
+    val itemSpacingPx = with(density) { itemSpacingDp.toPx() }
+    val totalItemHeightPx = itemHeightPx + itemSpacingPx
 
-    // Previous set info for quick-select in set editor
-    var previousSetNumber by remember { mutableStateOf<Int?>(null) }
-    var previousSetWeight by remember { mutableStateOf<Float?>(null) }
-
-    var showRestTimer by remember { mutableStateOf(false) }
-    var restTimeRemaining by remember { mutableIntStateOf(90) }
-
-    // Expanded state for legacy cards (though we might not need it for active card anymore)
-    var expandedExerciseId by remember { mutableStateOf(state.exercises.firstOrNull()?.id) }
-
-    // Drag reorder state
-    var isDragging by remember { mutableStateOf(false) }
-    var draggedItemIndex by remember { mutableIntStateOf(-1) }
+    var draggedIndex by remember { mutableIntStateOf(-1) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var hoverIndex by remember { mutableIntStateOf(-1) }
-    val itemHeights = remember { mutableStateMapOf<Int, Float>() }
-    val density = LocalDensity.current
 
-    // Rest timer countdown
-    LaunchedEffect(showRestTimer) {
-        if (showRestTimer) {
-            while (restTimeRemaining > 0) {
-                delay(1000)
-                restTimeRemaining--
-            }
-            if (restTimeRemaining == 0) {
-                showRestTimer = false
-                restTimeRemaining = 90
-            }
-        }
+    // Clamp selectedExerciseIndex if exercises were removed
+    if (state.exercises.isNotEmpty() && selectedExerciseIndex >= state.exercises.size) {
+        selectedExerciseIndex = state.exercises.size - 1
     }
 
-    val currentExercise = state.exercises.getOrNull(currentExerciseIndex)
+    // Sync with ViewModel auto-advance
+    LaunchedEffect(state.currentExerciseIndex) {
+        selectedExerciseIndex = state.currentExerciseIndex
+        currentPageIndex = 0
+    }
 
-    // Update local state when opening editor or changing set
-    fun openSetEditor(exercise: WorkoutExercise, setIndex: Int) {
-        selectedExerciseForEditor = exercise
-        editingSetNumber = setIndex + 1
+    val selectedExercise = state.exercises.getOrNull(selectedExerciseIndex)
 
-        // Call ViewModel to sync active set state
-        onSetActiveSet(exercise.id, setIndex)
+    // Build pages for the current exercise
+    val pages = remember(selectedExerciseIndex, state.exercises) {
+        val exercise = state.exercises.getOrNull(selectedExerciseIndex) ?: return@remember listOf(SetPage(1, isEndPage = true))
+        val completedNums = exercise.setRecords.map { it.setNumber }.toSet()
+        val setPages = (1..exercise.targetSets).map { setNum ->
+            SetPage(setNum, isCompleted = setNum in completedNums)
+        }
+        setPages + SetPage(exercise.targetSets + 1, isEndPage = true)
+    }
 
-        // Fetch history values for NumberPad
-        scope.launch {
-            currentWeightHistory = onGetHistoricalWeights(exercise.exerciseId)
-            currentRepsHistory = onGetHistoricalReps(exercise.exerciseId)
+    // Clamp page index when pages change
+    if (currentPageIndex >= pages.size) {
+        currentPageIndex = (pages.size - 1).coerceAtLeast(0)
+    }
+
+    // Load weight/reps for a set page
+    fun loadPageInputs(page: SetPage) {
+        if (page.isEndPage) return
+        val exercise = state.exercises.getOrNull(selectedExerciseIndex) ?: return
+
+        // Priority 1: Current session record for this set
+        val currentRecord = exercise.setRecords.find { it.setNumber == page.setNumber }
+        if (currentRecord != null) {
+            weightInput = currentRecord.weight.toString()
+            repsInput = currentRecord.reps.toString()
+            return
         }
 
-        // Compute previous set info (for sets 2+)
-        // setIndex is 0-indexed, so for set 2 (setIndex=1), we look for setNumber=1
-        val prevSetNum = setIndex  // setIndex 1 means set 2, so prev is setNumber 1
-        if (prevSetNum > 0) {
-            val prevRecord = exercise.setRecords.find { it.setNumber == prevSetNum }
-            previousSetNumber = if (prevRecord?.weight != null) prevSetNum else null
-            previousSetWeight = prevRecord?.weight
+        // Priority 2: Carry forward from previous set in current session
+        if (page.setNumber > 1) {
+            val prevRecord = exercise.setRecords.find { it.setNumber == page.setNumber - 1 }
+            if (prevRecord != null) {
+                weightInput = prevRecord.weight.toString()
+                repsInput = prevRecord.reps.toString()
+                return
+            }
+        }
+
+        // Priority 3: Defaults
+        weightInput = "0"
+        repsInput = "10"
+    }
+
+    fun navigatePage(delta: Int) {
+        val newIndex = currentPageIndex + delta
+        if (newIndex < 0 && selectedExerciseIndex > 0) {
+            // Swipe right past first set → go to previous exercise's end page
+            swipeDirection = delta
+            selectedExerciseIndex--
+            val prevExercise = state.exercises[selectedExerciseIndex]
+            currentPageIndex = prevExercise.targetSets // end page index
         } else {
-            previousSetNumber = null
-            previousSetWeight = null
+            val clamped = newIndex.coerceIn(0, pages.size - 1)
+            if (clamped != currentPageIndex) {
+                swipeDirection = delta
+                currentPageIndex = clamped
+                loadPageInputs(pages[clamped])
+            }
         }
-
-        // Get set info from exercise's setRecords
-        val setNum = setIndex + 1
-        val record = exercise.setRecords.find { it.setNumber == setNum }
-        currentReps = record?.reps?.takeIf { it > 0 } ?: 12 // Default target
-        currentWeight = record?.weight?.takeIf { it > 0f } ?: 100f // Default target
-        // Reset RPE and Notes for new set if not stored
-        currentRPE = null
-        activeSheet = SheetType.SET_EDITOR
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    fun selectExercise(index: Int) {
+        selectedExerciseIndex = index
+        val exercise = state.exercises[index]
+        val completedNums = exercise.setRecords.map { it.setNumber }.toSet()
+        val firstPending = (1..exercise.targetSets).firstOrNull { it !in completedNums }
+        currentPageIndex = if (firstPending != null) firstPending - 1 else 0
+
+        val total = exercise.targetSets
+        val newPages = (1..total).map { setNum ->
+            SetPage(setNum, isCompleted = setNum in completedNums)
+        } + SetPage(total + 1, isEndPage = true)
+        newPages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
+    }
+
+    // Initialize inputs on first composition
+    LaunchedEffect(Unit) {
+        if (state.exercises.isNotEmpty()) {
+            selectExercise(selectedExerciseIndex.coerceIn(0, state.exercises.size - 1))
+        }
+    }
+
+    // Reload inputs when exercise setRecords change (e.g. after completing a set)
+    LaunchedEffect(state.exercises.getOrNull(selectedExerciseIndex)?.setRecords) {
+        pages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Session Header
+        SessionHeader(
+            workoutName = state.sessionName,
+            onNameChange = onRenameWorkout,
+            elapsedTime = state.elapsedSeconds,
+            completedExercises = state.exercises.count { it.completedSets == it.targetSets },
+            totalExercises = state.exercises.size,
+            onMoreClick = { activeSheet = SheetType.OPTIONS }
+        )
+
+        // Top pane: scrollable exercise list
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = AppTheme.spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
         ) {
-            // Session Header
-            SessionHeader(
-                workoutName = state.sessionName,
-                elapsedTime = state.elapsedSeconds,
-                completedExercises = state.exercises.count { it.completedSets == it.targetSets },
-                totalExercises = state.exercises.size,
-                onMoreClick = { activeSheet = SheetType.OPTIONS }
-            )
+            Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
 
-            // Exercise List
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(AppTheme.spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-            ) {
-                itemsIndexed(state.exercises) { index, exercise ->
-                    val isCompleted = exercise.completedSets == exercise.targetSets
-                    val isActive = index == state.currentExerciseIndex && !isCompleted
-                    val isBeingDragged = isDragging && draggedItemIndex == index
+            state.exercises.forEachIndexed { index, exercise ->
+                val isSelected = index == selectedExerciseIndex
+                val completedCount = exercise.completedSets
+                val isBeingDragged = index == draggedIndex
 
-                    // Calculate shift for non-dragged items
-                    val targetOffsetY = if (isDragging && index != draggedItemIndex && hoverIndex != -1) {
-                        // Use measured height of dragged item, fallback to estimate
-                        val draggedItemHeight = itemHeights[draggedItemIndex] ?: 200f
-                        val spacingPx = with(density) { 12.dp.toPx() } // AppTheme.spacing.md
-                        val totalItemHeight = draggedItemHeight + spacingPx
-                        when {
-                            // Dragged from above, item needs to shift up
-                            draggedItemIndex < index && hoverIndex >= index -> -totalItemHeight
-                            // Dragged from below, item needs to shift down
-                            draggedItemIndex > index && hoverIndex <= index -> totalItemHeight
-                            else -> 0f
+                // Shift calculation for non-dragged items
+                val targetOffsetY = if (draggedIndex != -1 && !isBeingDragged && hoverIndex != -1) {
+                    when {
+                        draggedIndex < index && hoverIndex >= index -> -totalItemHeightPx
+                        draggedIndex > index && hoverIndex <= index -> totalItemHeightPx
+                        else -> 0f
+                    }
+                } else 0f
+
+                val animatedOffsetY by animateFloatAsState(
+                    targetValue = targetOffsetY,
+                    animationSpec = if (draggedIndex != -1) spring(dampingRatio = 0.8f, stiffness = 300f) else snap(),
+                    label = "itemShift"
+                )
+
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (value == SwipeToDismissBoxValue.EndToStart) {
+                            onRemoveExercise(exercise.id)
+                            false
+                        } else {
+                            false
                         }
-                    } else 0f
+                    }
+                )
 
-                    val animatedOffsetY by animateFloatAsState(
-                        targetValue = targetOffsetY,
-                        animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
-                        label = "itemShift"
-                    )
-
-                    Box(
+                SwipeToDismissBox(
+                    state = dismissState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .zIndex(if (isBeingDragged) 1f else 0f)
+                        .graphicsLayer {
+                            translationY = if (isBeingDragged) dragOffset else animatedOffsetY
+                            shadowElevation = if (isBeingDragged) 8f else 0f
+                            scaleX = if (isBeingDragged) 1.02f else 1f
+                            scaleY = if (isBeingDragged) 1.02f else 1f
+                        },
+                    enableDismissFromStartToEnd = false,
+                    enableDismissFromEndToStart = state.exercises.size > 1,
+                    backgroundContent = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.error),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.onError,
+                                modifier = Modifier.padding(end = AppTheme.spacing.lg)
+                            )
+                        }
+                    }
+                ) {
+                    BaseCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .onGloballyPositioned { coordinates ->
-                                val heightPx = coordinates.size.height.toFloat()
-                                if (itemHeights[index] != heightPx) {
-                                    itemHeights[index] = heightPx
-                                }
-                            }
-                            .zIndex(if (isBeingDragged) 1f else 0f)
-                            .graphicsLayer {
-                                // Apply visual offset and elevation during drag
-                                translationY = if (isBeingDragged) dragOffset else animatedOffsetY
-                                shadowElevation = if (isBeingDragged) 8f else 0f
-                                // Scale effect on drag
-                                scaleX = if (isBeingDragged) 1.02f else 1f
-                                scaleY = if (isBeingDragged) 1.02f else 1f
-                            }
-                            .pointerInput(index, state.exercises.size) {
+                            .pointerInput(index) {
                                 detectDragGesturesAfterLongPress(
                                     onDragStart = {
-                                        isDragging = true
-                                        draggedItemIndex = index
+                                        draggedIndex = index
                                         dragOffset = 0f
                                         hoverIndex = index
                                     },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
                                         dragOffset += dragAmount.y
-                                        // Calculate hover index using measured heights
-                                        val draggedItemHeight = itemHeights[draggedItemIndex] ?: 200f
-                                        val spacingPx = with(density) { 12.dp.toPx() }
-                                        val totalItemHeight = draggedItemHeight + spacingPx
-                                        val draggedPositions = (dragOffset / totalItemHeight).toInt()
-                                        hoverIndex = (draggedItemIndex + draggedPositions)
+                                        val draggedPositions = (dragOffset / totalItemHeightPx).toInt()
+                                        hoverIndex = (draggedIndex + draggedPositions)
                                             .coerceIn(0, state.exercises.size - 1)
                                     },
                                     onDragEnd = {
-                                        // Calculate target index using measured heights
-                                        val draggedItemHeight = itemHeights[draggedItemIndex] ?: 200f
-                                        val spacingPx = with(density) { 12.dp.toPx() }
-                                        val totalItemHeight = draggedItemHeight + spacingPx
-                                        val draggedPositions = (dragOffset / totalItemHeight).toInt()
-                                        val targetIndex = (draggedItemIndex + draggedPositions)
-                                            .coerceIn(0, state.exercises.size - 1)
-
-                                        if (targetIndex != draggedItemIndex) {
-                                            onReorderExercise(draggedItemIndex, targetIndex)
+                                        val targetIndex = hoverIndex
+                                        if (targetIndex != draggedIndex && targetIndex >= 0) {
+                                            onReorderExercise(draggedIndex, targetIndex)
+                                            // Adjust selectedExerciseIndex to follow the selected exercise
+                                            if (selectedExerciseIndex == draggedIndex) {
+                                                selectedExerciseIndex = targetIndex
+                                            } else if (draggedIndex < selectedExerciseIndex && targetIndex >= selectedExerciseIndex) {
+                                                selectedExerciseIndex--
+                                            } else if (draggedIndex > selectedExerciseIndex && targetIndex <= selectedExerciseIndex) {
+                                                selectedExerciseIndex++
+                                            }
                                         }
-
-                                        // Reset drag state
-                                        isDragging = false
-                                        draggedItemIndex = -1
+                                        draggedIndex = -1
                                         dragOffset = 0f
                                         hoverIndex = -1
                                     },
                                     onDragCancel = {
-                                        // Reset drag state on cancel
-                                        isDragging = false
-                                        draggedItemIndex = -1
+                                        draggedIndex = -1
                                         dragOffset = 0f
                                         hoverIndex = -1
                                     }
                                 )
-                            }
-                    ) {
-                        // Compute sets inline from WorkoutExercise
-                        val sets = List(exercise.targetSets) { setIndex ->
-                            val setNum = setIndex + 1
-                            val record = exercise.setRecords.find { it.setNumber == setNum }
-                            val completedSetNumbers = exercise.setRecords.map { it.setNumber }.toSet()
-                            val firstPendingSetNum = (1..exercise.targetSets).firstOrNull { it !in completedSetNumbers }
-                            SetInfo(
-                                setNumber = setNum,
-                                reps = record?.reps ?: 0,
-                                weight = record?.weight ?: 0f,
-                                state = when {
-                                    record != null -> SetState.COMPLETED
-                                    setNum == firstPendingSetNum -> SetState.ACTIVE
-                                    else -> SetState.PENDING
-                                }
+                            },
+                        onClick = { selectExercise(index) },
+                        border = if (isSelected) {
+                            androidx.compose.foundation.BorderStroke(
+                                width = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
                             )
-                        }
+                        } else null
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = exercise.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = exercise.muscleGroup,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Text(
+                                    text = "$completedCount/${exercise.targetSets}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (completedCount == exercise.targetSets)
+                                        AppTheme.colors.primaryText
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
 
-                        ExerciseWorkoutCard(
-                            exerciseName = exercise.name,
-                            muscleGroup = exercise.muscleGroup,
-                            targetSummary = "${exercise.targetSets} Sets • 8-12 Reps",
-                            sets = sets,
-                            isActive = isActive,
-                            activeSetIndex = when {
-                                // User explicitly selected a set on this exercise
-                                exercise.userSelectedSetIndex != null -> exercise.userSelectedSetIndex!!
-                                // This is the current exercise - show next pending set as auto-active
-                                isActive -> exercise.completedSets
-                                // Non-current exercise with no user selection - no active set
-                                else -> -1
+                            // Compact completed sets summary
+                            if (exercise.setRecords.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+                                ) {
+                                    exercise.setRecords.sortedBy { it.setNumber }.forEach { set ->
+                                        Box(
+                                            modifier = Modifier
+                                                .background(MaterialTheme.colorScheme.background)
+                                                .padding(
+                                                    horizontal = AppTheme.spacing.sm,
+                                                    vertical = 4.dp
+                                                )
+                                        ) {
+                                            Text(
+                                                text = "S${set.setNumber} ${set.weight}kg x${set.reps}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Add Exercise text button
+            Text(
+                text = "Add Exercise",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { activeSheet = SheetType.ADD_EXERCISE }
+                    .padding(vertical = AppTheme.spacing.md),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
+        }
+
+        // Bottom pane: inline set input
+        if (selectedExercise != null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.primary)
+                    .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
+                    .padding(top = AppTheme.spacing.lg)
+                    .pointerInput(pages.size) {
+                        detectHorizontalDragGestures(
+                            onDragStart = { accumulatedDrag = 0f },
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                accumulatedDrag += dragAmount
                             },
-                            onSetClick = { setIndex ->
-                                openSetEditor(exercise, setIndex)
+                            onDragEnd = {
+                                val threshold = 100f
+                                if (accumulatedDrag < -threshold) {
+                                    navigatePage(1)
+                                } else if (accumulatedDrag > threshold) {
+                                    navigatePage(-1)
+                                }
+                                accumulatedDrag = 0f
                             },
-                            onAddSet = { onAddSet(exercise.id) },
-                            onOptionsClick = {
-                                selectedExerciseForOptions = exercise
-                                activeSheet = SheetType.EXERCISE_OPTIONS
-                            },
-                            onLongPressTitle = onEnterReorderMode
+                            onDragCancel = { accumulatedDrag = 0f }
+                        )
+                    }
+            ) {
+                val currentPage = pages.getOrNull(currentPageIndex)
+
+                // Static header: exercise name + dots + set info
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = AppTheme.spacing.lg),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = selectedExercise.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            pages.forEachIndexed { dotIndex, page ->
+                                val isCurrent = dotIndex == currentPageIndex
+                                val dotColor = when {
+                                    isCurrent -> MaterialTheme.colorScheme.onPrimary
+                                    page.isCompleted -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                                    else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.25f)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(if (isCurrent) 8.dp else 6.dp)
+                                        .clip(CircleShape)
+                                        .background(dotColor)
+                                )
+                            }
+                        }
+                    }
+                    if (currentPage != null && !currentPage.isEndPage) {
+                        Text(
+                            text = "Set ${currentPage.setNumber}/${selectedExercise.targetSets}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                         )
                     }
                 }
 
-                // Action Buttons (Add Exercise + Complete Workout)
-                item {
-                    WorkoutActionButtons(
-                        onAddExerciseClick = { activeSheet = SheetType.ADD_EXERCISE },
-                        onCompleteWorkoutClick = { activeSheet = SheetType.FINISH_CONFIRM }
-                    )
+                Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+                // Animated content: inputs/buttons slide on swipe
+                var inputPageHeightPx by remember { mutableIntStateOf(0) }
+
+                val pageKey = if (currentPage?.isEndPage == true) {
+                    "end-$selectedExerciseIndex"
+                } else {
+                    "set-$selectedExerciseIndex-${currentPage?.setNumber}"
                 }
 
-                // Bottom spacing for comfortable scrolling
-                item {
-                    Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
+                AnimatedContent(
+                    targetState = pageKey,
+                    modifier = Modifier.then(
+                        if (inputPageHeightPx > 0)
+                            Modifier.heightIn(min = with(density) { inputPageHeightPx.toDp() })
+                        else Modifier
+                    ),
+                    transitionSpec = {
+                        val slide = if (swipeDirection > 0) {
+                            slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                        } else {
+                            slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
+                        }
+                        slide using SizeTransform(clip = false, sizeAnimationSpec = { _, _ -> snap() })
+                    },
+                    label = "setPageTransition"
+                ) { _ ->
+                    if (currentPage?.isEndPage == true) {
+                        // End page: all sets done
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppTheme.spacing.lg),
+                            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "All sets done",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                            ) {
+                                Button(
+                                    onClick = { onAddSet(selectedExercise.id) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp),
+                                    shape = RoundedCornerShape(2.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color.Black.copy(alpha = 0.15f),
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = AppTheme.spacing.md)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(AppTheme.spacing.xs))
+                                    Text(
+                                        text = "Add Set",
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
+
+                                val isLastExercise = selectedExerciseIndex >= state.exercises.size - 1
+
+                                Button(
+                                    onClick = {
+                                        if (isLastExercise) {
+                                            activeSheet = SheetType.FINISH_CONFIRM
+                                        } else {
+                                            selectExercise(selectedExerciseIndex + 1)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp),
+                                    shape = RoundedCornerShape(2.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color.Black,
+                                        contentColor = Color.White
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = AppTheme.spacing.md)
+                                ) {
+                                    Text(
+                                        text = if (isLastExercise) "Finish Workout" else "Next Exercise",
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                    if (!isLastExercise) {
+                                        Spacer(modifier = Modifier.width(AppTheme.spacing.xs))
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else if (currentPage != null) {
+                        // Normal set page: weight + reps + complete button
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppTheme.spacing.lg)
+                                .onSizeChanged { inputPageHeightPx = it.height },
+                            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = weightInput,
+                                    onValueChange = { weightInput = it },
+                                    label = { Text("Weight (kg)") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                        focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                        focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                        unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                        cursorColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                )
+                                OutlinedTextField(
+                                    value = repsInput,
+                                    onValueChange = { repsInput = it },
+                                    label = { Text("Reps") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                        focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                        focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                        unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                        cursorColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    val weight = weightInput.toFloatOrNull() ?: 0f
+                                    val reps = repsInput.toIntOrNull() ?: 0
+                                    onCompleteSet(selectedExercise.id, currentPage.setNumber, reps, weight, null)
+                                    // Auto-advance to next page (next set or end page)
+                                    if (currentPageIndex < pages.size - 1) {
+                                        navigatePage(1)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(2.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Black,
+                                    contentColor = Color.White
+                                ),
+                                contentPadding = PaddingValues(
+                                    horizontal = AppTheme.spacing.lg,
+                                    vertical = AppTheme.spacing.md
+                                )
+                            ) {
+                                Text(
+                                    text = if (currentPage.isCompleted) "Update Set" else "Complete Set",
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+                        }
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
             }
         }
+    }
 
-        // Bottom Sheet
-        M3BottomSheet(
-            visible = activeSheet != null,
-            onDismiss = { activeSheet = null }
-        ) {
-            when (activeSheet) {
-                SheetType.OPTIONS -> {
+    // Bottom Sheet
+    M3BottomSheet(
+        visible = activeSheet != null,
+        onDismiss = { activeSheet = null }
+    ) {
+        when (activeSheet) {
+            SheetType.OPTIONS -> {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                ) {
+                    Text(
+                        text = "Workout Options",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
+                    )
+
+                    SecondaryButton(
+                        text = "Cancel Workout",
+                        onClick = {
+                            activeSheet = null
+                            onCancelWorkout()
+                        },
+                        fullWidth = true,
+                        destructive = true
+                    )
+
+                    SecondaryButton(
+                        text = "Dismiss",
+                        onClick = { activeSheet = null },
+                        fullWidth = true
+                    )
+                }
+            }
+            SheetType.ADD_EXERCISE -> {
+                var selectedExercises by remember { mutableStateOf(setOf<String>()) }
+                val isReplacing = replacingExerciseId != null
+
+                if (isReplacing) {
+                    SimpleExercisePickerContent(
+                        onExerciseSelected = { exercise ->
+                            val exerciseToReplace = replacingExerciseId
+                            if (exerciseToReplace != null) {
+                                onReplaceExercise(exerciseToReplace, exercise)
+                                replacingExerciseId = null
+                            }
+                            activeSheet = null
+                        }
+                    )
+                } else {
+                    Column {
+                        MultiSelectExercisePickerForWorkout(
+                            selectedExerciseIds = selectedExercises,
+                            onExerciseToggle = { exercise ->
+                                selectedExercises = if (selectedExercises.contains(exercise.id)) {
+                                    selectedExercises - exercise.id
+                                } else {
+                                    selectedExercises + exercise.id
+                                }
+                            },
+                            onCreateExerciseClick = {
+                                activeSheet = SheetType.CREATE_EXERCISE
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        PrimaryButton(
+                            text = if (selectedExercises.isEmpty()) "Select Exercises" else "Add ${selectedExercises.size} Exercise(s)",
+                            onClick = {
+                                onAddExercises(selectedExercises.toList())
+                                selectedExercises = emptySet()
+                                activeSheet = null
+                            },
+                            enabled = selectedExercises.isNotEmpty(),
+                            fullWidth = true,
+                            modifier = Modifier.padding(AppTheme.spacing.md)
+                        )
+                    }
+                }
+            }
+            SheetType.EXERCISE_OPTIONS -> {
+                val exercise = selectedExerciseForOptions
+                if (exercise != null) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
                     ) {
                         Text(
-                            text = "Workout Options",
+                            text = exercise.name,
                             style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
                         )
 
                         SecondaryButton(
-                            text = "Save & Exit",
+                            text = "Replace Exercise",
                             onClick = {
-                                activeSheet = null
-                                onEndWorkout()
+                                replacingExerciseId = exercise.id
+                                activeSheet = SheetType.ADD_EXERCISE
                             },
                             fullWidth = true
                         )
 
                         SecondaryButton(
-                            text = "Cancel",
+                            text = "Remove Exercise",
                             onClick = {
+                                onRemoveExercise(exercise.id)
+                                selectedExerciseForOptions = null
                                 activeSheet = null
                             },
-                            fullWidth = true
+                            fullWidth = true,
+                            destructive = true
                         )
-                    }
-                }
-                SheetType.SET_EDITOR -> {
-                    val editingExercise = selectedExerciseForEditor
-                    if (editingExercise != null) {
-                        ExerciseSetEditorBottomSheet(
-                            exerciseName = editingExercise.name,
-                            setNumber = editingSetNumber,
-                            previousPerformance = editingExercise.previousPerformance ?: "First time",
-                            currentWeight = currentWeight,
-                            currentReps = currentReps,
-                            currentRpe = currentRPE,
-                            restTimerSeconds = 120,
-                            notes = notes,
-                            onWeightChange = { currentWeight = it },
-                            onRepsChange = { currentReps = it },
-                            onRpeChange = { currentRPE = it },
-                            onRestTimerChange = { /* Handle timer change */ },
-                            onNotesChange = { notes = it },
-                            onDeleteSet = {
-                                previousSetNumber = null
-                                previousSetWeight = null
-                                activeSheet = null
-                            },
-                            onCompleteSet = {
-                                onCompleteSet(editingExercise.id, editingSetNumber, currentReps, currentWeight, currentRPE)
-                                currentWeightHistory = emptyList()
-                                currentRepsHistory = emptyList()
-                                previousSetNumber = null
-                                previousSetWeight = null
-                                activeSheet = null
-                            },
-                            weightHistoryValues = currentWeightHistory,
-                            repsHistoryValues = currentRepsHistory,
-                            previousSetNumber = previousSetNumber,
-                            previousSetWeight = previousSetWeight,
-                            onApplyPreviousWeight = {
-                                previousSetWeight?.let { currentWeight = it }
-                            }
-                        )
-                    }
-                }
-                SheetType.ADD_EXERCISE -> {
-                    var selectedExercises by remember { mutableStateOf(setOf<String>()) }
 
-                    // Check if we're replacing - use single-select mode
-                    val isReplacing = replacingExerciseId != null
-
-                    if (isReplacing) {
-                        // Single-select mode for replace
-                        SimpleExercisePickerContent(
-                            onExerciseSelected = { exercise ->
-                                val exerciseToReplace = replacingExerciseId
-                                if (exerciseToReplace != null) {
-                                    onReplaceExercise(exerciseToReplace, exercise)
-                                    replacingExerciseId = null
-                                }
-                                activeSheet = null
-                            }
-                        )
-                    } else {
-                        // Multi-select mode for adding exercises
-                        Column {
-                            MultiSelectExercisePickerForWorkout(
-                                selectedExerciseIds = selectedExercises,
-                                onExerciseToggle = { exercise ->
-                                    selectedExercises = if (selectedExercises.contains(exercise.id)) {
-                                        selectedExercises - exercise.id
-                                    } else {
-                                        selectedExercises + exercise.id
-                                    }
-                                },
-                                onCreateExerciseClick = {
-                                    activeSheet = SheetType.CREATE_EXERCISE
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            // Add button at bottom
-                            PrimaryButton(
-                                text = if (selectedExercises.isEmpty()) "Select Exercises" else "Add ${selectedExercises.size} Exercise(s)",
-                                onClick = {
-                                    onAddExercises(selectedExercises.toList())
-                                    selectedExercises = emptySet()
-                                    activeSheet = null
-                                },
-                                enabled = selectedExercises.isNotEmpty(),
-                                fullWidth = true,
-                                modifier = Modifier.padding(AppTheme.spacing.md)
-                            )
-                        }
-                    }
-                }
-                SheetType.EXERCISE_OPTIONS -> {
-                    val exercise = selectedExerciseForOptions
-                    if (exercise != null) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-                        ) {
-                            Text(
-                                text = exercise.name,
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
-                            )
-
-                            SecondaryButton(
-                                text = "Replace Exercise",
-                                onClick = {
-                                    replacingExerciseId = exercise.id
-                                    activeSheet = SheetType.ADD_EXERCISE
-                                },
-                                fullWidth = true
-                            )
-
-                            SecondaryButton(
-                                text = "Remove Exercise",
-                                onClick = {
-                                    onRemoveExercise(exercise.id)
-                                    selectedExerciseForOptions = null
-                                    activeSheet = null
-                                },
-                                fullWidth = true,
-                                destructive = true
-                            )
-
-                            SecondaryButton(
-                                text = "Cancel",
-                                onClick = {
-                                    selectedExerciseForOptions = null
-                                    activeSheet = null
-                                },
-                                fullWidth = true
-                            )
-                        }
-                    }
-                }
-                SheetType.FINISH_CONFIRM -> {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-                    ) {
-                        Text(
-                            text = "Finish Workout?",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Are you sure you want to finish this workout? Your progress will be saved.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
-                        PrimaryButton(
-                            text = "Finish Workout",
-                            onClick = {
-                                activeSheet = null
-                                onEndWorkout()
-                            },
-                            fullWidth = true
-                        )
                         SecondaryButton(
                             text = "Cancel",
-                            onClick = { activeSheet = null },
+                            onClick = {
+                                selectedExerciseForOptions = null
+                                activeSheet = null
+                            },
                             fullWidth = true
                         )
                     }
                 }
-                SheetType.CREATE_EXERCISE -> {
-                    var exerciseName by remember { mutableStateOf("") }
-                    var muscleGroup by remember { mutableStateOf("") }
-                    var equipment by remember { mutableStateOf("") }
-                    var instructions by remember { mutableStateOf("") }
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-                    ) {
-                        Text(
-                            text = "Create Custom Exercise",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        TextField(
-                            value = exerciseName,
-                            onValueChange = { exerciseName = it },
-                            label = { Text("Exercise Name") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        TextField(
-                            value = muscleGroup,
-                            onValueChange = { muscleGroup = it },
-                            label = { Text("Muscle Group") },
-                            placeholder = { Text("e.g., Chest, Back, Legs") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        TextField(
-                            value = equipment,
-                            onValueChange = { equipment = it },
-                            label = { Text("Equipment (optional)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        TextField(
-                            value = instructions,
-                            onValueChange = { instructions = it },
-                            label = { Text("Instructions (optional)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-                        ) {
-                            SecondaryButton(
-                                text = "Cancel",
-                                onClick = { activeSheet = SheetType.ADD_EXERCISE },
-                                modifier = Modifier.weight(1f)
-                            )
-                            PrimaryButton(
-                                text = "Create & Add",
-                                onClick = {
-                                    if (exerciseName.isNotBlank() && muscleGroup.isNotBlank()) {
-                                        onCreateExercise(
-                                            exerciseName.trim(),
-                                            muscleGroup.trim(),
-                                            equipment.trim().takeIf { it.isNotBlank() },
-                                            instructions.trim().takeIf { it.isNotBlank() }
-                                        )
-                                        activeSheet = null
-                                    }
-                                },
-                                enabled = exerciseName.isNotBlank() && muscleGroup.isNotBlank(),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-                null -> {}
             }
-        }
+            SheetType.FINISH_CONFIRM -> {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                ) {
+                    Text(
+                        text = "Finish Workout?",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Are you sure you want to finish this workout? Your progress will be saved.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+                    PrimaryButton(
+                        text = "Finish Workout",
+                        onClick = {
+                            activeSheet = null
+                            onEndWorkout()
+                        },
+                        fullWidth = true
+                    )
+                    SecondaryButton(
+                        text = "Cancel",
+                        onClick = { activeSheet = null },
+                        fullWidth = true
+                    )
+                }
+            }
+            SheetType.CREATE_EXERCISE -> {
+                var exerciseName by remember { mutableStateOf("") }
+                var muscleGroup by remember { mutableStateOf("") }
+                var equipment by remember { mutableStateOf("") }
+                var instructions by remember { mutableStateOf("") }
 
-        // Reorder Mode Overlay
-        if (state.isReorderMode) {
-            WorkoutReorderOverlay(
-                exercises = state.exercises,
-                onReorder = { fromIndex, toIndex ->
-                    onReorderExercise(fromIndex, toIndex)
-                },
-                onDismiss = onExitReorderMode
-            )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                ) {
+                    Text(
+                        text = "Create Custom Exercise",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    TextField(
+                        value = exerciseName,
+                        onValueChange = { exerciseName = it },
+                        label = { Text("Exercise Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    TextField(
+                        value = muscleGroup,
+                        onValueChange = { muscleGroup = it },
+                        label = { Text("Muscle Group") },
+                        placeholder = { Text("e.g., Chest, Back, Legs") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    TextField(
+                        value = equipment,
+                        onValueChange = { equipment = it },
+                        label = { Text("Equipment (optional)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    TextField(
+                        value = instructions,
+                        onValueChange = { instructions = it },
+                        label = { Text("Instructions (optional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                    ) {
+                        SecondaryButton(
+                            text = "Cancel",
+                            onClick = { activeSheet = SheetType.ADD_EXERCISE },
+                            modifier = Modifier.weight(1f)
+                        )
+                        PrimaryButton(
+                            text = "Create & Add",
+                            onClick = {
+                                if (exerciseName.isNotBlank() && muscleGroup.isNotBlank()) {
+                                    onCreateExercise(
+                                        exerciseName.trim(),
+                                        muscleGroup.trim(),
+                                        equipment.trim().takeIf { it.isNotBlank() },
+                                        instructions.trim().takeIf { it.isNotBlank() }
+                                    )
+                                    activeSheet = null
+                                }
+                            },
+                            enabled = exerciseName.isNotBlank() && muscleGroup.isNotBlank(),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+            null -> {}
         }
     }
 }
 
 /**
- * Session Header component showing workout name, elapsed time, and progress
+ * Session Header component showing editable workout name, elapsed time, and progress
  */
 @Composable
 private fun SessionHeader(
     workoutName: String,
+    onNameChange: (String) -> Unit,
     elapsedTime: Int,
     completedExercises: Int,
     totalExercises: Int,
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var editingName by remember { mutableStateOf(workoutName) }
+
+    // Sync when external state changes
+    LaunchedEffect(workoutName) {
+        editingName = workoutName
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -717,25 +1006,41 @@ private fun SessionHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = workoutName,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                BasicTextField(
+                    value = editingName,
+                    onValueChange = {
+                        editingName = it
+                        onNameChange(it.trim())
+                    },
+                    textStyle = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    singleLine = true,
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            if (!focusState.isFocused && editingName != workoutName) {
+                                val trimmed = editingName.trim()
+                                if (trimmed.isNotEmpty()) {
+                                    onNameChange(trimmed)
+                                } else {
+                                    editingName = workoutName
+                                }
+                            }
+                        }
                 )
                 Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Elapsed time
                     Text(
                         text = "Time: ${formatTime(elapsedTime)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    // Exercise progress
                     Text(
                         text = "$completedExercises/$totalExercises exercises",
                         style = MaterialTheme.typography.bodyMedium,
@@ -744,7 +1049,6 @@ private fun SessionHeader(
                 }
             }
 
-            // More options button
             IconButton(
                 onClick = onMoreClick,
                 modifier = Modifier
@@ -759,57 +1063,6 @@ private fun SessionHeader(
                 )
             }
         }
-    }
-}
-
-/**
- * Workout action buttons (Add Exercise + Complete Workout)
- */
-@Composable
-private fun WorkoutActionButtons(
-    onAddExerciseClick: () -> Unit,
-    onCompleteWorkoutClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
-    ) {
-        // Add Exercise button
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .clickable(onClick = onAddExerciseClick)
-                .padding(AppTheme.spacing.md),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = "Add Exercise",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-
-        // Complete Workout button
-        PrimaryButton(
-            text = "Complete Workout",
-            onClick = onCompleteWorkoutClick,
-            fullWidth = true
-        )
     }
 }
 
@@ -1034,7 +1287,7 @@ private fun MultiSelectExercisePickerForWorkout(
 internal fun createMockWorkoutState(): WorkoutState {
     return WorkoutState(
         sessionName = "Upper Body Strength",
-        elapsedSeconds = 300, // 5 minutes
+        elapsedSeconds = 300,
         exercises = listOf(
             WorkoutExercise(
                 id = "1",

@@ -1,7 +1,9 @@
 package com.workout.app.ui.screens.planning
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -149,71 +151,70 @@ fun SessionPlanningScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        @OptIn(ExperimentalFoundationApi::class)
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues),
+            contentPadding = PaddingValues(bottom = AppTheme.spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
         ) {
-            // Header with back button, title, and templates icon
-            SessionPlanningHeader(
-                onBackClick = onBackClick,
-                onTemplatesClick = onTemplatesClick,
-                modifier = Modifier.padding(
-                    horizontal = AppTheme.spacing.lg,
-                    vertical = AppTheme.spacing.md
-                )
-            )
-
-            Spacer(modifier = Modifier.height(AppTheme.spacing.md))
-
-            // Muscle Groups Accordion with recovery bars
-            MuscleRecoveryCard(
-                muscleRecoveryList = state.muscleRecovery,
-                selectedMuscleGroup = selectedMuscleGroup,
-                onMuscleGroupSelected = { selectedMuscleGroup = it },
-                timeRange = state.recoveryTimeRange,
-                onToggleTimeRange = onToggleTimeRange,
-                modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
-            )
-
-            Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
-
-            // Exercise Selection Cards
-            Column(
-                modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
-            ) {
-                SectionHeader(
-                    title = exerciseHeaderTitle,
-                    modifier = Modifier.padding(bottom = AppTheme.spacing.md)
+            // Header
+            item(key = "header") {
+                SessionPlanningHeader(
+                    onBackClick = onBackClick,
+                    onTemplatesClick = onTemplatesClick,
+                    modifier = Modifier.padding(
+                        horizontal = AppTheme.spacing.lg,
+                        vertical = AppTheme.spacing.md
+                    )
                 )
             }
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentPadding = PaddingValues(
-                    start = AppTheme.spacing.lg,
-                    end = AppTheme.spacing.lg,
-                    bottom = AppTheme.spacing.lg
-                ),
-                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
-            ) {
-                items(filteredExercises, key = { it.id }) { exercise ->
-                    val isAdded = state.addedExercises.containsKey(exercise.id)
-                    val categoryDisplay = listOfNotNull(
-                        exercise.muscleGroup,
-                        exercise.category
-                    ).joinToString(" - ")
+            // Muscle Recovery Card
+            item(key = "recovery") {
+                MuscleRecoveryCard(
+                    muscleRecoveryList = state.muscleRecovery,
+                    selectedMuscleGroup = selectedMuscleGroup,
+                    onMuscleGroupSelected = { selectedMuscleGroup = it },
+                    timeRange = state.recoveryTimeRange,
+                    onToggleTimeRange = onToggleTimeRange,
+                    modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
+                )
+                Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+            }
 
-                    ExerciseSelectionCard(
-                        exerciseName = exercise.name,
-                        exerciseCategory = categoryDisplay,
-                        isAdded = isAdded,
-                        history = emptyList(),
-                        onToggle = { onToggleExercise(exercise.id) }
-                    )
+            // Sticky Exercises header
+            stickyHeader(key = "exercises_header") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(
+                            horizontal = AppTheme.spacing.lg,
+                            vertical = AppTheme.spacing.sm
+                        )
+                ) {
+                    SectionHeader(title = exerciseHeaderTitle)
                 }
+            }
+
+            // Exercise items
+            items(filteredExercises, key = { it.id }) { exercise ->
+                val isAdded = state.addedExercises.containsKey(exercise.id)
+                val categoryDisplay = listOfNotNull(
+                    exercise.muscleGroup,
+                    exercise.category
+                ).joinToString(" - ")
+
+                ExerciseSelectionCard(
+                    exerciseName = exercise.name,
+                    exerciseCategory = categoryDisplay,
+                    isAdded = isAdded,
+                    history = emptyList(),
+                    onToggle = { onToggleExercise(exercise.id) },
+                    modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
+                )
             }
         }
     }

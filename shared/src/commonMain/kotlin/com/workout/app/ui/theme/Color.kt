@@ -8,7 +8,8 @@ import androidx.compose.ui.graphics.Color
 
 // Primary colors - Yellow
 val Primary = Color(0xFFFFE302)
-val PrimaryDark = Color(0xFFE6CC02) // slightly darker yellow for dark theme
+val PrimaryDark = Color(0xFFE6CC02) // slightly darker yellow for secondary
+val PrimaryText = Color(0xFFC9A800) // darker yellow for text/icons on light backgrounds
 val OnPrimary = Color(0xFF000000)
 
 // Secondary/Tertiary - same yellow
@@ -36,20 +37,7 @@ val BorderLight = Color(0xFFE0E0E0)
 val BorderLightVariant = Color(0xFFF4F4F4)
 
 // =============================================================================
-// DARK THEME COLORS
-// =============================================================================
-
-val BackgroundDark = Color(0xFF000000)
-val SurfaceDark = Color(0xFF1A1A1A)
-val SurfaceVariantDark = Color(0xFF1A1A1A)
-val OnBackgroundDark = Color(0xFFF4F4F4)
-val OnSurfaceDark = Color(0xFFF4F4F4)
-val OnSurfaceVariantDark = Color(0xFF999999)
-val BorderDark = Color(0xFF333333)
-val BorderDarkVariant = Color(0xFF1A1A1A)
-
-// =============================================================================
-// STATUS COLORS - Light Theme
+// STATUS COLORS
 // =============================================================================
 
 val SuccessLight = Color(0xFF22C55E) // keep green
@@ -60,19 +48,6 @@ val ErrorLight = Color(0xFF000000) // black for error
 val OnErrorLight = Color(0xFFFFFFFF)
 val InfoLight = Color(0xFF000000)
 val OnInfoLight = Color(0xFFFFFFFF)
-
-// =============================================================================
-// STATUS COLORS - Dark Theme
-// =============================================================================
-
-val SuccessDark = Color(0xFF22C55E) // keep green
-val OnSuccessDark = Color(0xFF000000)
-val WarningDark = Color(0xFFFFE302)
-val OnWarningDark = Color(0xFF000000)
-val ErrorDark = Color(0xFFF4F4F4) // light for dark theme
-val OnErrorDark = Color(0xFF000000)
-val InfoDark = Color(0xFFF4F4F4)
-val OnInfoDark = Color(0xFF000000)
 
 // =============================================================================
 // LEGACY STATUS COLORS (for backward compatibility)
@@ -98,9 +73,7 @@ val Pending = Color(0xFF999999) // Gray - pending
 
 // Card backgrounds for specific workout types
 val CardYoga = Color(0xFFF4F4F4)
-val CardYogaDark = Color(0xFF1A1A1A)
 val CardCardio = Color(0xFFF4F4F4)
-val CardCardioDark = Color(0xFF1A1A1A)
 
 // Badge backgrounds
 val BadgeBeginner = Color(0xFF22C55E) // green

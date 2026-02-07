@@ -168,55 +168,151 @@ enum class RecoveryStatus(val label: String) {
 data class MuscleRecovery(
     val muscleGroup: String,
     val daysSinceLastTrained: Int?,
+    val hoursSinceLastTrained: Int? = null,
     val status: RecoveryStatus,
-    val progress: Float // 0f..1f for bar fill
+    val progress: Float, // 0f..1f for bar fill
+    val weeklySetCount: Int = 0
+) {
+    /** Format elapsed time: "Xd" for days, "Xh" for sub-day, "--" for never. */
+    val elapsedLabel: String
+        get() = when {
+            daysSinceLastTrained == null -> "--"
+            daysSinceLastTrained > 0 -> "${daysSinceLastTrained}d"
+            hoursSinceLastTrained != null -> "${hoursSinceLastTrained}h"
+            else -> "0d"
+        }
+}
+
+/**
+ * Muscle size category affects recovery windows.
+ * Based on sports science research (RP, Schoenfeld et al.).
+ */
+enum class MuscleSizeCategory {
+    SMALL,  // Arms, Shoulders, Core — recover in 1-3 days
+    MEDIUM, // Chest — recovers in 1.5-4 days
+    LARGE   // Back, Legs — recover in 2-5 days
+}
+
+/**
+ * Volume landmarks per muscle group for intermediate lifters.
+ * MEV = Minimum Effective Volume, MAV = Maximum Adaptive Volume, MRV = Maximum Recoverable Volume.
+ */
+data class VolumeLandmarks(
+    val category: MuscleSizeCategory,
+    val mev: Int,
+    val mavLow: Int,
+    val mavHigh: Int,
+    val mrv: Int
 )
 
 /**
- * Determine recovery status from days since last trained.
+ * Recovery day thresholds per muscle size category.
+ * Each pair represents the upper bound (in days) for that status.
+ */
+internal data class RecoveryThresholds(
+    val restEnd: Float,
+    val recoveringEnd: Float,
+    val readyEnd: Float,
+    val trainEnd: Float
+)
+
+internal val RECOVERY_THRESHOLDS = mapOf(
+    MuscleSizeCategory.SMALL to RecoveryThresholds(1f, 2f, 3f, 5f),
+    MuscleSizeCategory.MEDIUM to RecoveryThresholds(1.5f, 2.5f, 4f, 6f),
+    MuscleSizeCategory.LARGE to RecoveryThresholds(2f, 3f, 5f, 7f)
+)
+
+val VOLUME_LANDMARKS = mapOf(
+    "Chest" to VolumeLandmarks(MuscleSizeCategory.MEDIUM, mev = 8, mavLow = 12, mavHigh = 16, mrv = 22),
+    "Back" to VolumeLandmarks(MuscleSizeCategory.LARGE, mev = 8, mavLow = 12, mavHigh = 16, mrv = 22),
+    "Legs" to VolumeLandmarks(MuscleSizeCategory.LARGE, mev = 6, mavLow = 12, mavHigh = 16, mrv = 20),
+    "Shoulders" to VolumeLandmarks(MuscleSizeCategory.SMALL, mev = 8, mavLow = 14, mavHigh = 18, mrv = 24),
+    "Arms" to VolumeLandmarks(MuscleSizeCategory.SMALL, mev = 6, mavLow = 10, mavHigh = 14, mrv = 20),
+    "Core" to VolumeLandmarks(MuscleSizeCategory.SMALL, mev = 4, mavLow = 10, mavHigh = 14, mrv = 20)
+)
+
+internal val DEFAULT_LANDMARKS = VolumeLandmarks(MuscleSizeCategory.MEDIUM, mev = 6, mavLow = 10, mavHigh = 14, mrv = 20)
+
+/**
+ * Determine recovery status using both days since last trained AND weekly set volume.
+ *
+ * Logic based on Renaissance Periodization volume landmarks and
+ * Schoenfeld et al. (2017) dose-response research.
+ *
+ * - Time-based: muscle size determines how many days each status lasts
+ * - Volume override: exceeding MRV forces REST; exceeding MAV extends recovery by 1.3x
+ * - Under-volume promotion: if weekly sets < MEV and time says READY, promote to TRAIN
  */
 fun calculateRecoveryStatus(
+    muscleGroup: String,
     daysSinceLastTrained: Int?,
-    timeRange: RecoveryTimeRange = RecoveryTimeRange.WEEKLY
-): RecoveryStatus = when (timeRange) {
-    RecoveryTimeRange.WEEKLY -> when {
-        daysSinceLastTrained == null -> RecoveryStatus.NEW
-        daysSinceLastTrained <= 1 -> RecoveryStatus.REST
-        daysSinceLastTrained <= 3 -> RecoveryStatus.RECOVERING
-        daysSinceLastTrained <= 6 -> RecoveryStatus.READY
-        else -> RecoveryStatus.TRAIN
-    }
-    RecoveryTimeRange.MONTHLY -> when {
-        daysSinceLastTrained == null -> RecoveryStatus.NEW
-        daysSinceLastTrained <= 3 -> RecoveryStatus.REST
-        daysSinceLastTrained <= 7 -> RecoveryStatus.RECOVERING
-        daysSinceLastTrained <= 14 -> RecoveryStatus.READY
+    weeklySetCount: Int = 0
+): RecoveryStatus {
+    if (daysSinceLastTrained == null) return RecoveryStatus.NEW
+
+    val landmarks = VOLUME_LANDMARKS[muscleGroup] ?: DEFAULT_LANDMARKS
+    val baseThresholds = RECOVERY_THRESHOLDS[landmarks.category]
+        ?: RECOVERY_THRESHOLDS[MuscleSizeCategory.MEDIUM]!!
+
+    // Volume-based override: exceeded maximum recoverable volume → force rest
+    if (weeklySetCount > landmarks.mrv) return RecoveryStatus.REST
+
+    // If volume is above MAV, extend recovery thresholds by 1.3x (needs more rest)
+    val multiplier = if (weeklySetCount > landmarks.mavHigh) 1.3f else 1f
+    val restEnd = baseThresholds.restEnd * multiplier
+    val recoveringEnd = baseThresholds.recoveringEnd * multiplier
+    val readyEnd = baseThresholds.readyEnd * multiplier
+
+    val days = daysSinceLastTrained.toFloat()
+
+    return when {
+        days < restEnd -> RecoveryStatus.REST
+        days < recoveringEnd -> RecoveryStatus.RECOVERING
+        days < readyEnd -> {
+            // Under MEV and recovered enough → promote to TRAIN
+            if (weeklySetCount < landmarks.mev) RecoveryStatus.TRAIN
+            else RecoveryStatus.READY
+        }
         else -> RecoveryStatus.TRAIN
     }
 }
 
+// Backward-compatible overload
+fun calculateRecoveryStatus(
+    daysSinceLastTrained: Int?,
+    timeRange: RecoveryTimeRange = RecoveryTimeRange.WEEKLY
+): RecoveryStatus = calculateRecoveryStatus("Chest", daysSinceLastTrained, 0)
+
 /**
- * Calculate recovery bar progress from days since last trained.
+ * Calculate recovery bar progress (0f..1f) based on days and muscle size.
+ * Maps linearly from REST (0) through to TRAIN (1).
  */
+fun calculateRecoveryProgress(
+    muscleGroup: String,
+    daysSinceLastTrained: Int?,
+    weeklySetCount: Int = 0
+): Float {
+    if (daysSinceLastTrained == null) return 1f
+
+    val landmarks = VOLUME_LANDMARKS[muscleGroup] ?: DEFAULT_LANDMARKS
+    val baseThresholds = RECOVERY_THRESHOLDS[landmarks.category]
+        ?: RECOVERY_THRESHOLDS[MuscleSizeCategory.MEDIUM]!!
+
+    // Volume exceeding MRV → minimal progress (still needs rest)
+    if (weeklySetCount > landmarks.mrv) return 0.1f
+
+    val multiplier = if (weeklySetCount > landmarks.mavHigh) 1.3f else 1f
+    val trainEnd = baseThresholds.trainEnd * multiplier
+    val days = daysSinceLastTrained.toFloat()
+
+    return (days / trainEnd).coerceIn(0f, 1f)
+}
+
+// Backward-compatible overload
 fun calculateRecoveryProgress(
     daysSinceLastTrained: Int?,
     timeRange: RecoveryTimeRange = RecoveryTimeRange.WEEKLY
-): Float = when (timeRange) {
-    RecoveryTimeRange.WEEKLY -> when {
-        daysSinceLastTrained == null -> 1f
-        daysSinceLastTrained <= 1 -> 0.2f
-        daysSinceLastTrained <= 3 -> 0.5f
-        daysSinceLastTrained <= 6 -> 0.8f
-        else -> 1f
-    }
-    RecoveryTimeRange.MONTHLY -> when {
-        daysSinceLastTrained == null -> 1f
-        daysSinceLastTrained <= 3 -> 0.2f
-        daysSinceLastTrained <= 7 -> 0.4f
-        daysSinceLastTrained <= 14 -> 0.7f
-        else -> 1f
-    }
-}
+): Float = calculateRecoveryProgress("Chest", daysSinceLastTrained, 0)
 
 /**
  * Utility to calculate intensity level from set count.

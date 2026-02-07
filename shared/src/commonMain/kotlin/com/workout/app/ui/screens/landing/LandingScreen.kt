@@ -52,9 +52,7 @@ import com.workout.app.ui.theme.AccentGreen
 import com.workout.app.ui.theme.AccentOrange
 import com.workout.app.ui.theme.AppTheme
 import com.workout.app.ui.theme.CardCardio
-import com.workout.app.ui.theme.CardCardioDark
 import com.workout.app.ui.theme.CardYoga
-import com.workout.app.ui.theme.CardYogaDark
 import com.workout.app.ui.theme.Charcoal
 import com.workout.app.ui.theme.Primary
 import com.workout.app.ui.theme.Secondary
@@ -193,7 +191,7 @@ fun LandingScreen(
                 Text(
                     text = "View all",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = AppTheme.colors.primaryText,
                     modifier = Modifier.clickable { /* View all */ }
                 )
             }
@@ -282,7 +280,7 @@ private fun LandingHeader(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = MaterialTheme.colorScheme.primary
+                color = AppTheme.colors.primaryText
             )
         }
     }
@@ -574,7 +572,7 @@ private fun CompactWorkoutCard(
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = "Start ${workout.name}",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = AppTheme.colors.primaryText,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -738,7 +736,7 @@ private fun NavItem(
             imageVector = icon,
             contentDescription = label,
             tint = if (isSelected) {
-                MaterialTheme.colorScheme.primary
+                AppTheme.colors.primaryText
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
@@ -750,7 +748,7 @@ private fun NavItem(
                 fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
             ),
             color = if (isSelected) {
-                MaterialTheme.colorScheme.primary
+                AppTheme.colors.primaryText
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             }

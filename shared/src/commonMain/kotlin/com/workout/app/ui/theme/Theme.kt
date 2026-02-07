@@ -1,16 +1,10 @@
 package com.workout.app.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 
-/**
- * Light color scheme for the Lemon Workouts app.
- * Uses citrus/yellow primary with warm cream backgrounds.
- */
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
     onPrimary = OnPrimary,
@@ -34,59 +28,16 @@ private val LightColorScheme = lightColorScheme(
     outlineVariant = BorderLightVariant
 )
 
-/**
- * Dark color scheme for the Lemon Workouts app.
- * Uses citrus/yellow primary with warm brown backgrounds.
- */
-private val DarkColorScheme = darkColorScheme(
-    primary = Primary,
-    onPrimary = OnPrimary,
-    primaryContainer = PrimaryDark,
-    onPrimaryContainer = Charcoal,
-    secondary = Secondary,
-    onSecondary = OnPrimary,
-    secondaryContainer = Tertiary,
-    onSecondaryContainer = Charcoal,
-    tertiary = AccentGreen,
-    onTertiary = Charcoal,
-    background = BackgroundDark,
-    onBackground = OnBackgroundDark,
-    surface = SurfaceDark,
-    onSurface = OnSurfaceDark,
-    surfaceVariant = SurfaceVariantDark,
-    onSurfaceVariant = OnSurfaceVariantDark,
-    error = Error,
-    onError = SurfaceDark,
-    outline = BorderDark,
-    outlineVariant = BorderDarkVariant
-)
-
-/**
- * Main theme composable for the Lemon Workouts app.
- *
- * Provides:
- * - MaterialTheme with citrus/yellow color palette
- * - Typography via AppTypography
- * - Spacing tokens via CompositionLocal
- *
- * @param darkTheme Whether to use dark theme. Defaults to system setting.
- * @param content The content to be themed.
- */
 @Composable
 fun WorkoutAppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-
-    val extendedColors = if (darkTheme) DarkExtendedColors else LightExtendedColors
-
     CompositionLocalProvider(
         LocalSpacing provides Spacing(),
-        LocalExtendedColors provides extendedColors
+        LocalExtendedColors provides LightExtendedColors
     ) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = LightColorScheme,
             typography = AppTypography,
             content = content
         )
@@ -111,13 +62,6 @@ object AppTheme {
 
     /**
      * Access extended semantic colors within a composable.
-     * These colors adapt to light/dark theme automatically.
-     *
-     * Usage:
-     * ```
-     * val successColor = AppTheme.colors.success
-     * val errorColor = AppTheme.colors.error
-     * ```
      */
     val colors: ExtendedColors
         @Composable

@@ -28,32 +28,7 @@ import com.workout.app.ui.screens.workout.WorkoutScreen
  * Overlay wrapper for WorkoutScreen that provides shrink/expand animation.
  *
  * When expanded: Full-screen workout view
- * When minimized: Collapses to a compact bar (64dp)
- *
- * The animation creates a continuous shrinking effect where the full workout
- * screen visually "becomes" the minimized bar.
- *
- * @param isExpanded Whether the overlay is expanded (full screen) or minimized (compact bar)
- * @param workoutState The current workout state from ViewModel
- * @param startTime Session start time in epoch milliseconds (for timer display)
- * @param onMinimize Callback when user wants to minimize (swipe back)
- * @param onExpand Callback when user taps minimized bar to expand
- * @param onCompleteSet Callback when user completes a set
- * @param onSkipSet Callback when user skips a set
- * @param onAddExercises Callback when adding exercises to the session
- * @param onRemoveExercise Callback when removing an exercise
- * @param onReplaceExercise Callback when replacing an exercise
- * @param onAddSet Callback when adding a set to an exercise
- * @param onReorderExercise Callback when reordering exercises
- * @param onCreateExercise Callback when creating a custom exercise
- * @param onGetHistoricalWeights Callback to get historical weights for an exercise
- * @param onGetHistoricalReps Callback to get historical reps for an exercise
- * @param onSetActiveSet Callback to set the active set
- * @param onEnterReorderMode Callback when entering reorder mode
- * @param onExitReorderMode Callback when exiting reorder mode
- * @param onEndWorkout Callback when ending the workout
- * @param bottomNavHeight Height of the bottom navigation bar (for proper positioning when minimized)
- * @param modifier Modifier for the overlay container
+ * When minimized: Collapses to a compact bar (56dp)
  */
 @Composable
 fun WorkoutOverlay(
@@ -63,19 +38,15 @@ fun WorkoutOverlay(
     onMinimize: () -> Unit,
     onExpand: () -> Unit,
     onCompleteSet: (exerciseId: String, setNumber: Int, reps: Int, weight: Float, rpe: Int?) -> Unit,
-    onSkipSet: (exerciseId: String) -> Unit,
     onAddExercises: (List<String>) -> Unit,
     onRemoveExercise: (exerciseId: String) -> Unit,
     onReplaceExercise: (exerciseId: String, newExercise: LibraryExercise) -> Unit,
     onAddSet: (exerciseId: String) -> Unit,
     onReorderExercise: (fromIndex: Int, toIndex: Int) -> Unit,
     onCreateExercise: (name: String, muscleGroup: String, equipment: String?, instructions: String?) -> Unit,
-    onGetHistoricalWeights: suspend (String) -> List<String>,
-    onGetHistoricalReps: suspend (String) -> List<String>,
-    onSetActiveSet: (exerciseId: String, setIndex: Int) -> Unit,
-    onEnterReorderMode: () -> Unit,
-    onExitReorderMode: () -> Unit,
     onEndWorkout: () -> Unit,
+    onCancelWorkout: () -> Unit,
+    onRenameWorkout: (String) -> Unit,
     bottomNavHeight: Dp = 0.dp,
     modifier: Modifier = Modifier
 ) {
@@ -158,19 +129,15 @@ fun WorkoutOverlay(
                     WorkoutScreen(
                         state = workoutState,
                         onCompleteSet = onCompleteSet,
-                        onSkipSet = onSkipSet,
                         onAddExercises = onAddExercises,
                         onRemoveExercise = onRemoveExercise,
                         onReplaceExercise = onReplaceExercise,
                         onAddSet = onAddSet,
                         onReorderExercise = onReorderExercise,
                         onCreateExercise = onCreateExercise,
-                        onGetHistoricalWeights = onGetHistoricalWeights,
-                        onGetHistoricalReps = onGetHistoricalReps,
-                        onSetActiveSet = onSetActiveSet,
-                        onEnterReorderMode = onEnterReorderMode,
-                        onExitReorderMode = onExitReorderMode,
-                        onEndWorkout = onEndWorkout
+                        onEndWorkout = onEndWorkout,
+                        onCancelWorkout = onCancelWorkout,
+                        onRenameWorkout = onRenameWorkout
                     )
                 }
             }

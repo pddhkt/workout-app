@@ -12,7 +12,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,7 +37,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.workout.app.ui.components.navigation.BottomNavBar
-import com.workout.app.data.repository.ThemeMode
 import com.workout.app.domain.model.Result
 import com.workout.app.presentation.active.ActiveSessionViewModel
 import com.workout.app.presentation.planning.SessionPlanningViewModel
@@ -52,7 +54,10 @@ import com.workout.app.ui.screens.settings.SettingsScreen
 import com.workout.app.ui.screens.templates.TemplatesScreen
 import com.workout.app.ui.screens.timer.RestTimerScreen
 import com.workout.app.ui.components.overlays.BottomSheetComparisonScreen
+import com.workout.app.ui.screens.experiment.WorkoutLayoutExperimentScreen
 import com.workout.app.ui.components.workout.WorkoutOverlay
+import com.workout.app.data.repository.SessionRepository
+import com.workout.app.data.repository.WorkoutRepository
 import com.workout.app.presentation.library.ExerciseLibraryViewModel
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -80,13 +85,13 @@ fun AppNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     startDestination: String = Route.Onboarding.route,
-    themeMode: ThemeMode = ThemeMode.SYSTEM,
-    onThemeModeChange: (ThemeMode) -> Unit = {}
 ) {
     // Observe active session state for overlay control
     val activeSessionViewModel: ActiveSessionViewModel = koinInject()
     val activeSessionState by activeSessionViewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val workoutRepository: WorkoutRepository = koinInject()
+    val sessionRepository: SessionRepository = koinInject()
 
     // Inject WorkoutViewModel when there's an active session (managed at this level for overlay)
     val workoutViewModel: WorkoutViewModel? = if (activeSessionState.sessionId != null) {
@@ -139,9 +144,37 @@ fun AppNavigation(
     // Derive selected index from current route
     val selectedNavIndex = BottomNavDestinations.getIndexForRoute(currentRoute)
 
+    // Confirmation dialog for starting a new workout while one is active
+    var showCancelSessionDialog by remember { mutableStateOf(false) }
+
     // Measure actual bottom nav bar height for overlay positioning
     val density = LocalDensity.current
     var measuredNavBarHeight by remember { mutableStateOf(0.dp) }
+
+    if (showCancelSessionDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelSessionDialog = false },
+            title = { Text("Active Session") },
+            text = { Text("You have a workout in progress. Cancel it and start a new one?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCancelSessionDialog = false
+                    scope.launch {
+                        workoutViewModel?.cancelWorkout()
+                        activeSessionViewModel.clearMinimizedState()
+                        navController.navigateToSessionPlanning()
+                    }
+                }) {
+                    Text("Yes, cancel")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelSessionDialog = false }) {
+                    Text("Keep workout")
+                }
+            }
+        )
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -162,7 +195,11 @@ fun AppNavigation(
                         }
                     },
                     onAddClick = {
-                        navController.navigateToSessionPlanning()
+                        if (activeSessionState.hasActiveSession) {
+                            showCancelSessionDialog = true
+                        } else {
+                            navController.navigateToSessionPlanning()
+                        }
                     },
                     modifier = Modifier.onSizeChanged { size ->
                         with(density) {
@@ -450,13 +487,14 @@ fun AppNavigation(
             popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
         ) {
             SettingsScreen(
-                themeMode = themeMode,
-                onThemeModeChange = onThemeModeChange,
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onBottomSheetComparisonClick = {
                     navController.navigateToBottomSheetComparison()
+                },
+                onWorkoutLayoutExperimentClick = {
+                    navController.navigateToWorkoutLayoutExperiment()
                 }
             )
         }
@@ -464,6 +502,13 @@ fun AppNavigation(
         // Debug: BottomSheet Comparison Screen
         composable(Route.BottomSheetComparison.route) {
             BottomSheetComparisonScreen()
+        }
+
+        // Debug: Workout Layout Experiment Screen
+        composable(Route.WorkoutLayoutExperiment.route) {
+            WorkoutLayoutExperimentScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
 
         // Session History Screen
@@ -540,9 +585,6 @@ fun AppNavigation(
                         workoutViewModel.updateRPE(rpe)
                         workoutViewModel.completeSet(exerciseId, setNumber)
                     },
-                    onSkipSet = { _ ->
-                        workoutViewModel.skipSet()
-                    },
                     onAddExercises = { exerciseIds ->
                         workoutViewModel.addExercises(exerciseIds)
                     },
@@ -573,26 +615,40 @@ fun AppNavigation(
                             )
                         }
                     },
-                    onGetHistoricalWeights = { exerciseId ->
-                        workoutViewModel.getHistoricalWeights(exerciseId)
-                    },
-                    onGetHistoricalReps = { exerciseId ->
-                        workoutViewModel.getHistoricalReps(exerciseId)
-                    },
-                    onSetActiveSet = { exerciseId, setIndex ->
-                        workoutViewModel.setActiveSet(exerciseId, setIndex)
-                    },
-                    onEnterReorderMode = {
-                        workoutViewModel.enterReorderMode()
-                    },
-                    onExitReorderMode = {
-                        workoutViewModel.exitReorderMode()
-                    },
                     onEndWorkout = {
                         scope.launch {
                             val sessionId = activeSessionState.sessionId
                             when (workoutViewModel.finishWorkout()) {
                                 is Result.Success -> {
+                                    // Create the Workout historical record from session data
+                                    if (sessionId != null) {
+                                        val exerciseNames = workoutState.exercises
+                                            .map { it.name }
+                                            .joinToString(", ")
+                                        val totalVolume = workoutState.exercises.sumOf { exercise ->
+                                            exercise.setRecords.sumOf { set ->
+                                                (set.weight * set.reps).toLong()
+                                            }
+                                        }
+                                        val totalSets = workoutState.exercises.sumOf { it.completedSets.toLong() }
+
+                                        val createResult = workoutRepository.create(
+                                            name = workoutState.sessionName,
+                                            duration = workoutState.elapsedSeconds.toLong(),
+                                            notes = null,
+                                            isPartnerWorkout = false,
+                                            totalVolume = totalVolume,
+                                            totalSets = totalSets,
+                                            exerciseCount = workoutState.exercises.size.toLong(),
+                                            exerciseNames = exerciseNames.takeIf { it.isNotBlank() }
+                                        )
+
+                                        // Link the workout to the session if creation succeeded
+                                        if (createResult is Result.Success) {
+                                            sessionRepository.updateWorkoutId(sessionId, createResult.data)
+                                        }
+                                    }
+
                                     activeSessionViewModel.clearMinimizedState()
                                     if (sessionId != null) {
                                         navController.navigateToWorkoutComplete(sessionId) {
@@ -603,6 +659,15 @@ fun AppNavigation(
                                 else -> { }
                             }
                         }
+                    },
+                    onCancelWorkout = {
+                        scope.launch {
+                            workoutViewModel.cancelWorkout()
+                            activeSessionViewModel.clearMinimizedState()
+                        }
+                    },
+                    onRenameWorkout = { name ->
+                        workoutViewModel.renameSession(name)
                     },
                     bottomNavHeight = measuredNavBarHeight
                 )

@@ -64,15 +64,19 @@ class SessionPlanningViewModel(
         }
     }
 
-    // Cached days-since data for recalculation on time range change
+    // Cached data for recalculation
     private var muscleGroupDays: Map<String, Int?> = emptyMap()
+    private var muscleGroupHours: Map<String, Int?> = emptyMap()
+    private var muscleGroupWeeklySets: Map<String, Int> = emptyMap()
 
     private fun loadMuscleRecovery() {
         viewModelScope.launch {
+            val muscleGroups = listOf("Chest", "Back", "Legs", "Shoulders", "Arms", "Core")
+
+            // Load last trained dates
             when (val result = setRepository.getLastTrainedPerMuscleGroup()) {
                 is Result.Success -> {
                     val nowMillis = Clock.System.now().toEpochMilliseconds()
-                    val muscleGroups = listOf("Chest", "Back", "Legs", "Shoulders", "Arms", "Core")
                     muscleGroupDays = muscleGroups.associateWith { group ->
                         val lastTrained = result.data[group]
                         if (lastTrained != null) {
@@ -81,22 +85,42 @@ class SessionPlanningViewModel(
                             null
                         }
                     }
-                    rebuildRecoveryList()
+                    muscleGroupHours = muscleGroups.associateWith { group ->
+                        val lastTrained = result.data[group]
+                        if (lastTrained != null) {
+                            ((nowMillis - lastTrained) / (1000L * 60 * 60)).toInt()
+                        } else {
+                            null
+                        }
+                    }
                 }
-                is Result.Error -> { /* silently ignore, section just won't show */ }
+                is Result.Error -> { /* silently ignore */ }
                 is Result.Loading -> {}
             }
+
+            // Load weekly set counts
+            when (val result = setRepository.getWeeklySetCountPerMuscleGroup()) {
+                is Result.Success -> {
+                    muscleGroupWeeklySets = result.data.mapValues { it.value.toInt() }
+                }
+                is Result.Error -> { /* silently ignore */ }
+                is Result.Loading -> {}
+            }
+
+            rebuildRecoveryList()
         }
     }
 
     private fun rebuildRecoveryList() {
-        val timeRange = _state.value.recoveryTimeRange
         val recoveryList = muscleGroupDays.map { (group, daysSince) ->
+            val weeklySets = muscleGroupWeeklySets[group] ?: 0
             MuscleRecovery(
                 muscleGroup = group,
                 daysSinceLastTrained = daysSince,
-                status = calculateRecoveryStatus(daysSince, timeRange),
-                progress = calculateRecoveryProgress(daysSince, timeRange)
+                hoursSinceLastTrained = muscleGroupHours[group],
+                status = calculateRecoveryStatus(group, daysSince, weeklySets),
+                progress = calculateRecoveryProgress(group, daysSince, weeklySets),
+                weeklySetCount = weeklySets
             )
         }
         _state.update { it.copy(muscleRecovery = recoveryList) }

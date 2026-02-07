@@ -201,6 +201,13 @@ class WorkoutViewModel(
         _state.update { it.copy(currentNotes = notes) }
     }
 
+    fun renameSession(name: String) {
+        _state.update { it.copy(sessionName = name) }
+        viewModelScope.launch {
+            sessionRepository.updateName(sessionId, name)
+        }
+    }
+
     fun completeSet(exerciseId: String, setNumber: Int) {
         viewModelScope.launch {
             val currentState = _state.value
@@ -272,15 +279,6 @@ class WorkoutViewModel(
                 )
             }
 
-            // Only advance currentExerciseIndex if the completed exercise IS the current one
-            if (exerciseIndex == currentState.currentExerciseIndex &&
-                updated.completedSets >= updated.targetSets &&
-                currentState.currentExerciseIndex < currentState.exercises.size - 1) {
-                _state.update {
-                    it.copy(currentExerciseIndex = it.currentExerciseIndex + 1)
-                }
-            }
-
             // Start rest timer
             startRestTimer()
         }
@@ -308,12 +306,6 @@ class WorkoutViewModel(
             )
         }
 
-        if (updated.completedSets >= updated.targetSets &&
-            currentState.currentExerciseIndex < currentState.exercises.size - 1) {
-            _state.update {
-                it.copy(currentExerciseIndex = it.currentExerciseIndex + 1)
-            }
-        }
     }
 
     fun addSetToExercise(exerciseId: String) {
@@ -535,6 +527,7 @@ class WorkoutViewModel(
         _state.update { it.copy(isFinishing = true) }
 
         return try {
+            sessionRepository.updateName(sessionId, _state.value.sessionName)
             when (val result = sessionRepository.complete(sessionId)) {
                 is Result.Success -> {
                     _state.update { it.copy(isFinishing = false, isFinished = true) }
@@ -560,6 +553,14 @@ class WorkoutViewModel(
                     error = e.message ?: "Failed to finish workout"
                 )
             }
+            Result.Error(e)
+        }
+    }
+
+    suspend fun cancelWorkout(): Result<Unit> {
+        return try {
+            sessionRepository.delete(sessionId)
+        } catch (e: Exception) {
             Result.Error(e)
         }
     }

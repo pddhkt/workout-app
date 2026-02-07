@@ -74,6 +74,10 @@ UPDATE Session SET
     updatedAt = ?
 WHERE id = ?;
 
+-- Update session name
+updateName:
+UPDATE Session SET name = ?, updatedAt = ? WHERE id = ?;
+
 -- Update session status
 updateStatus:
 UPDATE Session SET status = ?, updatedAt = ? WHERE id = ?;
@@ -89,6 +93,10 @@ WHERE id = ?;
 -- Update workout ID (links session to its saved workout)
 updateWorkoutId:
 UPDATE Session SET workoutId = ?, updatedAt = ? WHERE id = ?;
+
+-- Update session notes
+updateNotes:
+UPDATE Session SET notes = ?, updatedAt = ? WHERE id = ?;
 
 -- Delete session
 delete:

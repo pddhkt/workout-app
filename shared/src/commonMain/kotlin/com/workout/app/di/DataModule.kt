@@ -9,8 +9,6 @@ import com.workout.app.data.repository.SessionRepository
 import com.workout.app.data.repository.SessionRepositoryImpl
 import com.workout.app.data.repository.SetRepository
 import com.workout.app.data.repository.SetRepositoryImpl
-import com.workout.app.data.repository.SettingsRepository
-import com.workout.app.data.repository.SettingsRepositoryImpl
 import com.workout.app.data.repository.TemplateRepository
 import com.workout.app.data.repository.TemplateRepositoryImpl
 import com.workout.app.data.repository.WorkoutRepository
@@ -72,9 +70,4 @@ val dataModule = module {
         )
     }
 
-    single<SettingsRepository> {
-        SettingsRepositoryImpl(
-            settingsQueries = get()
-        )
-    }
 }

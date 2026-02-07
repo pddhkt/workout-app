@@ -150,6 +150,9 @@ class WorkoutCompleteViewModel(
 
     fun updateNotes(notes: String) {
         _state.update { it.copy(notes = notes) }
+        viewModelScope.launch {
+            sessionRepository.updateNotes(sessionId, notes.takeIf { it.isNotBlank() })
+        }
     }
 
     fun updateRpe(rpe: Int) {

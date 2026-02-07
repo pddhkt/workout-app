@@ -140,3 +140,15 @@ INNER JOIN Exercise e ON ws.exerciseId = e.id
 INNER JOIN Session s ON ws.sessionId = s.id
 WHERE s.status = 'completed'
 GROUP BY e.muscleGroup;
+
+-- Get weekly set count per muscle group (completed sessions in last 7 days)
+getWeeklySetCountPerMuscleGroup:
+SELECT
+    e.muscleGroup,
+    COUNT(*) AS setCount
+FROM WorkoutSet ws
+INNER JOIN Exercise e ON ws.exerciseId = e.id
+INNER JOIN Session s ON ws.sessionId = s.id
+WHERE s.status = 'completed'
+  AND ws.completedAt >= ?
+GROUP BY e.muscleGroup;

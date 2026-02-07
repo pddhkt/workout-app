@@ -75,26 +75,15 @@ fun WorkoutScreen(
         )
     }
 
-    var isReorderMode by remember { mutableStateOf(false) }
-    val currentState = state.copy(isReorderMode = isReorderMode)
-
     WorkoutScreen(
-        state = currentState,
+        state = state,
         onCompleteSet = { _, _, _, _, _ ->
             // TODO: Handle set completion
-        },
-        onSkipSet = { _ ->
-            // TODO: Handle set skip
-        },
-        onExerciseExpand = { _ ->
-            // TODO: Handle exercise expand
         },
         onEndWorkout = {
             // Show bottom sheet or navigate
             onCompleteWorkout("session_123")
         },
-        onEnterReorderMode = { isReorderMode = true },
-        onExitReorderMode = { isReorderMode = false },
         modifier = modifier
     )
 }

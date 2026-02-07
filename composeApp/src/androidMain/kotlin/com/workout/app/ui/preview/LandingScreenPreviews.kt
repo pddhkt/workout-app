@@ -6,29 +6,15 @@ import com.workout.app.ui.screens.landing.LandingScreen
 import com.workout.app.ui.theme.WorkoutAppTheme
 
 @Preview(
-    name = "Landing Screen - Light",
+    name = "Landing Screen",
     showBackground = true,
-    backgroundColor = 0xFFF8F8F7,
+    backgroundColor = 0xFFF4F4F4,
     widthDp = 390,
     heightDp = 844
 )
 @Composable
-private fun LandingScreenLightPreview() {
-    WorkoutAppTheme(darkTheme = false) {
-        LandingScreen()
-    }
-}
-
-@Preview(
-    name = "Landing Screen - Dark",
-    showBackground = true,
-    backgroundColor = 0xFF2C2821,
-    widthDp = 390,
-    heightDp = 844
-)
-@Composable
-private fun LandingScreenDarkPreview() {
-    WorkoutAppTheme(darkTheme = true) {
+private fun LandingScreenPreview() {
+    WorkoutAppTheme {
         LandingScreen()
     }
 }

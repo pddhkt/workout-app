@@ -121,7 +121,7 @@ private fun ExerciseBreakdownCard(
                         imageVector = Icons.Filled.EmojiEvents,
                         contentDescription = "PR",
                         modifier = Modifier.size(16.dp),
-                        tint = AppTheme.colors.warning
+                        tint = AppTheme.colors.primaryText
                     )
                     Badge(
                         text = "PR",
@@ -216,7 +216,7 @@ private fun SetRow(
                     imageVector = Icons.Filled.EmojiEvents,
                     contentDescription = "PR",
                     modifier = Modifier.size(12.dp),
-                    tint = AppTheme.colors.warning
+                    tint = AppTheme.colors.primaryText
                 )
             }
         }

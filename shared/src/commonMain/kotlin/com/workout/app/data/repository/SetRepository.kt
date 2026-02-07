@@ -119,4 +119,10 @@ interface SetRepository {
      * @return Result containing a map of muscleGroup name to lastTrainedAt epoch millis
      */
     suspend fun getLastTrainedPerMuscleGroup(): Result<Map<String, Long>>
+
+    /**
+     * Get weekly set count per muscle group from completed sessions in the last 7 days.
+     * @return Result containing a map of muscleGroup name to set count
+     */
+    suspend fun getWeeklySetCountPerMuscleGroup(): Result<Map<String, Long>>
 }
