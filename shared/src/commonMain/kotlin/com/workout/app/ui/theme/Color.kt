@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.Color
 // Primary colors - Yellow
 val Primary = Color(0xFFFFE302)
 val PrimaryDark = Color(0xFFE6CC02) // slightly darker yellow for secondary
-val PrimaryText = Color(0xFFC9A800) // darker yellow for text/icons on light backgrounds
+val PrimaryText = Color(0xFF000000) // black for text/icons on light backgrounds
 val OnPrimary = Color(0xFF000000)
 
 // Secondary/Tertiary - same yellow
