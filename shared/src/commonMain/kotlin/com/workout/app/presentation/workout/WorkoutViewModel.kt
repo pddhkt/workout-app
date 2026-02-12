@@ -348,22 +348,34 @@ class WorkoutViewModel(
             // Add to database
             sessionExerciseRepository.addExercisesToSession(sessionId, inputs)
 
-            // Update UI state with new exercises
-            val newExercises = exerciseIds.mapIndexed { index, exerciseId ->
-                val exercise = getMockLibraryExercises().find { it.id == exerciseId }
-                WorkoutExercise(
-                    id = "${sessionId}_${currentMaxOrder + index}",
-                    exerciseId = exerciseId,
-                    name = exercise?.name ?: "Unknown",
-                    muscleGroup = exercise?.muscleGroup ?: "Other",
-                    targetSets = 3,
-                    completedSets = 0,
-                    setRecords = emptyList()
-                )
-            }
+            // Re-fetch session exercises from DB to get real IDs
+            when (val exercisesResult = sessionExerciseRepository.getBySession(sessionId)) {
+                is Result.Success -> {
+                    val newExercises = exerciseIds.mapIndexed { index, exerciseId ->
+                        val orderIndex = currentMaxOrder + index
+                        val dbExercise = exercisesResult.data.find {
+                            it.exerciseId == exerciseId && it.orderIndex == orderIndex
+                        }
+                        val libraryExercise = getMockLibraryExercises().find { it.id == exerciseId }
+                        WorkoutExercise(
+                            id = dbExercise?.id ?: "${sessionId}_${orderIndex}",
+                            exerciseId = exerciseId,
+                            name = dbExercise?.exerciseName ?: libraryExercise?.name ?: "Unknown",
+                            muscleGroup = dbExercise?.muscleGroup ?: libraryExercise?.muscleGroup ?: "Other",
+                            targetSets = 3,
+                            completedSets = 0,
+                            setRecords = emptyList()
+                        )
+                    }
 
-            _state.update {
-                it.copy(exercises = it.exercises + newExercises)
+                    _state.update {
+                        it.copy(exercises = it.exercises + newExercises)
+                    }
+                }
+                is Result.Error -> {
+                    _state.update { it.copy(error = "Failed to fetch exercise IDs") }
+                }
+                is Result.Loading -> { /* no-op */ }
             }
         }
     }
@@ -664,9 +676,16 @@ class WorkoutViewModel(
 
                 when (addResult) {
                     is Result.Success -> {
-                        // Update UI state
+                        // Re-fetch session exercises from DB to get real ID
+                        val realId = when (val exercisesResult = sessionExerciseRepository.getBySession(sessionId)) {
+                            is Result.Success -> exercisesResult.data.find {
+                                it.exerciseId == exerciseId && it.orderIndex == currentMaxOrder
+                            }?.id ?: "${sessionId}_${currentMaxOrder}"
+                            else -> "${sessionId}_${currentMaxOrder}"
+                        }
+
                         val newExercise = WorkoutExercise(
-                            id = "${sessionId}_${currentMaxOrder}",
+                            id = realId,
                             exerciseId = exerciseId,
                             name = name,
                             muscleGroup = muscleGroup,
