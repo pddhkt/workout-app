@@ -1,10 +1,16 @@
 package com.workout.app.ui.components.recovery
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -109,27 +115,58 @@ fun MuscleRecoveryCard(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 Spacer(modifier = Modifier.height(AppTheme.spacing.md))
 
-                val currentDetail = detailMuscle
-                if (currentDetail != null) {
-                    MuscleRecoveryDetailView(
-                        recovery = currentDetail,
-                        onBackClick = { detailMuscle = null }
-                    )
-                } else {
-                    muscleRecoveryList.forEach { recovery ->
-                        MuscleRecoveryRow(
-                            recovery = recovery,
-                            isSelected = selectedMuscleGroup.equals(recovery.muscleGroup, ignoreCase = true),
-                            onClick = {
-                                if (selectedMuscleGroup.equals(recovery.muscleGroup, ignoreCase = true)) {
-                                    onMuscleGroupSelected(null) // Deselect
-                                } else {
-                                    onMuscleGroupSelected(recovery.muscleGroup)
-                                }
-                            },
-                            onInfoClick = { detailMuscle = recovery }
+                AnimatedContent(
+                    targetState = detailMuscle,
+                    transitionSpec = {
+                        if (targetState != null) {
+                            // List → Detail: slide in from right
+                            (slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))).togetherWith(
+                                slideOutHorizontally(
+                                    targetOffsetX = { -it },
+                                    animationSpec = tween(300)
+                                ) + fadeOut(animationSpec = tween(300))
+                            )
+                        } else {
+                            // Detail → List: slide in from left
+                            (slideInHorizontally(
+                                initialOffsetX = { -it },
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))).togetherWith(
+                                slideOutHorizontally(
+                                    targetOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ) + fadeOut(animationSpec = tween(300))
+                            )
+                        }
+                    },
+                    label = "recovery_list_detail"
+                ) { targetDetail ->
+                    if (targetDetail != null) {
+                        MuscleRecoveryDetailView(
+                            recovery = targetDetail,
+                            onBackClick = { detailMuscle = null }
                         )
-                        Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
+                    } else {
+                        Column {
+                            muscleRecoveryList.forEach { recovery ->
+                                MuscleRecoveryRow(
+                                    recovery = recovery,
+                                    isSelected = selectedMuscleGroup.equals(recovery.muscleGroup, ignoreCase = true),
+                                    onClick = {
+                                        if (selectedMuscleGroup.equals(recovery.muscleGroup, ignoreCase = true)) {
+                                            onMuscleGroupSelected(null) // Deselect
+                                        } else {
+                                            onMuscleGroupSelected(recovery.muscleGroup)
+                                        }
+                                    },
+                                    onInfoClick = { detailMuscle = recovery }
+                                )
+                                Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
+                            }
+                        }
                     }
                 }
             }
