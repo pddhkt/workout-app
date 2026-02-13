@@ -8,8 +8,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -118,29 +116,8 @@ fun MuscleRecoveryCard(
                 AnimatedContent(
                     targetState = detailMuscle,
                     transitionSpec = {
-                        if (targetState != null) {
-                            // List → Detail: slide in from right
-                            (slideInHorizontally(
-                                initialOffsetX = { it },
-                                animationSpec = tween(300)
-                            ) + fadeIn(animationSpec = tween(300))).togetherWith(
-                                slideOutHorizontally(
-                                    targetOffsetX = { -it },
-                                    animationSpec = tween(300)
-                                ) + fadeOut(animationSpec = tween(300))
-                            )
-                        } else {
-                            // Detail → List: slide in from left
-                            (slideInHorizontally(
-                                initialOffsetX = { -it },
-                                animationSpec = tween(300)
-                            ) + fadeIn(animationSpec = tween(300))).togetherWith(
-                                slideOutHorizontally(
-                                    targetOffsetX = { it },
-                                    animationSpec = tween(300)
-                                ) + fadeOut(animationSpec = tween(300))
-                            )
-                        }
+                        fadeIn(animationSpec = tween(300)) togetherWith
+                            fadeOut(animationSpec = tween(150))
                     },
                     label = "recovery_list_detail"
                 ) { targetDetail ->

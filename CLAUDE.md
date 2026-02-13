@@ -1,5 +1,19 @@
 # Workout App
 
+## Build
+
+Requires **JDK 17**. The system default may be a newer version (e.g. JDK 25), which will fail.
+
+```bash
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew :shared:compileDebugKotlinAndroid
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk ./gradlew :composeApp:assembleDebug
+```
+
+Or set it permanently in `gradle.properties` (do not commit):
+```
+org.gradle.java.home=/usr/lib/jvm/java-17-openjdk
+```
+
 ## Project Structure
 - Kotlin Multiplatform + Compose Multiplatform
 - `shared/` - shared code (UI, theme, logic)
