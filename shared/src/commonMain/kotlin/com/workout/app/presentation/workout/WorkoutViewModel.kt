@@ -5,7 +5,7 @@ import com.workout.app.data.repository.ExerciseRepository
 import com.workout.app.data.repository.SessionExerciseRepository
 import com.workout.app.data.repository.SessionRepository
 import com.workout.app.data.repository.SetRepository
-import com.workout.app.ui.components.exercise.getMockLibraryExercises
+import com.workout.app.ui.components.exercise.LibraryExercise
 import com.workout.app.domain.model.Result
 import com.workout.app.presentation.base.ViewModel
 import kotlinx.coroutines.delay
@@ -35,6 +35,7 @@ class WorkoutViewModel(
 
     init {
         loadSession()
+        loadAvailableExercises()
         startElapsedTimer()
     }
 
@@ -105,6 +106,27 @@ class WorkoutViewModel(
                 is Result.Loading -> {
                     // Already in loading state
                 }
+            }
+        }
+    }
+
+    private fun loadAvailableExercises() {
+        viewModelScope.launch {
+            when (val result = exerciseRepository.getAll()) {
+                is Result.Success -> {
+                    val library = result.data.map { ex ->
+                        LibraryExercise(
+                            id = ex.id,
+                            name = ex.name,
+                            muscleGroup = ex.muscleGroup,
+                            category = ex.category ?: ex.muscleGroup,
+                            isCustom = ex.isCustom == 1L,
+                            isFavorite = ex.isFavorite == 1L
+                        )
+                    }
+                    _state.update { it.copy(availableExercises = library) }
+                }
+                else -> { /* exercises will be empty, pickers will show nothing */ }
             }
         }
     }
@@ -356,7 +378,7 @@ class WorkoutViewModel(
                         val dbExercise = exercisesResult.data.find {
                             it.exerciseId == exerciseId && it.orderIndex == orderIndex
                         }
-                        val libraryExercise = getMockLibraryExercises().find { it.id == exerciseId }
+                        val libraryExercise = currentState.availableExercises.find { it.id == exerciseId }
                         WorkoutExercise(
                             id = dbExercise?.id ?: "${sessionId}_${orderIndex}",
                             exerciseId = exerciseId,
@@ -815,6 +837,7 @@ data class WorkoutState(
     val isFinished: Boolean = false,
     val sessionName: String = "",
     val exercises: List<WorkoutExercise> = emptyList(),
+    val availableExercises: List<LibraryExercise> = emptyList(),
     val currentExerciseIndex: Int = 0,
     val elapsedSeconds: Int = 0,
     val currentReps: Int = 0,

@@ -222,7 +222,8 @@ fun WorkoutScreen(
             if (clamped != currentPageIndex) {
                 swipeDirection = delta
                 currentPageIndex = clamped
-                loadPageInputs(pages[clamped])
+                // Don't call loadPageInputs here — let the LaunchedEffect handle it
+                // to avoid reading stale state after onCompleteSet
             }
         }
     }
@@ -233,12 +234,7 @@ fun WorkoutScreen(
         val completedNums = exercise.setRecords.map { it.setNumber }.toSet()
         val firstPending = (1..exercise.targetSets).firstOrNull { it !in completedNums }
         currentPageIndex = if (firstPending != null) firstPending - 1 else 0
-
-        val total = exercise.targetSets
-        val newPages = (1..total).map { setNum ->
-            SetPage(setNum, isCompleted = setNum in completedNums)
-        } + SetPage(total + 1, isEndPage = true)
-        newPages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
+        // loadPageInputs will be triggered by the LaunchedEffect reacting to index changes
     }
 
     // Initialize inputs on first composition
@@ -248,8 +244,12 @@ fun WorkoutScreen(
         }
     }
 
-    // Reload inputs when exercise setRecords change (e.g. after completing a set)
-    LaunchedEffect(state.exercises.getOrNull(selectedExerciseIndex)?.setRecords) {
+    // Reload inputs when page changes or setRecords update (e.g. after completing a set)
+    LaunchedEffect(
+        selectedExerciseIndex,
+        currentPageIndex,
+        state.exercises.getOrNull(selectedExerciseIndex)?.setRecords
+    ) {
         pages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
     }
 
@@ -777,8 +777,11 @@ fun WorkoutScreen(
                 var selectedExercises by remember { mutableStateOf(setOf<String>()) }
                 val isReplacing = replacingExerciseId != null
 
+                val pickerExercises = state.availableExercises.ifEmpty { getMockLibraryExercises() }
+
                 if (isReplacing) {
                     SimpleExercisePickerContent(
+                        exercises = pickerExercises,
                         onExerciseSelected = { exercise ->
                             val exerciseToReplace = replacingExerciseId
                             if (exerciseToReplace != null) {
@@ -791,6 +794,7 @@ fun WorkoutScreen(
                 } else {
                     Column {
                         MultiSelectExercisePickerForWorkout(
+                            exercises = pickerExercises,
                             selectedExerciseIds = selectedExercises,
                             onExerciseToggle = { exercise ->
                                 selectedExercises = if (selectedExercises.contains(exercise.id)) {
