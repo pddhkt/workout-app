@@ -84,7 +84,7 @@ fun MuscleRecoveryCard(
                 Text(
                     text = "${timeRange.label} >",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.clickable(onClick = onToggleTimeRange)
                 )
                 IconButton(
@@ -199,8 +199,7 @@ private fun MuscleRecoveryRow(
         Text(
             text = recovery.muscleGroup,
             style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.width(76.dp)
         )
 

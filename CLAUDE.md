@@ -30,6 +30,37 @@ Defined in `shared/src/commonMain/kotlin/com/workout/app/ui/theme/Color.kt`:
 - `AccentGreen` = `#22C55E` (green, for heatmap/success)
 - Backgrounds: `#F4F4F4` (background), `#FFFFFF` (surface)
 
+## Color Usage Principles
+
+### On light/white backgrounds
+- **Text:** black (`onSurface`) for primary, gray (`onSurfaceVariant`) for secondary — never yellow or green for body text
+- **Buttons:** yellow bg + black text (primary action) OR black bg + white text (secondary action)
+- **Links/tappable text:** use `primary` (yellow) sparingly; prefer black text with underline or icon affordance
+
+### On dark/black backgrounds
+- **Buttons:** yellow bg + black text only
+
+### Yellow (`#FFE302`) usage
+- Primary action buttons
+- Active/selected state indicators (chips, tabs) — use at 15% alpha for backgrounds
+- Warning status badges — use at 15% alpha for backgrounds
+- Never use as text color on light backgrounds (poor contrast)
+
+### Green (`#22C55E`) usage
+- Reserved for success and completion states only (completed sets, ready recovery, heatmap activity)
+- Use alpha variations (30%/60%/100%) for intensity levels in data visualizations
+- Never use for buttons or navigation
+
+### Black (`#000000`) usage
+- Primary text color on all light backgrounds
+- Error and info status color
+- Secondary button background (with white text)
+
+### General rules
+- Always use theme tokens (`MaterialTheme.colorScheme.*`, `AppTheme.colors.*`) — never raw hex `Color()` values in components
+- Use `.copy(alpha = ...)` for emphasis variations, not separate color definitions
+- Status colors: green = success/ready, yellow = warning/recovering, black = error/rest/info
+
 ## Theme Files
 All in `shared/src/commonMain/kotlin/com/workout/app/ui/theme/`:
 - `Color.kt` - color definitions

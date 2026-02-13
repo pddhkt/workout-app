@@ -182,7 +182,7 @@ private fun RecoveryStatusMarkers(currentStatus: RecoveryStatus) {
                     text = status.label,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isCurrent) color
+                    color = if (isCurrent) MaterialTheme.colorScheme.onSurface
                     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
