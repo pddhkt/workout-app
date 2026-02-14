@@ -1,13 +1,12 @@
 package com.workout.app.ui.components.buttons
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
 
 /**
- * Secondary button component with outlined style.
+ * Secondary button component with black background and white text.
  * Based on mockup elements EL-38, EL-83.
  *
  * @param text Button label text
@@ -34,32 +33,30 @@ fun SecondaryButton(
     fullWidth: Boolean = false,
     destructive: Boolean = false
 ) {
-    val contentColor = if (destructive) {
+    val containerColor = if (destructive) {
         MaterialTheme.colorScheme.error
     } else {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onSurface
     }
 
-    OutlinedButton(
+    val contentColor = if (destructive) {
+        MaterialTheme.colorScheme.onError
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
+    Button(
         onClick = onClick,
         modifier = modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .height(48.dp),
         enabled = enabled,
         shape = RoundedCornerShape(2.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
             contentColor = contentColor,
-            disabledContainerColor = MaterialTheme.colorScheme.surface,
-            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (enabled) {
-                contentColor
-            } else {
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.38f)
-            }
+            disabledContainerColor = containerColor.copy(alpha = 0.38f),
+            disabledContentColor = contentColor.copy(alpha = 0.38f)
         ),
         contentPadding = PaddingValues(
             horizontal = AppTheme.spacing.lg,

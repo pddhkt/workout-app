@@ -427,7 +427,14 @@ fun EnhancedWorkoutCompleteScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Summary") },
+                title = {
+                    Text(
+                        text = "Summary",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onDoneClick) {
                         Icon(

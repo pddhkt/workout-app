@@ -753,6 +753,7 @@ fun WorkoutScreen(
                     Text(
                         text = "Workout Options",
                         style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
                     )
 
@@ -833,6 +834,7 @@ fun WorkoutScreen(
                         Text(
                             text = exercise.name,
                             style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = AppTheme.spacing.sm)
                         )
 

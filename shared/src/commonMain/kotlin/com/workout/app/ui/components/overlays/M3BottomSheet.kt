@@ -48,7 +48,7 @@ fun M3BottomSheet(
                 skipPartiallyExpanded = skipPartiallyExpanded
             ),
             containerColor = containerColor,
-            scrimColor = Color.Black.copy(alpha = 0.5f),
+            scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f),
             windowInsets = WindowInsets(0, 0, 0, 0),
             modifier = modifier
         ) {
