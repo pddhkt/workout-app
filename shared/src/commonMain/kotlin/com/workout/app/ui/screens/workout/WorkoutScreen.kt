@@ -45,9 +45,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +60,7 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -253,488 +257,532 @@ fun WorkoutScreen(
         pages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Session Header
-        SessionHeader(
-            workoutName = state.sessionName,
-            onNameChange = onRenameWorkout,
-            elapsedTime = state.elapsedSeconds,
-            completedExercises = state.exercises.count { it.completedSets == it.targetSets },
-            totalExercises = state.exercises.size,
-            onMoreClick = { activeSheet = SheetType.OPTIONS }
-        )
+    val scaffoldState = rememberBottomSheetScaffoldState()
+    val sheetPeekHeight = if (selectedExercise != null) 280.dp else 0.dp
 
-        // Top pane: scrollable exercise list
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = AppTheme.spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-        ) {
-            Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
-
-            state.exercises.forEachIndexed { index, exercise ->
-                val isSelected = index == selectedExerciseIndex
-                val completedCount = exercise.completedSets
-                val isBeingDragged = index == draggedIndex
-
-                // Shift calculation for non-dragged items
-                val targetOffsetY = if (draggedIndex != -1 && !isBeingDragged && hoverIndex != -1) {
-                    when {
-                        draggedIndex < index && hoverIndex >= index -> -totalItemHeightPx
-                        draggedIndex > index && hoverIndex <= index -> totalItemHeightPx
-                        else -> 0f
-                    }
-                } else 0f
-
-                val animatedOffsetY by animateFloatAsState(
-                    targetValue = targetOffsetY,
-                    animationSpec = if (draggedIndex != -1) spring(dampingRatio = 0.8f, stiffness = 300f) else snap(),
-                    label = "itemShift"
+    BottomSheetScaffold(
+        scaffoldState = scaffoldState,
+        sheetPeekHeight = sheetPeekHeight,
+        sheetContainerColor = MaterialTheme.colorScheme.primary,
+        sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        sheetDragHandle = if (selectedExercise != null) {
+            {
+                BottomSheetDefaults.DragHandle(
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
                 )
-
-                val dismissState = rememberSwipeToDismissBoxState(
-                    confirmValueChange = { value ->
-                        if (value == SwipeToDismissBoxValue.EndToStart) {
-                            onRemoveExercise(exercise.id)
-                            false
-                        } else {
-                            false
-                        }
-                    }
-                )
-
-                SwipeToDismissBox(
-                    state = dismissState,
+            }
+        } else null,
+        sheetContent = {
+            if (selectedExercise != null) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .zIndex(if (isBeingDragged) 1f else 0f)
-                        .graphicsLayer {
-                            translationY = if (isBeingDragged) dragOffset else animatedOffsetY
-                            shadowElevation = if (isBeingDragged) 8f else 0f
-                            scaleX = if (isBeingDragged) 1.02f else 1f
-                            scaleY = if (isBeingDragged) 1.02f else 1f
-                        },
-                    enableDismissFromStartToEnd = false,
-                    enableDismissFromEndToStart = state.exercises.size > 1,
-                    backgroundContent = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.error),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.onError,
-                                modifier = Modifier.padding(end = AppTheme.spacing.lg)
+                        .windowInsetsPadding(WindowInsets.ime)
+                        .pointerInput(pages.size) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { accumulatedDrag = 0f },
+                                onHorizontalDrag = { change, dragAmount ->
+                                    change.consume()
+                                    accumulatedDrag += dragAmount
+                                },
+                                onDragEnd = {
+                                    val threshold = 100f
+                                    if (accumulatedDrag < -threshold) {
+                                        navigatePage(1)
+                                    } else if (accumulatedDrag > threshold) {
+                                        navigatePage(-1)
+                                    }
+                                    accumulatedDrag = 0f
+                                },
+                                onDragCancel = { accumulatedDrag = 0f }
+                            )
+                        }
+                ) {
+                    val currentPage = pages.getOrNull(currentPageIndex)
+
+                    // Static header: exercise name + dots + set info
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppTheme.spacing.lg),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = selectedExercise.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                pages.forEachIndexed { dotIndex, page ->
+                                    val isCurrent = dotIndex == currentPageIndex
+                                    val dotColor = when {
+                                        isCurrent -> MaterialTheme.colorScheme.onPrimary
+                                        page.isCompleted -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                                        else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.25f)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(if (isCurrent) 8.dp else 6.dp)
+                                            .clip(CircleShape)
+                                            .background(dotColor)
+                                    )
+                                }
+                            }
+                        }
+                        if (currentPage != null && !currentPage.isEndPage) {
+                            Text(
+                                text = "Set ${currentPage.setNumber}/${selectedExercise.targetSets}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                             )
                         }
                     }
-                ) {
-                    BaseCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .pointerInput(index) {
-                                detectDragGesturesAfterLongPress(
-                                    onDragStart = {
-                                        draggedIndex = index
-                                        dragOffset = 0f
-                                        hoverIndex = index
-                                    },
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        dragOffset += dragAmount.y
-                                        val draggedPositions = (dragOffset / totalItemHeightPx).toInt()
-                                        hoverIndex = (draggedIndex + draggedPositions)
-                                            .coerceIn(0, state.exercises.size - 1)
-                                    },
-                                    onDragEnd = {
-                                        val targetIndex = hoverIndex
-                                        if (targetIndex != draggedIndex && targetIndex >= 0) {
-                                            onReorderExercise(draggedIndex, targetIndex)
-                                            // Adjust selectedExerciseIndex to follow the selected exercise
-                                            if (selectedExerciseIndex == draggedIndex) {
-                                                selectedExerciseIndex = targetIndex
-                                            } else if (draggedIndex < selectedExerciseIndex && targetIndex >= selectedExerciseIndex) {
-                                                selectedExerciseIndex--
-                                            } else if (draggedIndex > selectedExerciseIndex && targetIndex <= selectedExerciseIndex) {
-                                                selectedExerciseIndex++
-                                            }
-                                        }
-                                        draggedIndex = -1
-                                        dragOffset = 0f
-                                        hoverIndex = -1
-                                    },
-                                    onDragCancel = {
-                                        draggedIndex = -1
-                                        dragOffset = 0f
-                                        hoverIndex = -1
-                                    }
-                                )
-                            },
-                        onClick = { selectExercise(index) },
-                        border = if (isSelected) {
-                            androidx.compose.foundation.BorderStroke(
-                                width = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else null
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+                    // Animated content: inputs/buttons slide on swipe
+                    var inputPageHeightPx by remember { mutableIntStateOf(0) }
+
+                    val pageKey = if (currentPage?.isEndPage == true) {
+                        "end-$selectedExerciseIndex"
+                    } else {
+                        "set-$selectedExerciseIndex-${currentPage?.setNumber}"
+                    }
+
+                    AnimatedContent(
+                        targetState = pageKey,
+                        modifier = Modifier.then(
+                            if (inputPageHeightPx > 0)
+                                Modifier.heightIn(min = with(density) { inputPageHeightPx.toDp() })
+                            else Modifier
+                        ),
+                        transitionSpec = {
+                            val slide = if (swipeDirection > 0) {
+                                slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                            } else {
+                                slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
+                            }
+                            slide using SizeTransform(clip = false, sizeAnimationSpec = { _, _ -> snap() })
+                        },
+                        label = "setPageTransition"
+                    ) { _ ->
+                        if (currentPage?.isEndPage == true) {
+                            // End page: all sets done
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = AppTheme.spacing.lg),
+                                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Text(
-                                        text = exercise.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = exercise.muscleGroup,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = "All sets done",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                                     )
                                 }
-                                Text(
-                                    text = "$completedCount/${exercise.targetSets}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (completedCount == exercise.targetSets)
-                                        AppTheme.colors.primaryText
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
 
-                            // Compact completed sets summary
-                            if (exercise.setRecords.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+                                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
                                 ) {
-                                    exercise.setRecords.sortedBy { it.setNumber }.forEach { set ->
-                                        Box(
-                                            modifier = Modifier
-                                                .background(MaterialTheme.colorScheme.background)
-                                                .padding(
-                                                    horizontal = AppTheme.spacing.sm,
-                                                    vertical = 4.dp
-                                                )
-                                        ) {
-                                            Text(
-                                                text = "S${set.setNumber} ${set.weight}kg x${set.reps}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurface
+                                    Button(
+                                        onClick = { onAddSet(selectedExercise.id) },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(48.dp),
+                                        shape = RoundedCornerShape(2.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color.Black.copy(alpha = 0.15f),
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = AppTheme.spacing.md)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(AppTheme.spacing.xs))
+                                        Text(
+                                            text = "Add Set",
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                    }
+
+                                    val isLastExercise = selectedExerciseIndex >= state.exercises.size - 1
+
+                                    Button(
+                                        onClick = {
+                                            if (isLastExercise) {
+                                                activeSheet = SheetType.FINISH_CONFIRM
+                                            } else {
+                                                selectExercise(selectedExerciseIndex + 1)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(48.dp),
+                                        shape = RoundedCornerShape(2.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color.Black,
+                                            contentColor = Color.White
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = AppTheme.spacing.md)
+                                    ) {
+                                        Text(
+                                            text = if (isLastExercise) "Finish Workout" else "Next Exercise",
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                        if (!isLastExercise) {
+                                            Spacer(modifier = Modifier.width(AppTheme.spacing.xs))
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-            }
-
-            // Add Exercise text button
-            Text(
-                text = "Add Exercise",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { activeSheet = SheetType.ADD_EXERCISE }
-                    .padding(vertical = AppTheme.spacing.md),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
-        }
-
-        // Bottom pane: inline set input
-        if (selectedExercise != null) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primary)
-                    .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
-                    .padding(top = AppTheme.spacing.lg)
-                    .pointerInput(pages.size) {
-                        detectHorizontalDragGestures(
-                            onDragStart = { accumulatedDrag = 0f },
-                            onHorizontalDrag = { change, dragAmount ->
-                                change.consume()
-                                accumulatedDrag += dragAmount
-                            },
-                            onDragEnd = {
-                                val threshold = 100f
-                                if (accumulatedDrag < -threshold) {
-                                    navigatePage(1)
-                                } else if (accumulatedDrag > threshold) {
-                                    navigatePage(-1)
-                                }
-                                accumulatedDrag = 0f
-                            },
-                            onDragCancel = { accumulatedDrag = 0f }
-                        )
-                    }
-            ) {
-                val currentPage = pages.getOrNull(currentPageIndex)
-
-                // Static header: exercise name + dots + set info
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AppTheme.spacing.lg),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = selectedExercise.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            pages.forEachIndexed { dotIndex, page ->
-                                val isCurrent = dotIndex == currentPageIndex
-                                val dotColor = when {
-                                    isCurrent -> MaterialTheme.colorScheme.onPrimary
-                                    page.isCompleted -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
-                                    else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.25f)
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .size(if (isCurrent) 8.dp else 6.dp)
-                                        .clip(CircleShape)
-                                        .background(dotColor)
-                                )
-                            }
-                        }
-                    }
-                    if (currentPage != null && !currentPage.isEndPage) {
-                        Text(
-                            text = "Set ${currentPage.setNumber}/${selectedExercise.targetSets}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(AppTheme.spacing.md))
-
-                // Animated content: inputs/buttons slide on swipe
-                var inputPageHeightPx by remember { mutableIntStateOf(0) }
-
-                val pageKey = if (currentPage?.isEndPage == true) {
-                    "end-$selectedExerciseIndex"
-                } else {
-                    "set-$selectedExerciseIndex-${currentPage?.setNumber}"
-                }
-
-                AnimatedContent(
-                    targetState = pageKey,
-                    modifier = Modifier.then(
-                        if (inputPageHeightPx > 0)
-                            Modifier.heightIn(min = with(density) { inputPageHeightPx.toDp() })
-                        else Modifier
-                    ),
-                    transitionSpec = {
-                        val slide = if (swipeDirection > 0) {
-                            slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-                        } else {
-                            slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
-                        }
-                        slide using SizeTransform(clip = false, sizeAnimationSpec = { _, _ -> snap() })
-                    },
-                    label = "setPageTransition"
-                ) { _ ->
-                    if (currentPage?.isEndPage == true) {
-                        // End page: all sets done
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = AppTheme.spacing.lg),
-                            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-                        ) {
-                            Box(
+                        } else if (currentPage != null) {
+                            // Normal set page: weight + reps + complete button
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(56.dp),
-                                contentAlignment = Alignment.Center
+                                    .padding(horizontal = AppTheme.spacing.lg)
+                                    .onSizeChanged { inputPageHeightPx = it.height },
+                                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
                             ) {
-                                Text(
-                                    text = "All sets done",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-                            ) {
-                                Button(
-                                    onClick = { onAddSet(selectedExercise.id) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp),
-                                    shape = RoundedCornerShape(2.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.Black.copy(alpha = 0.15f),
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = AppTheme.spacing.md)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
+                                    OutlinedTextField(
+                                        value = weightInput,
+                                        onValueChange = { weightInput = it },
+                                        label = { Text("Weight (kg)") },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                            unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                            focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                            focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                            unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                            cursorColor = MaterialTheme.colorScheme.onPrimary
+                                        )
                                     )
-                                    Spacer(modifier = Modifier.width(AppTheme.spacing.xs))
-                                    Text(
-                                        text = "Add Set",
-                                        style = MaterialTheme.typography.labelLarge
+                                    OutlinedTextField(
+                                        value = repsInput,
+                                        onValueChange = { repsInput = it },
+                                        label = { Text("Reps") },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                            unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                            focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                            focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                            unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                            cursorColor = MaterialTheme.colorScheme.onPrimary
+                                        )
                                     )
                                 }
-
-                                val isLastExercise = selectedExerciseIndex >= state.exercises.size - 1
 
                                 Button(
                                     onClick = {
-                                        if (isLastExercise) {
-                                            activeSheet = SheetType.FINISH_CONFIRM
-                                        } else {
-                                            selectExercise(selectedExerciseIndex + 1)
+                                        val weight = weightInput.toFloatOrNull() ?: 0f
+                                        val reps = repsInput.toIntOrNull() ?: 0
+                                        onCompleteSet(selectedExercise.id, currentPage.setNumber, reps, weight, null)
+                                        // Auto-advance to next page (next set or end page)
+                                        if (currentPageIndex < pages.size - 1) {
+                                            navigatePage(1)
                                         }
                                     },
                                     modifier = Modifier
-                                        .weight(1f)
+                                        .fillMaxWidth()
                                         .height(48.dp),
                                     shape = RoundedCornerShape(2.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color.Black,
                                         contentColor = Color.White
                                     ),
-                                    contentPadding = PaddingValues(horizontal = AppTheme.spacing.md)
+                                    contentPadding = PaddingValues(
+                                        horizontal = AppTheme.spacing.lg,
+                                        vertical = AppTheme.spacing.md
+                                    )
                                 ) {
                                     Text(
-                                        text = if (isLastExercise) "Finish Workout" else "Next Exercise",
+                                        text = if (currentPage.isCompleted) "Update Set" else "Complete Set",
                                         style = MaterialTheme.typography.labelLarge
                                     )
-                                    if (!isLastExercise) {
-                                        Spacer(modifier = Modifier.width(AppTheme.spacing.xs))
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
                                 }
                             }
                         }
-                    } else if (currentPage != null) {
-                        // Normal set page: weight + reps + complete button
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = AppTheme.spacing.lg)
-                                .onSizeChanged { inputPageHeightPx = it.height },
-                            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md),
-                                verticalAlignment = Alignment.CenterVertically
+                    }
+
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
+
+                    // Hidden section: revealed when sheet is swiped up
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
+                    )
+
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+                    Button(
+                        onClick = { /* Rest timer placeholder */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppTheme.spacing.lg)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(2.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Black.copy(alpha = 0.15f),
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Text(
+                            text = "Rest Timer",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
+                }
+            }
+        },
+        modifier = modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
+        ) {
+            // Session Header
+            SessionHeader(
+                workoutName = state.sessionName,
+                onNameChange = onRenameWorkout,
+                elapsedTime = state.elapsedSeconds,
+                completedExercises = state.exercises.count { it.completedSets == it.targetSets },
+                totalExercises = state.exercises.size,
+                onMoreClick = { activeSheet = SheetType.OPTIONS }
+            )
+
+            // Top pane: scrollable exercise list
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = AppTheme.spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+            ) {
+                Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
+
+                state.exercises.forEachIndexed { index, exercise ->
+                    val isSelected = index == selectedExerciseIndex
+                    val completedCount = exercise.completedSets
+                    val isBeingDragged = index == draggedIndex
+
+                    // Shift calculation for non-dragged items
+                    val targetOffsetY = if (draggedIndex != -1 && !isBeingDragged && hoverIndex != -1) {
+                        when {
+                            draggedIndex < index && hoverIndex >= index -> -totalItemHeightPx
+                            draggedIndex > index && hoverIndex <= index -> totalItemHeightPx
+                            else -> 0f
+                        }
+                    } else 0f
+
+                    val animatedOffsetY by animateFloatAsState(
+                        targetValue = targetOffsetY,
+                        animationSpec = if (draggedIndex != -1) spring(dampingRatio = 0.8f, stiffness = 300f) else snap(),
+                        label = "itemShift"
+                    )
+
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                onRemoveExercise(exercise.id)
+                                false
+                            } else {
+                                false
+                            }
+                        }
+                    )
+
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .zIndex(if (isBeingDragged) 1f else 0f)
+                            .graphicsLayer {
+                                translationY = if (isBeingDragged) dragOffset else animatedOffsetY
+                                shadowElevation = if (isBeingDragged) 8f else 0f
+                                scaleX = if (isBeingDragged) 1.02f else 1f
+                                scaleY = if (isBeingDragged) 1.02f else 1f
+                            },
+                        enableDismissFromStartToEnd = false,
+                        enableDismissFromEndToStart = state.exercises.size > 1,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(MaterialTheme.colorScheme.error),
+                                contentAlignment = Alignment.CenterEnd
                             ) {
-                                OutlinedTextField(
-                                    value = weightInput,
-                                    onValueChange = { weightInput = it },
-                                    label = { Text("Weight (kg)") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                        focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-                                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                        focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                        unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                        cursorColor = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                )
-                                OutlinedTextField(
-                                    value = repsInput,
-                                    onValueChange = { repsInput = it },
-                                    label = { Text("Reps") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                        focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-                                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                        focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                        unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                        cursorColor = MaterialTheme.colorScheme.onPrimary
-                                    )
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.onError,
+                                    modifier = Modifier.padding(end = AppTheme.spacing.lg)
                                 )
                             }
-
-                            Button(
-                                onClick = {
-                                    val weight = weightInput.toFloatOrNull() ?: 0f
-                                    val reps = repsInput.toIntOrNull() ?: 0
-                                    onCompleteSet(selectedExercise.id, currentPage.setNumber, reps, weight, null)
-                                    // Auto-advance to next page (next set or end page)
-                                    if (currentPageIndex < pages.size - 1) {
-                                        navigatePage(1)
-                                    }
+                        }
+                    ) {
+                        BaseCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .pointerInput(index) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            draggedIndex = index
+                                            dragOffset = 0f
+                                            hoverIndex = index
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            dragOffset += dragAmount.y
+                                            val draggedPositions = (dragOffset / totalItemHeightPx).toInt()
+                                            hoverIndex = (draggedIndex + draggedPositions)
+                                                .coerceIn(0, state.exercises.size - 1)
+                                        },
+                                        onDragEnd = {
+                                            val targetIndex = hoverIndex
+                                            if (targetIndex != draggedIndex && targetIndex >= 0) {
+                                                onReorderExercise(draggedIndex, targetIndex)
+                                                // Adjust selectedExerciseIndex to follow the selected exercise
+                                                if (selectedExerciseIndex == draggedIndex) {
+                                                    selectedExerciseIndex = targetIndex
+                                                } else if (draggedIndex < selectedExerciseIndex && targetIndex >= selectedExerciseIndex) {
+                                                    selectedExerciseIndex--
+                                                } else if (draggedIndex > selectedExerciseIndex && targetIndex <= selectedExerciseIndex) {
+                                                    selectedExerciseIndex++
+                                                }
+                                            }
+                                            draggedIndex = -1
+                                            dragOffset = 0f
+                                            hoverIndex = -1
+                                        },
+                                        onDragCancel = {
+                                            draggedIndex = -1
+                                            dragOffset = 0f
+                                            hoverIndex = -1
+                                        }
+                                    )
                                 },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(2.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.Black,
-                                    contentColor = Color.White
-                                ),
-                                contentPadding = PaddingValues(
-                                    horizontal = AppTheme.spacing.lg,
-                                    vertical = AppTheme.spacing.md
+                            onClick = { selectExercise(index) },
+                            border = if (isSelected) {
+                                androidx.compose.foundation.BorderStroke(
+                                    width = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
-                            ) {
-                                Text(
-                                    text = if (currentPage.isCompleted) "Update Set" else "Complete Set",
-                                    style = MaterialTheme.typography.labelLarge
-                                )
+                            } else null
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = exercise.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = exercise.muscleGroup,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Text(
+                                        text = "$completedCount/${exercise.targetSets}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (completedCount == exercise.targetSets)
+                                            AppTheme.colors.primaryText
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                // Compact completed sets summary
+                                if (exercise.setRecords.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+                                    ) {
+                                        exercise.setRecords.sortedBy { it.setNumber }.forEach { set ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(MaterialTheme.colorScheme.background)
+                                                    .padding(
+                                                        horizontal = AppTheme.spacing.sm,
+                                                        vertical = 4.dp
+                                                    )
+                                            ) {
+                                                Text(
+                                                    text = "S${set.setNumber} ${set.weight}kg x${set.reps}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
+                // Add Exercise text button
+                Text(
+                    text = "Add Exercise",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { activeSheet = SheetType.ADD_EXERCISE }
+                        .padding(vertical = AppTheme.spacing.md),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
             }
         }
     }
