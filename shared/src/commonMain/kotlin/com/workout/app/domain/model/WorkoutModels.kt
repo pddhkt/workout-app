@@ -139,6 +139,24 @@ enum class Participant {
 }
 
 /**
+ * Session mode for workout planning.
+ */
+enum class SessionMode(val label: String) {
+    SOLO("Solo"),
+    COACHING("Coaching"),
+    GROUP("Group")
+}
+
+/**
+ * A participant in a multi-person workout session.
+ */
+data class SessionParticipant(
+    val id: String,
+    val name: String,
+    val isOwner: Boolean = false
+)
+
+/**
  * Time range for muscle recovery display.
  */
 enum class RecoveryTimeRange(val label: String) {

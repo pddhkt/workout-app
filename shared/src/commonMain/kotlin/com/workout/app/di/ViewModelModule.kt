@@ -33,7 +33,8 @@ val viewModelModule = module {
             exerciseRepository = get(),
             sessionRepository = get(),
             sessionExerciseRepository = get(),
-            setRepository = get()
+            setRepository = get(),
+            settingsRepository = get()
         )
     }
 
@@ -44,7 +45,8 @@ val viewModelModule = module {
             sessionRepository = get(),
             sessionExerciseRepository = get(),
             setRepository = get(),
-            exerciseRepository = get()
+            exerciseRepository = get(),
+            settingsRepository = get()
         )
     }
 

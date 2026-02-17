@@ -47,6 +47,12 @@ fun WorkoutOverlay(
     onEndWorkout: () -> Unit,
     onCancelWorkout: () -> Unit,
     onRenameWorkout: (String) -> Unit,
+    onRestTimerStart: () -> Unit = {},
+    onRestTimerStop: () -> Unit = {},
+    onRestTimerReset: () -> Unit = {},
+    onRestTimerDurationChange: (Int) -> Unit = {},
+    onRestTimerAdjust: (Int) -> Unit = {},
+    onSwitchParticipant: (String) -> Unit = {},
     bottomNavHeight: Dp = 0.dp,
     modifier: Modifier = Modifier
 ) {
@@ -137,7 +143,13 @@ fun WorkoutOverlay(
                         onCreateExercise = onCreateExercise,
                         onEndWorkout = onEndWorkout,
                         onCancelWorkout = onCancelWorkout,
-                        onRenameWorkout = onRenameWorkout
+                        onRenameWorkout = onRenameWorkout,
+                        onRestTimerStart = onRestTimerStart,
+                        onRestTimerStop = onRestTimerStop,
+                        onRestTimerReset = onRestTimerReset,
+                        onRestTimerDurationChange = onRestTimerDurationChange,
+                        onRestTimerAdjust = onRestTimerAdjust,
+                        onSwitchParticipant = onSwitchParticipant
                     )
                 }
             }

@@ -4,9 +4,12 @@ import com.workout.app.data.repository.AddedExerciseInput
 import com.workout.app.data.repository.ExerciseRepository
 import com.workout.app.data.repository.SessionExerciseRepository
 import com.workout.app.data.repository.SessionRepository
+import com.workout.app.data.repository.SettingsRepository
 import com.workout.app.data.repository.SetRepository
 import com.workout.app.ui.components.exercise.LibraryExercise
 import com.workout.app.domain.model.Result
+import com.workout.app.domain.model.SessionMode
+import com.workout.app.domain.model.SessionParticipant
 import com.workout.app.presentation.base.ViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +27,8 @@ class WorkoutViewModel(
     private val sessionRepository: SessionRepository,
     private val sessionExerciseRepository: SessionExerciseRepository,
     private val setRepository: SetRepository,
-    private val exerciseRepository: ExerciseRepository
+    private val exerciseRepository: ExerciseRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WorkoutState())
@@ -66,12 +70,37 @@ class WorkoutViewModel(
                                     )
                                 }
 
+                                // Load participant data from settings
+                                val modeStr = settingsRepository.getString("session_${sessionId}_mode")
+                                val participantsStr = settingsRepository.getString("session_${sessionId}_participants")
+                                val sessionMode = modeStr?.let {
+                                    try { SessionMode.valueOf(it) } catch (_: Exception) { null }
+                                } ?: SessionMode.SOLO
+                                val participants = participantsStr?.split(";")?.mapNotNull { entry ->
+                                    val parts = entry.split(",")
+                                    if (parts.size >= 3) {
+                                        SessionParticipant(
+                                            id = parts[0],
+                                            name = parts[1],
+                                            isOwner = parts[2].toBooleanStrictOrNull() ?: false
+                                        )
+                                    } else null
+                                } ?: emptyList()
+                                val initialActiveId = if (sessionMode == SessionMode.COACHING) {
+                                    participants.firstOrNull()?.id ?: "owner"
+                                } else {
+                                    "owner"
+                                }
+
                                 _state.update {
                                     it.copy(
                                         isLoading = false,
                                         sessionName = session.name,
                                         exercises = exercises,
                                         currentExerciseIndex = session.currentExerciseIndex.toInt(),
+                                        sessionMode = sessionMode,
+                                        participants = participants,
+                                        activeParticipantId = initialActiveId,
                                         error = null
                                     )
                                 }
@@ -223,6 +252,10 @@ class WorkoutViewModel(
         _state.update { it.copy(currentNotes = notes) }
     }
 
+    fun switchParticipant(participantId: String) {
+        _state.update { it.copy(activeParticipantId = participantId) }
+    }
+
     fun renameSession(name: String) {
         _state.update { it.copy(sessionName = name) }
         viewModelScope.launch {
@@ -238,7 +271,9 @@ class WorkoutViewModel(
             val exercise = currentState.exercises[exerciseIndex]
 
             // Check if this set was already completed (editing an existing record)
-            val existingRecordIndex = exercise.setRecords.indexOfFirst { it.setNumber == setNumber }
+            val existingRecordIndex = exercise.setRecords.indexOfFirst {
+                it.setNumber == setNumber && it.participantId == currentState.activeParticipantId
+            }
             val isEdit = existingRecordIndex != -1
 
             // Save set to database (only for new completions)
@@ -271,7 +306,8 @@ class WorkoutViewModel(
                 setNumber = setNumber,
                 weight = currentState.currentWeight,
                 reps = currentState.currentReps,
-                rpe = currentState.currentRPE
+                rpe = currentState.currentRPE,
+                participantId = currentState.activeParticipantId
             )
 
             // Update UI state - replace existing record or append new one
@@ -520,27 +556,35 @@ class WorkoutViewModel(
         }
     }
 
-    private fun startRestTimer(durationSeconds: Int = 90) {
+    fun startRestTimer() {
+        val duration = _state.value.restTimerDuration
         restTimerJob?.cancel()
         _state.update {
             it.copy(
-                restTimerRemaining = durationSeconds,
+                restTimerRemaining = duration,
                 isRestTimerActive = true
             )
         }
 
         restTimerJob = viewModelScope.launch {
-            var remaining = durationSeconds
-            while (remaining > 0) {
+            while (_state.value.restTimerRemaining > 0) {
                 delay(1000)
-                remaining--
-                _state.update { it.copy(restTimerRemaining = remaining) }
+                _state.update {
+                    it.copy(restTimerRemaining = (it.restTimerRemaining - 1).coerceAtLeast(0))
+                }
             }
             _state.update { it.copy(isRestTimerActive = false, restTimerRemaining = 0) }
         }
     }
 
-    fun skipRest() {
+    fun stopRestTimer() {
+        restTimerJob?.cancel()
+        _state.update {
+            it.copy(isRestTimerActive = false)
+        }
+    }
+
+    fun resetRestTimer() {
         restTimerJob?.cancel()
         _state.update {
             it.copy(
@@ -550,10 +594,20 @@ class WorkoutViewModel(
         }
     }
 
+    fun skipRest() {
+        resetRestTimer()
+    }
+
     fun addRestTime(seconds: Int) {
         val currentRemaining = _state.value.restTimerRemaining
         _state.update {
-            it.copy(restTimerRemaining = currentRemaining + seconds)
+            it.copy(restTimerRemaining = (currentRemaining + seconds).coerceAtLeast(0))
+        }
+    }
+
+    fun setRestTimerDuration(seconds: Int) {
+        _state.update {
+            it.copy(restTimerDuration = seconds.coerceIn(30, 600))
         }
     }
 
@@ -809,7 +863,8 @@ data class CompletedSetRecord(
     val setNumber: Int,
     val weight: Float,
     val reps: Int,
-    val rpe: Int?
+    val rpe: Int?,
+    val participantId: String = "owner"
 )
 
 /**
@@ -846,7 +901,11 @@ data class WorkoutState(
     val currentNotes: String = "",
     val isRestTimerActive: Boolean = false,
     val restTimerRemaining: Int = 0,
+    val restTimerDuration: Int = 240,
     val isReorderMode: Boolean = false,
+    val sessionMode: SessionMode = SessionMode.SOLO,
+    val participants: List<SessionParticipant> = emptyList(),
+    val activeParticipantId: String = "owner",
     val error: String? = null
 ) {
     /**

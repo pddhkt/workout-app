@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -58,11 +60,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -93,9 +98,11 @@ import com.workout.app.ui.components.exercise.MuscleGroupFilters
 import com.workout.app.ui.components.exercise.getMockLibraryExercises
 import com.workout.app.ui.components.inputs.SearchBar
 import com.workout.app.ui.components.overlays.M3BottomSheet
+import com.workout.app.ui.components.timer.RestTimerSection
 import com.workout.app.ui.theme.AppTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import com.workout.app.domain.model.SessionMode
 import com.workout.app.presentation.workout.WorkoutState
 import com.workout.app.presentation.workout.WorkoutExercise
 
@@ -115,7 +122,7 @@ private data class SetPage(
  * Top pane: scrollable exercise cards (compact) with swipe-to-delete and drag-to-reorder
  * Bottom pane: inline set input with swipeable set pages
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun WorkoutScreen(
     state: WorkoutState,
@@ -130,12 +137,19 @@ fun WorkoutScreen(
     onAddSet: (exerciseId: String) -> Unit = {},
     onReorderExercise: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
     onCreateExercise: (name: String, muscleGroup: String, equipment: String?, instructions: String?) -> Unit = { _, _, _, _ -> },
+    onRestTimerStart: () -> Unit = {},
+    onRestTimerStop: () -> Unit = {},
+    onRestTimerReset: () -> Unit = {},
+    onRestTimerDurationChange: (Int) -> Unit = {},
+    onRestTimerAdjust: (Int) -> Unit = {},
+    onSwitchParticipant: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Sheet state
     var activeSheet by remember { mutableStateOf<SheetType?>(null) }
     var selectedExerciseForOptions by remember { mutableStateOf<WorkoutExercise?>(null) }
     var replacingExerciseId by remember { mutableStateOf<String?>(null) }
+    var exerciseToRemove by remember { mutableStateOf<WorkoutExercise?>(null) }
 
     // Selected exercise and set page tracking
     var selectedExerciseIndex by remember { mutableIntStateOf(state.currentExerciseIndex) }
@@ -144,6 +158,10 @@ fun WorkoutScreen(
     var repsInput by remember { mutableStateOf("10") }
     var swipeDirection by remember { mutableIntStateOf(1) }
     var accumulatedDrag by remember { mutableFloatStateOf(0f) }
+
+    // Per-participant draft inputs: saves uncommitted weight/reps when switching participants
+    val participantDrafts = remember { mutableMapOf<String, Pair<String, String>>() }
+    var previousParticipantId by remember { mutableStateOf(state.activeParticipantId) }
 
     // Drag-to-reorder state
     val density = LocalDensity.current
@@ -170,10 +188,12 @@ fun WorkoutScreen(
 
     val selectedExercise = state.exercises.getOrNull(selectedExerciseIndex)
 
-    // Build pages for the current exercise
-    val pages = remember(selectedExerciseIndex, state.exercises) {
+    // Build pages for the current exercise (filtered by active participant)
+    val isMultiParticipant = state.participants.size > 1
+    val pages = remember(selectedExerciseIndex, state.exercises, state.activeParticipantId) {
         val exercise = state.exercises.getOrNull(selectedExerciseIndex) ?: return@remember listOf(SetPage(1, isEndPage = true))
-        val completedNums = exercise.setRecords.map { it.setNumber }.toSet()
+        val participantRecords = exercise.setRecords.filter { it.participantId == state.activeParticipantId }
+        val completedNums = participantRecords.map { it.setNumber }.toSet()
         val setPages = (1..exercise.targetSets).map { setNum ->
             SetPage(setNum, isCompleted = setNum in completedNums)
         }
@@ -185,13 +205,14 @@ fun WorkoutScreen(
         currentPageIndex = (pages.size - 1).coerceAtLeast(0)
     }
 
-    // Load weight/reps for a set page
+    // Load weight/reps for a set page (filtered by active participant)
     fun loadPageInputs(page: SetPage) {
         if (page.isEndPage) return
         val exercise = state.exercises.getOrNull(selectedExerciseIndex) ?: return
+        val participantRecords = exercise.setRecords.filter { it.participantId == state.activeParticipantId }
 
         // Priority 1: Current session record for this set
-        val currentRecord = exercise.setRecords.find { it.setNumber == page.setNumber }
+        val currentRecord = participantRecords.find { it.setNumber == page.setNumber }
         if (currentRecord != null) {
             weightInput = currentRecord.weight.toString()
             repsInput = currentRecord.reps.toString()
@@ -200,7 +221,7 @@ fun WorkoutScreen(
 
         // Priority 2: Carry forward from previous set in current session
         if (page.setNumber > 1) {
-            val prevRecord = exercise.setRecords.find { it.setNumber == page.setNumber - 1 }
+            val prevRecord = participantRecords.find { it.setNumber == page.setNumber - 1 }
             if (prevRecord != null) {
                 weightInput = prevRecord.weight.toString()
                 repsInput = prevRecord.reps.toString()
@@ -235,7 +256,8 @@ fun WorkoutScreen(
     fun selectExercise(index: Int) {
         selectedExerciseIndex = index
         val exercise = state.exercises[index]
-        val completedNums = exercise.setRecords.map { it.setNumber }.toSet()
+        val participantRecords = exercise.setRecords.filter { it.participantId == state.activeParticipantId }
+        val completedNums = participantRecords.map { it.setNumber }.toSet()
         val firstPending = (1..exercise.targetSets).firstOrNull { it !in completedNums }
         currentPageIndex = if (firstPending != null) firstPending - 1 else 0
         // loadPageInputs will be triggered by the LaunchedEffect reacting to index changes
@@ -248,17 +270,38 @@ fun WorkoutScreen(
         }
     }
 
-    // Reload inputs when page changes or setRecords update (e.g. after completing a set)
+    // Save/restore drafts when switching participants
+    LaunchedEffect(state.activeParticipantId) {
+        if (state.activeParticipantId != previousParticipantId) {
+            // Save outgoing participant's current inputs as draft
+            participantDrafts[previousParticipantId] = Pair(weightInput, repsInput)
+            previousParticipantId = state.activeParticipantId
+
+            // Restore incoming participant's draft if available, otherwise auto-fill
+            val draft = participantDrafts[state.activeParticipantId]
+            if (draft != null) {
+                weightInput = draft.first
+                repsInput = draft.second
+            } else {
+                pages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
+            }
+        }
+    }
+
+    // Reload inputs when page/exercise changes or setRecords update
     LaunchedEffect(
         selectedExerciseIndex,
         currentPageIndex,
         state.exercises.getOrNull(selectedExerciseIndex)?.setRecords
     ) {
+        // Clear drafts when exercise or set page changes (drafts are per-context)
+        participantDrafts.clear()
         pages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
     }
 
     val scaffoldState = rememberBottomSheetScaffoldState()
-    val sheetPeekHeight = if (selectedExercise != null) 230.dp else 0.dp
+    val navBarBottomDp = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
+    val sheetPeekHeight = if (selectedExercise != null) 230.dp + navBarBottomDp else 0.dp
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -277,7 +320,7 @@ fun WorkoutScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.ime)
+                        .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
                         .pointerInput(pages.size) {
                             detectHorizontalDragGestures(
                                 onDragStart = { accumulatedDrag = 0f },
@@ -342,6 +385,39 @@ fun WorkoutScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                             )
+                        }
+                    }
+
+                    // Participant chips (only shown in multi-participant mode)
+                    if (isMultiParticipant) {
+                        Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppTheme.spacing.lg),
+                            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+                        ) {
+                            state.participants.forEach { participant ->
+                                val isActive = participant.id == state.activeParticipantId
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(
+                                            if (isActive) Color.Black
+                                            else Color.Black.copy(alpha = 0.15f)
+                                        )
+                                        .clickable { onSwitchParticipant(participant.id) }
+                                        .padding(horizontal = AppTheme.spacing.md, vertical = AppTheme.spacing.xs)
+                                ) {
+                                    Text(
+                                        text = participant.name,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isActive) Color.White
+                                        else MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -512,9 +588,40 @@ fun WorkoutScreen(
                                         val weight = weightInput.toFloatOrNull() ?: 0f
                                         val reps = repsInput.toIntOrNull() ?: 0
                                         onCompleteSet(selectedExercise.id, currentPage.setNumber, reps, weight, null)
-                                        // Auto-advance to next page (next set or end page)
-                                        if (currentPageIndex < pages.size - 1) {
-                                            navigatePage(1)
+
+                                        // Clear draft for completing participant (values are now in records)
+                                        participantDrafts.remove(state.activeParticipantId)
+
+                                        if (isMultiParticipant) {
+                                            // In multi-participant mode: cycle through participants for this set,
+                                            // only advance to next set when all participants have completed it
+                                            val setNum = currentPage.setNumber
+                                            // After this completion, this participant will have done this set.
+                                            // Build the set of participant IDs who have already completed this set
+                                            // (including the one we just completed).
+                                            val alreadyCompleted = selectedExercise.setRecords
+                                                .filter { it.setNumber == setNum }
+                                                .map { it.participantId }
+                                                .toSet() + state.activeParticipantId
+                                            val pendingParticipants = state.participants
+                                                .filter { it.id !in alreadyCompleted }
+
+                                            if (pendingParticipants.isNotEmpty()) {
+                                                // Switch to the next participant who hasn't done this set
+                                                onSwitchParticipant(pendingParticipants.first().id)
+                                            } else {
+                                                // All participants done for this set — advance to next set
+                                                // and switch back to the first participant
+                                                onSwitchParticipant(state.participants.first().id)
+                                                if (currentPageIndex < pages.size - 1) {
+                                                    navigatePage(1)
+                                                }
+                                            }
+                                        } else {
+                                            // Solo mode: auto-advance to next page
+                                            if (currentPageIndex < pages.size - 1) {
+                                                navigatePage(1)
+                                            }
                                         }
                                     },
                                     modifier = Modifier
@@ -541,30 +648,23 @@ fun WorkoutScreen(
 
                     Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
 
-                    // Hidden section: revealed when sheet is swiped up
+                    // Rest timer section: revealed when sheet is swiped up
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
                     )
 
                     Spacer(modifier = Modifier.height(AppTheme.spacing.md))
 
-                    Button(
-                        onClick = { /* Rest timer placeholder */ },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppTheme.spacing.lg)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(2.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Black.copy(alpha = 0.15f),
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Text(
-                            text = "Rest Timer",
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
+                    RestTimerSection(
+                        isTimerActive = state.isRestTimerActive,
+                        remainingSeconds = state.restTimerRemaining,
+                        totalDurationSeconds = state.restTimerDuration,
+                        onDurationChange = onRestTimerDurationChange,
+                        onStart = onRestTimerStart,
+                        onStop = onRestTimerStop,
+                        onReset = onRestTimerReset,
+                        onAdjustRunning = onRestTimerAdjust
+                    )
 
                     Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
                 }
@@ -600,6 +700,7 @@ fun WorkoutScreen(
                 Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
 
                 state.exercises.forEachIndexed { index, exercise ->
+                    key(exercise.id) {
                     val isSelected = index == selectedExerciseIndex
                     val completedCount = exercise.completedSets
                     val isBeingDragged = index == draggedIndex
@@ -622,7 +723,7 @@ fun WorkoutScreen(
                     val dismissState = rememberSwipeToDismissBoxState(
                         confirmValueChange = { value ->
                             if (value == SwipeToDismissBoxValue.EndToStart) {
-                                onRemoveExercise(exercise.id)
+                                exerciseToRemove = exercise
                                 false
                             } else {
                                 false
@@ -638,6 +739,8 @@ fun WorkoutScreen(
                             .graphicsLayer {
                                 translationY = if (isBeingDragged) dragOffset else animatedOffsetY
                                 shadowElevation = if (isBeingDragged) 8f else 0f
+                                shape = RoundedCornerShape(12.dp)
+                                clip = false
                                 scaleX = if (isBeingDragged) 1.02f else 1f
                                 scaleY = if (isBeingDragged) 1.02f else 1f
                             },
@@ -729,37 +832,86 @@ fun WorkoutScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    Text(
-                                        text = "$completedCount/${exercise.targetSets}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (completedCount == exercise.targetSets)
-                                            AppTheme.colors.primaryText
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    if (!isMultiParticipant) {
+                                        Text(
+                                            text = "$completedCount/${exercise.targetSets}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (completedCount == exercise.targetSets)
+                                                AppTheme.colors.primaryText
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
 
                                 // Compact completed sets summary
                                 if (exercise.setRecords.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
-                                    ) {
-                                        exercise.setRecords.sortedBy { it.setNumber }.forEach { set ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(MaterialTheme.colorScheme.background)
-                                                    .padding(
-                                                        horizontal = AppTheme.spacing.sm,
-                                                        vertical = 4.dp
+                                    if (isMultiParticipant) {
+                                        // Per-participant progress rows
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+                                        ) {
+                                            state.participants.forEach { participant ->
+                                                val participantRecords = exercise.setRecords
+                                                    .filter { it.participantId == participant.id }
+                                                    .sortedBy { it.setNumber }
+                                                Column(
+                                                    verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
+                                                ) {
+                                                    Text(
+                                                        text = "${participant.name} · ${participantRecords.size}/${exercise.targetSets}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
-                                            ) {
-                                                Text(
-                                                    text = "S${set.setNumber} ${set.weight}kg x${set.reps}",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
+                                                    if (participantRecords.isNotEmpty()) {
+                                                        FlowRow(
+                                                            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs),
+                                                            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
+                                                        ) {
+                                                            participantRecords.forEach { set ->
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .background(MaterialTheme.colorScheme.background)
+                                                                        .padding(
+                                                                            horizontal = AppTheme.spacing.xs,
+                                                                            vertical = 2.dp
+                                                                        )
+                                                                ) {
+                                                                    Text(
+                                                                        text = "${set.weight}kg x${set.reps}",
+                                                                        style = MaterialTheme.typography.labelSmall,
+                                                                        color = MaterialTheme.colorScheme.onSurface
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        FlowRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
+                                            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
+                                        ) {
+                                            exercise.setRecords.sortedBy { it.setNumber }.forEach { set ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(MaterialTheme.colorScheme.background)
+                                                        .padding(
+                                                            horizontal = AppTheme.spacing.sm,
+                                                            vertical = 4.dp
+                                                        )
+                                                ) {
+                                                    Text(
+                                                        text = "S${set.setNumber} ${set.weight}kg x${set.reps}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -767,6 +919,7 @@ fun WorkoutScreen(
                             }
                         }
                     }
+                    } // key
                 }
 
                 // Add Exercise text button
@@ -898,7 +1051,7 @@ fun WorkoutScreen(
                         SecondaryButton(
                             text = "Remove Exercise",
                             onClick = {
-                                onRemoveExercise(exercise.id)
+                                exerciseToRemove = exercise
                                 selectedExerciseForOptions = null
                                 activeSheet = null
                             },
@@ -1024,6 +1177,35 @@ fun WorkoutScreen(
             }
             null -> {}
         }
+    }
+
+    // Remove exercise confirmation dialog
+    exerciseToRemove?.let { exercise ->
+        AlertDialog(
+            onDismissRequest = { exerciseToRemove = null },
+            title = { Text("Remove Exercise") },
+            text = {
+                Text("Remove ${exercise.name} from this workout? Any recorded sets will be lost.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onRemoveExercise(exercise.id)
+                        exerciseToRemove = null
+                    }
+                ) {
+                    Text(
+                        "Remove",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { exerciseToRemove = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

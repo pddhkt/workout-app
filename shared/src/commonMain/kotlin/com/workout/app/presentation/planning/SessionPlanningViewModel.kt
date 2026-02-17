@@ -4,11 +4,14 @@ import com.workout.app.data.repository.AddedExerciseInput
 import com.workout.app.data.repository.ExerciseRepository
 import com.workout.app.data.repository.SessionExerciseRepository
 import com.workout.app.data.repository.SessionRepository
+import com.workout.app.data.repository.SettingsRepository
 import com.workout.app.data.repository.SetRepository
 import com.workout.app.database.Exercise
 import com.workout.app.domain.model.MuscleRecovery
 import com.workout.app.domain.model.RecoveryTimeRange
 import com.workout.app.domain.model.Result
+import com.workout.app.domain.model.SessionMode
+import com.workout.app.domain.model.SessionParticipant
 import com.workout.app.domain.model.calculateRecoveryProgress
 import com.workout.app.domain.model.calculateRecoveryStatus
 import com.workout.app.presentation.base.ViewModel
@@ -28,7 +31,8 @@ class SessionPlanningViewModel(
     private val exerciseRepository: ExerciseRepository,
     private val sessionRepository: SessionRepository,
     private val sessionExerciseRepository: SessionExerciseRepository,
-    private val setRepository: SetRepository
+    private val setRepository: SetRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SessionPlanningState())
@@ -37,6 +41,12 @@ class SessionPlanningViewModel(
     init {
         loadExercises()
         loadMuscleRecovery()
+        loadRecentPartners()
+    }
+
+    companion object {
+        private const val RECENT_PARTNERS_KEY = "recent_partners"
+        private const val MAX_RECENT_PARTNERS = 10
     }
 
     private fun loadExercises() {
@@ -162,8 +172,85 @@ class SessionPlanningViewModel(
         }
     }
 
+    // --- Session Mode & Participants ---
+
+    private fun loadRecentPartners() {
+        viewModelScope.launch {
+            val stored = settingsRepository.getString(RECENT_PARTNERS_KEY)
+            if (stored != null) {
+                val names = stored.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                _state.update { it.copy(recentPartners = names) }
+            }
+        }
+    }
+
+    private suspend fun saveRecentPartners(names: List<String>) {
+        val trimmed = names.distinct().take(MAX_RECENT_PARTNERS)
+        settingsRepository.setString(RECENT_PARTNERS_KEY, trimmed.joinToString(","))
+        _state.update { it.copy(recentPartners = trimmed) }
+    }
+
+    fun setSessionMode(mode: SessionMode) {
+        _state.update { current ->
+            val newParticipants = when (mode) {
+                SessionMode.SOLO -> emptyList()
+                SessionMode.GROUP -> {
+                    if (current.participants.none { it.isOwner }) {
+                        listOf(
+                            SessionParticipant(id = "owner", name = "You", isOwner = true)
+                        ) + current.participants.filter { !it.isOwner }
+                    } else {
+                        current.participants
+                    }
+                }
+                SessionMode.COACHING -> {
+                    current.participants.filter { !it.isOwner }
+                }
+            }
+            current.copy(sessionMode = mode, participants = newParticipants)
+        }
+    }
+
+    fun addParticipant(name: String) {
+        val trimmedName = name.trim()
+        if (trimmedName.isEmpty()) return
+
+        val id = "participant_${Clock.System.now().toEpochMilliseconds()}"
+
+        _state.update { current ->
+            if (current.participants.any { it.name.equals(trimmedName, ignoreCase = true) && !it.isOwner }) {
+                return@update current
+            }
+            current.copy(
+                participants = current.participants + SessionParticipant(id = id, name = trimmedName)
+            )
+        }
+
+        viewModelScope.launch {
+            val current = _state.value.recentPartners.toMutableList()
+            current.remove(trimmedName)
+            current.add(0, trimmedName)
+            saveRecentPartners(current)
+        }
+    }
+
+    fun removeParticipant(participantId: String) {
+        _state.update { current ->
+            current.copy(participants = current.participants.filter { it.id != participantId })
+        }
+    }
+
+    fun showAddParticipantSheet() {
+        _state.update { it.copy(showAddParticipantSheet = true) }
+    }
+
+    fun hideAddParticipantSheet() {
+        _state.update { it.copy(showAddParticipantSheet = false) }
+    }
+
     suspend fun createSession(sessionName: String): Result<String> {
-        val addedExercises = _state.value.addedExercises
+        val currentState = _state.value
+        val addedExercises = currentState.addedExercises
 
         if (addedExercises.isEmpty()) {
             return Result.Error(Exception("Please add at least one exercise"))
@@ -177,7 +264,7 @@ class SessionPlanningViewModel(
                 name = sessionName,
                 templateId = null,
                 status = "active",
-                isPartnerWorkout = false
+                isPartnerWorkout = currentState.sessionMode != SessionMode.SOLO
             )
 
             when (sessionResult) {
@@ -200,6 +287,14 @@ class SessionPlanningViewModel(
 
                     when (addResult) {
                         is Result.Success -> {
+                            // Persist participant data for the workout screen
+                            if (currentState.sessionMode != SessionMode.SOLO && currentState.participants.isNotEmpty()) {
+                                val participantsJson = currentState.participants.joinToString(";") {
+                                    "${it.id},${it.name},${it.isOwner}"
+                                }
+                                settingsRepository.setString("session_${sessionId}_participants", participantsJson)
+                                settingsRepository.setString("session_${sessionId}_mode", currentState.sessionMode.name)
+                            }
                             _state.update { it.copy(isCreatingSession = false) }
                             Result.Success(sessionId)
                         }
@@ -265,11 +360,12 @@ data class SessionPlanningState(
     val selectedMuscleGroup: String? = null,
     val muscleRecovery: List<MuscleRecovery> = emptyList(),
     val recoveryTimeRange: RecoveryTimeRange = RecoveryTimeRange.WEEKLY,
-    val error: String? = null
+    val error: String? = null,
+    val sessionMode: SessionMode = SessionMode.SOLO,
+    val participants: List<SessionParticipant> = emptyList(),
+    val recentPartners: List<String> = emptyList(),
+    val showAddParticipantSheet: Boolean = false
 ) {
-    /**
-     * Get filtered exercises based on selected muscle group.
-     */
     val filteredExercises: List<Exercise>
         get() = if (selectedMuscleGroup == null) {
             allExercises
@@ -277,15 +373,30 @@ data class SessionPlanningState(
             allExercises.filter { it.muscleGroup == selectedMuscleGroup }
         }
 
-    /**
-     * Total sets across all added exercises.
-     */
     val totalSets: Int
         get() = addedExercises.values.sumOf { it.setCount }
 
-    /**
-     * Whether session can be started (has at least one exercise).
-     */
     val canStartSession: Boolean
-        get() = addedExercises.isNotEmpty() && !isCreatingSession
+        get() {
+            if (addedExercises.isEmpty() || isCreatingSession) return false
+            return when (sessionMode) {
+                SessionMode.SOLO -> true
+                SessionMode.COACHING -> participants.isNotEmpty()
+                SessionMode.GROUP -> participants.size > 1
+            }
+        }
+
+    val participantHelperText: String?
+        get() = when (sessionMode) {
+            SessionMode.SOLO -> null
+            SessionMode.COACHING -> {
+                val count = participants.size
+                if (count == 0) "Add clients to record for"
+                else "Recording for $count client(s)"
+            }
+            SessionMode.GROUP -> {
+                if (participants.size <= 1) "Add friends to work out with"
+                else "Working out together"
+            }
+        }
 }

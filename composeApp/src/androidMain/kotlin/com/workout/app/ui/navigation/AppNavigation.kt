@@ -288,9 +288,6 @@ fun AppNavigation(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onTemplatesClick = {
-                    navController.navigateToTemplates()
-                },
                 onStartSession = {
                     planningScope.launch {
                         when (val result = viewModel.createSession("Workout")) {
@@ -308,7 +305,12 @@ fun AppNavigation(
                 },
                 onToggleExercise = viewModel::toggleExercise,
                 onAddExercise = viewModel::addExercise,
-                onToggleTimeRange = viewModel::toggleTimeRange
+                onToggleTimeRange = viewModel::toggleTimeRange,
+                onModeSelected = viewModel::setSessionMode,
+                onAddParticipant = viewModel::addParticipant,
+                onRemoveParticipant = viewModel::removeParticipant,
+                onShowAddParticipantSheet = viewModel::showAddParticipantSheet,
+                onHideAddParticipantSheet = viewModel::hideAddParticipantSheet
             )
         }
 
@@ -334,9 +336,6 @@ fun AppNavigation(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onTemplatesClick = {
-                    navController.navigateToTemplates()
-                },
                 onStartSession = {
                     planningScope.launch {
                         when (val result = viewModel.createSession("Workout")) {
@@ -354,7 +353,12 @@ fun AppNavigation(
                 },
                 onToggleExercise = viewModel::toggleExercise,
                 onAddExercise = viewModel::addExercise,
-                onToggleTimeRange = viewModel::toggleTimeRange
+                onToggleTimeRange = viewModel::toggleTimeRange,
+                onModeSelected = viewModel::setSessionMode,
+                onAddParticipant = viewModel::addParticipant,
+                onRemoveParticipant = viewModel::removeParticipant,
+                onShowAddParticipantSheet = viewModel::showAddParticipantSheet,
+                onHideAddParticipantSheet = viewModel::hideAddParticipantSheet
             )
         }
 
@@ -668,6 +672,19 @@ fun AppNavigation(
                     },
                     onRenameWorkout = { name ->
                         workoutViewModel.renameSession(name)
+                    },
+                    onRestTimerStart = { workoutViewModel.startRestTimer() },
+                    onRestTimerStop = { workoutViewModel.stopRestTimer() },
+                    onRestTimerReset = { workoutViewModel.resetRestTimer() },
+                    onRestTimerDurationChange = { delta ->
+                        val newDuration = workoutState.restTimerDuration + delta
+                        workoutViewModel.setRestTimerDuration(newDuration)
+                    },
+                    onRestTimerAdjust = { seconds ->
+                        workoutViewModel.addRestTime(seconds)
+                    },
+                    onSwitchParticipant = { participantId ->
+                        workoutViewModel.switchParticipant(participantId)
                     },
                     bottomNavHeight = measuredNavBarHeight
                 )

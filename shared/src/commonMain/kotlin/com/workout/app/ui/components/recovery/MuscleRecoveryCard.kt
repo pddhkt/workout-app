@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,11 +39,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.workout.app.domain.model.MuscleRecovery
 import com.workout.app.domain.model.RecoveryStatus
-import com.workout.app.domain.model.RecoveryTimeRange
 import com.workout.app.ui.components.cards.BaseCard
 import com.workout.app.ui.theme.AppTheme
 
@@ -53,17 +52,20 @@ fun MuscleRecoveryCard(
     muscleRecoveryList: List<MuscleRecovery>,
     selectedMuscleGroup: String?,
     onMuscleGroupSelected: (String?) -> Unit,
-    timeRange: RecoveryTimeRange,
-    onToggleTimeRange: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (muscleRecoveryList.isEmpty()) return
 
     var expanded by remember { mutableStateOf(true) }
     var detailMuscle by remember { mutableStateOf<MuscleRecovery?>(null) }
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "Arrow rotation"
+    )
 
     BaseCard(
         modifier = modifier,
+        onClick = { expanded = !expanded },
         contentPadding = AppTheme.spacing.lg
     ) {
         // Header row - always visible
@@ -77,29 +79,12 @@ fun MuscleRecoveryCard(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
-            ) {
-                Text(
-                    text = "${timeRange.label} >",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.clickable(onClick = onToggleTimeRange)
-                )
-                IconButton(
-                    onClick = { expanded = !expanded },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp
-                            else Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (expanded) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(rotationAngle)
+            )
         }
 
         // Expandable content

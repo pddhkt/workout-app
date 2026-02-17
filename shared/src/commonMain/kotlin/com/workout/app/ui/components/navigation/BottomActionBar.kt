@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -51,32 +54,55 @@ data class SessionSummary(
  * @param sessionSummary Optional session summary information to display
  * @param actionEnabled Whether the action button is enabled
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BottomActionBar(
     actionText: String,
     onActionClick: () -> Unit,
     modifier: Modifier = Modifier,
+    exerciseNames: List<String> = emptyList(),
     sessionSummary: SessionSummary? = null,
     actionEnabled: Boolean = true
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp
+        color = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 0.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline,
-                    shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp)
-                )
-                .background(MaterialTheme.colorScheme.surface)
+                .background(MaterialTheme.colorScheme.onSurface)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(AppTheme.spacing.lg)
         ) {
+            // Selected exercises list
+            if (exerciseNames.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
+                ) {
+                    exerciseNames.forEach { name ->
+                        Text(
+                            text = name,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.1f),
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = AppTheme.spacing.sm, vertical = 4.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+                HorizontalDivider(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.15f))
+                Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+            }
+
             // Session summary (if provided)
             if (sessionSummary != null) {
                 SessionSummaryRow(
@@ -158,13 +184,13 @@ private fun SummaryItem(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.surface
         )
 
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
         )
     }
 }
@@ -178,6 +204,6 @@ private fun VerticalDivider() {
         modifier = Modifier
             .width(1.dp)
             .height(40.dp)
-            .background(MaterialTheme.colorScheme.outline)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
     )
 }
