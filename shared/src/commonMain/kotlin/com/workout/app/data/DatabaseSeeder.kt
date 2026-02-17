@@ -333,6 +333,127 @@ class DatabaseSeeder(
             createdAt = now,
             updatedAt = now
         )
+
+        // Hyrox exercises (8 race stations)
+        exerciseQueries.insert(
+            id = "ex_ski_erg",
+            name = "Ski Erg",
+            muscleGroup = "Back",
+            category = "Compound",
+            equipment = "Machine",
+            difficulty = "Intermediate",
+            instructions = "Stand at ski erg, grab handles overhead, pull down explosively using lats, arms and core. Each rep is one full pull. Hyrox race: 1000m",
+            videoUrl = null,
+            isCustom = 0,
+            isFavorite = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        exerciseQueries.insert(
+            id = "ex_sled_push",
+            name = "Sled Push",
+            muscleGroup = "Legs",
+            category = "Compound",
+            equipment = "Sled",
+            difficulty = "Intermediate",
+            instructions = "Grip sled handles at chest height, lean forward and drive through legs pushing sled forward. Track reps as number of pushes (e.g. 10m segments). Hyrox race: 50m",
+            videoUrl = null,
+            isCustom = 0,
+            isFavorite = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        exerciseQueries.insert(
+            id = "ex_sled_pull",
+            name = "Sled Pull",
+            muscleGroup = "Back",
+            category = "Compound",
+            equipment = "Sled",
+            difficulty = "Intermediate",
+            instructions = "Attach rope to sled, pull hand over hand bringing sled toward you using back and biceps. Track reps as number of pulls. Hyrox race: 50m",
+            videoUrl = null,
+            isCustom = 0,
+            isFavorite = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        exerciseQueries.insert(
+            id = "ex_burpee_broad_jump",
+            name = "Burpee Broad Jump",
+            muscleGroup = "Legs",
+            category = "Compound",
+            equipment = "Bodyweight",
+            difficulty = "Advanced",
+            instructions = "Perform a burpee then immediately broad jump forward. Each rep is one burpee + jump. Hyrox race: 80m total distance",
+            videoUrl = null,
+            isCustom = 0,
+            isFavorite = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        exerciseQueries.insert(
+            id = "ex_rowing",
+            name = "Rowing (Erg)",
+            muscleGroup = "Back",
+            category = "Compound",
+            equipment = "Machine",
+            difficulty = "Intermediate",
+            instructions = "Sit on rower, drive with legs first then pull handle to chest. Each rep is one stroke. Hyrox race: 1000m",
+            videoUrl = null,
+            isCustom = 0,
+            isFavorite = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        exerciseQueries.insert(
+            id = "ex_farmers_carry",
+            name = "Farmers Carry",
+            muscleGroup = "Core",
+            category = "Compound",
+            equipment = "Kettlebells",
+            difficulty = "Intermediate",
+            instructions = "Hold heavy weight in each hand, walk with upright posture engaging core and grip. Track reps as number of carries (e.g. 25m segments). Hyrox race: 200m",
+            videoUrl = null,
+            isCustom = 0,
+            isFavorite = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        exerciseQueries.insert(
+            id = "ex_sandbag_lunges",
+            name = "Sandbag Lunges",
+            muscleGroup = "Legs",
+            category = "Compound",
+            equipment = "Sandbag",
+            difficulty = "Intermediate",
+            instructions = "Place sandbag on shoulders, perform walking lunges alternating legs. Each rep is one lunge step. Hyrox race: 100m with 10/20/30kg sandbag",
+            videoUrl = null,
+            isCustom = 0,
+            isFavorite = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        exerciseQueries.insert(
+            id = "ex_wall_balls",
+            name = "Wall Balls",
+            muscleGroup = "Legs",
+            category = "Compound",
+            equipment = "Medicine Ball",
+            difficulty = "Intermediate",
+            instructions = "Hold medicine ball at chest, squat down then explosively stand and throw ball to target on wall. Catch and repeat. Hyrox race: 75/100 reps",
+            videoUrl = null,
+            isCustom = 0,
+            isFavorite = 0,
+            createdAt = now,
+            updatedAt = now
+        )
     }
 
     /**

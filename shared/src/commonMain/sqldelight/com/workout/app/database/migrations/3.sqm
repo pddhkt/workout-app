@@ -1,0 +1,17 @@
+-- Migration 3: Add Hyrox exercises and training template
+-- Adds 8 Hyrox race station exercises (adapted for reps + weight tracking)
+
+-- Hyrox exercises (8 stations)
+INSERT OR IGNORE INTO Exercise (id, name, muscleGroup, category, equipment, difficulty, instructions, videoUrl, isCustom, isFavorite, createdAt, updatedAt) VALUES
+('ex_ski_erg', 'Ski Erg', 'Back', 'Compound', 'Machine', 'Intermediate', 'Stand at ski erg, grab handles overhead, pull down explosively using lats, arms and core. Each rep is one full pull. Hyrox race: 1000m', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_sled_push', 'Sled Push', 'Legs', 'Compound', 'Sled', 'Intermediate', 'Grip sled handles at chest height, lean forward and drive through legs pushing sled forward. Track reps as number of pushes (e.g. 10m segments). Hyrox race: 50m', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_sled_pull', 'Sled Pull', 'Back', 'Compound', 'Sled', 'Intermediate', 'Attach rope to sled, pull hand over hand bringing sled toward you using back and biceps. Track reps as number of pulls. Hyrox race: 50m', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_burpee_broad_jump', 'Burpee Broad Jump', 'Legs', 'Compound', 'Bodyweight', 'Advanced', 'Perform a burpee then immediately broad jump forward. Each rep is one burpee + jump. Hyrox race: 80m total distance', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_rowing', 'Rowing (Erg)', 'Back', 'Compound', 'Machine', 'Intermediate', 'Sit on rower, drive with legs first then pull handle to chest. Each rep is one stroke. Hyrox race: 1000m', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_farmers_carry', 'Farmers Carry', 'Core', 'Compound', 'Kettlebells', 'Intermediate', 'Hold heavy weight in each hand, walk with upright posture engaging core and grip. Track reps as number of carries (e.g. 25m segments). Hyrox race: 200m', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_sandbag_lunges', 'Sandbag Lunges', 'Legs', 'Compound', 'Sandbag', 'Intermediate', 'Place sandbag on shoulders, perform walking lunges alternating legs. Each rep is one lunge step. Hyrox race: 100m with 10/20/30kg sandbag', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000),
+('ex_wall_balls', 'Wall Balls', 'Legs', 'Compound', 'Medicine Ball', 'Intermediate', 'Hold medicine ball at chest, squat down then explosively stand and throw ball to target on wall. Catch and repeat. Hyrox race: 75/100 reps', NULL, 0, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
+
+-- Hyrox training template (all 8 stations in race order)
+INSERT OR IGNORE INTO Template (id, name, description, exercises, estimatedDuration, isDefault, isFavorite, lastUsed, useCount, createdAt, updatedAt) VALUES
+('tmpl_hyrox', 'Hyrox Training', 'All 8 Hyrox race stations in order. Track reps and weight to simulate race conditions. Adapt sets and reps to your training phase.', '[{"exerciseId":"ex_ski_erg","sets":3},{"exerciseId":"ex_sled_push","sets":3},{"exerciseId":"ex_sled_pull","sets":3},{"exerciseId":"ex_burpee_broad_jump","sets":3},{"exerciseId":"ex_rowing","sets":3},{"exerciseId":"ex_farmers_carry","sets":3},{"exerciseId":"ex_sandbag_lunges","sets":3},{"exerciseId":"ex_wall_balls","sets":3}]', 75, 1, 1, NULL, 0, strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
