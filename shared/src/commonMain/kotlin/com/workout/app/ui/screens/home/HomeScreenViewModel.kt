@@ -1,9 +1,19 @@
 package com.workout.app.ui.screens.home
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import com.workout.app.presentation.home.HomeViewModel
+import com.workout.app.ui.theme.AppTheme
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -12,6 +22,7 @@ import org.koin.compose.koinInject
 /**
  * Home Screen with ViewModel integration.
  * Loads real data from the database and passes it to HomeScreen.
+ * Handles loading and error states before showing content.
  */
 @Composable
 fun HomeScreenWithViewModel(
@@ -23,38 +34,75 @@ fun HomeScreenWithViewModel(
 ) {
     val state by viewModel.state.collectAsState()
 
-    // Convert database entities to UI models
-    val templates = state.templates.map { template ->
-        WorkoutTemplate(
-            id = template.id,
-            name = template.name,
-            exerciseCount = 0, // TODO: Parse from exercises JSON
-            estimatedDuration = "${template.estimatedDuration ?: 60} min"
-        )
-    }
+    val hasNoData = state.recentSessions.isEmpty() && state.templates.isEmpty()
 
-    val sessions = state.recentSessions.map { workout ->
-        RecentSession(
-            id = workout.id,
-            workoutName = workout.name,
-            date = formatDate(workout.createdAt),
-            duration = formatDuration(workout.duration),
-            exerciseCount = workout.exerciseCount.toInt(),
-            totalSets = workout.totalSets.toInt(),
-            exerciseNames = workout.exerciseNames
-        )
-    }
+    when {
+        state.isLoading && hasNoData -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        state.error != null && hasNoData -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+                ) {
+                    Text(
+                        text = "Something went wrong",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = state.error ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        else -> {
+            // Convert database entities to UI models
+            val templates = state.templates.map { template ->
+                WorkoutTemplate(
+                    id = template.id,
+                    name = template.name,
+                    exerciseCount = 0, // TODO: Parse from exercises JSON
+                    estimatedDuration = "${template.estimatedDuration ?: 60} min"
+                )
+            }
 
-    // Pass real data to HomeScreen
-    HomeScreen(
-        templates = templates,
-        recentSessions = sessions,
-        onTemplateClick = onTemplateClick,
-        onSessionClick = onSessionClick,
-        onViewAllTemplates = onViewAllTemplates,
-        onViewAllSessions = onViewAllSessions,
-        heatmapData = state.heatmapData
-    )
+            val sessions = state.recentSessions.map { workout ->
+                RecentSession(
+                    id = workout.id,
+                    workoutName = workout.name,
+                    date = formatDate(workout.createdAt),
+                    duration = formatDuration(workout.duration),
+                    exerciseCount = workout.exerciseCount.toInt(),
+                    totalSets = workout.totalSets.toInt(),
+                    exerciseNames = workout.exerciseNames
+                )
+            }
+
+            HomeScreen(
+                templates = templates,
+                recentSessions = sessions,
+                onTemplateClick = onTemplateClick,
+                onSessionClick = onSessionClick,
+                onViewAllTemplates = onViewAllTemplates,
+                onViewAllSessions = onViewAllSessions,
+                heatmapData = state.heatmapData
+            )
+        }
+    }
 }
 
 /**

@@ -37,7 +37,7 @@ fun BaseCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
-    shape: Shape = RoundedCornerShape(2.dp),
+    shape: Shape = RoundedCornerShape(12.dp),
     elevation: Dp = 1.dp,
     backgroundColor: Color = MaterialTheme.colorScheme.surface,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,

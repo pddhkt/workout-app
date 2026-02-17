@@ -66,6 +66,8 @@ fun ConsistencyHeatmap(
     mediumIntensityColor: Color? = null,
     highIntensityColor: Color? = null,
     emptyColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    legendTextColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    dayLabelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     showDayLabels: Boolean = true,
     title: String? = null
 ) {
@@ -136,7 +138,7 @@ fun ConsistencyHeatmap(
                                 Text(
                                     text = label,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = dayLabelColor
                                 )
                             }
                         }
@@ -184,7 +186,8 @@ fun ConsistencyHeatmap(
             emptyColor = emptyColor,
             lowIntensityColor = resolvedLowIntensityColor,
             mediumIntensityColor = resolvedMediumIntensityColor,
-            highIntensityColor = resolvedHighIntensityColor
+            highIntensityColor = resolvedHighIntensityColor,
+            textColor = legendTextColor
         )
     }
 }
@@ -236,7 +239,8 @@ private fun HeatmapLegend(
     emptyColor: Color,
     lowIntensityColor: Color,
     mediumIntensityColor: Color,
-    highIntensityColor: Color
+    highIntensityColor: Color,
+    textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -246,7 +250,7 @@ private fun HeatmapLegend(
         Text(
             text = "Less",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = textColor
         )
 
         Spacer(modifier = Modifier.width(AppTheme.spacing.xs))
@@ -274,7 +278,7 @@ private fun HeatmapLegend(
         Text(
             text = "More",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = textColor
         )
     }
 }

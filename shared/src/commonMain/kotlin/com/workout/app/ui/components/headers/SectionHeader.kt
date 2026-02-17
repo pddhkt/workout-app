@@ -12,7 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.components.chips.CountBadge
 import com.workout.app.ui.components.chips.BadgeVariant
@@ -108,11 +107,11 @@ fun SectionHeaderWithAction(
         Button(
             onClick = onActionClick,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.onSurface,
+                contentColor = MaterialTheme.colorScheme.surface
             ),
-            shape = RoundedCornerShape(2.dp),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Text(
                 text = actionText,
@@ -166,11 +165,11 @@ fun SectionHeaderWithCountAndAction(
         Button(
             onClick = onActionClick,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.onSurface,
+                contentColor = MaterialTheme.colorScheme.surface
             ),
-            shape = RoundedCornerShape(2.dp),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Text(
                 text = actionText,

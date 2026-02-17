@@ -4,19 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,9 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.workout.app.ui.components.cards.ElevatedCard
 import com.workout.app.ui.components.dataviz.ConsistencyHeatmap
 import com.workout.app.ui.components.dataviz.HeatmapDay
@@ -38,7 +31,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 /**
- * Mock data for a workout template
+ * Data for a workout template
  */
 data class WorkoutTemplate(
     val id: String,
@@ -48,7 +41,7 @@ data class WorkoutTemplate(
 )
 
 /**
- * Mock data for a recent session
+ * Data for a recent session
  */
 data class RecentSession(
     val id: String,
@@ -62,14 +55,7 @@ data class RecentSession(
 
 /**
  * Home Screen of the workout app.
- * Based on mockups - main dashboard showing overview, templates, and recent sessions.
- *
- * Features:
- * - HomeHeader with greeting and date
- * - ConsistencyHeatmap widget
- * - Quick Start Templates section with horizontal scroll
- * - Recent Sessions section with session cards
- * - BottomNavBar with Home selected
+ * Main dashboard showing overview, heatmap, and recent sessions.
  *
  * @param templates List of workout templates to display
  * @param recentSessions List of recent sessions to display
@@ -77,8 +63,7 @@ data class RecentSession(
  * @param onSessionClick Callback when a recent session is selected
  * @param onViewAllTemplates Callback for "View All" templates action
  * @param onViewAllSessions Callback for "View All" sessions action
- * @param onNavigate Callback for bottom navigation
- * @param onAddClick Callback for center Add button
+ * @param heatmapData Workout consistency heatmap data
  * @param modifier Optional modifier for customization
  */
 @Composable
@@ -100,7 +85,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFFFE302))
+                .background(MaterialTheme.colorScheme.primary)
                 .padding(bottom = AppTheme.spacing.xl)
         ) {
             // Header with greeting and date
@@ -114,8 +99,13 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
 
             // Consistency Heatmap - full width with padding
-            ConsistencyHeatmapSection(
-                heatmapData = heatmapData,
+            ConsistencyHeatmap(
+                days = heatmapData,
+                showDayLabels = true,
+                title = null,
+                emptyColor = Color.White.copy(alpha = 0.4f),
+                legendTextColor = MaterialTheme.colorScheme.onPrimary,
+                dayLabelColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = AppTheme.spacing.lg)
@@ -127,21 +117,19 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .background(Color(0xFFF4F4F4))
+                .background(MaterialTheme.colorScheme.background)
                 .padding(top = AppTheme.spacing.xl)
-                .padding(bottom = AppTheme.spacing.xl)
         ) {
-            // Recent Sessions (no Quick Start)
+            // Recent Sessions
             RecentSessionsSection(
                 sessions = recentSessions,
                 onSessionClick = onSessionClick,
                 onViewAll = onViewAllSessions,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f)
                     .padding(horizontal = AppTheme.spacing.lg)
             )
-
-            Spacer(modifier = Modifier.height(AppTheme.spacing.xl))
         }
     }
 }
@@ -193,187 +181,18 @@ private fun HomeHeader(
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
-            color = Color(0xFF000000)
+            color = MaterialTheme.colorScheme.onPrimary
         )
         Text(
             text = currentDate,
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF000000).copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
         )
     }
 }
 
 /**
- * Consistency heatmap section with title
- */
-@Composable
-private fun ConsistencyHeatmapSection(
-    heatmapData: List<HeatmapDay>,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-    ) {
-        ConsistencyHeatmap(
-            days = heatmapData,
-            showDayLabels = true,
-            title = null
-        )
-    }
-}
-
-/**
- * Quick start templates section with horizontal scrolling cards
- */
-@Composable
-private fun QuickStartTemplatesSection(
-    templates: List<WorkoutTemplate>,
-    onTemplateClick: (String) -> Unit,
-    onViewAll: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-    ) {
-        SectionHeaderWithAction(
-            title = "Quick Start",
-            actionText = "View All",
-            onActionClick = onViewAll,
-            modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
-        )
-
-        if (templates.isEmpty()) {
-            // Empty state - show add template card
-            AddTemplateCard(
-                onClick = onViewAll,
-                modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
-            )
-        } else {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = AppTheme.spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-            ) {
-                items(templates, key = { it.id }) { template ->
-                    TemplateCard(
-                        template = template,
-                        onClick = { onTemplateClick(template.id) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Add template card for empty state - encourages users to create their first template
- */
-@Composable
-private fun AddTemplateCard(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    ElevatedCard(
-        modifier = modifier
-            .width(180.dp)
-            .height(120.dp),
-        onClick = onClick
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(AppTheme.spacing.md),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add template",
-                tint = AppTheme.colors.primaryText
-            )
-            Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
-            Text(
-                text = "Add Template",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = AppTheme.colors.primaryText
-            )
-            Text(
-                text = "Create your first workout",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-/**
- * Template card component
- */
-@Composable
-private fun TemplateCard(
-    template: WorkoutTemplate,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    ElevatedCard(
-        modifier = modifier.padding(vertical = AppTheme.spacing.xs),
-        onClick = onClick
-    ) {
-        Column(
-            modifier = Modifier.padding(AppTheme.spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-        ) {
-            Text(
-                text = template.name,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.lg)
-            ) {
-                Column {
-                    Text(
-                        text = "${template.exerciseCount}",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = AppTheme.colors.primaryText
-                    )
-                    Text(
-                        text = "Exercises",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Column {
-                    Text(
-                        text = template.estimatedDuration,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = AppTheme.colors.primaryText
-                    )
-                    Text(
-                        text = "Duration",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Recent sessions section with session cards
+ * Recent sessions section with session cards in a scrollable list
  */
 @Composable
 private fun RecentSessionsSection(
@@ -383,8 +202,7 @@ private fun RecentSessionsSection(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+        modifier = modifier
     ) {
         SectionHeaderWithAction(
             title = "Recent Sessions",
@@ -392,15 +210,55 @@ private fun RecentSessionsSection(
             onActionClick = onViewAll
         )
 
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
-        ) {
-            sessions.forEach { session ->
-                RecentSessionCard(
-                    session = session,
-                    onClick = { onSessionClick(session.id) }
-                )
+        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+
+        if (sessions.isEmpty()) {
+            RecentSessionsEmptyState(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = AppTheme.spacing.xxl)
+            )
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(sessions, key = { it.id }) { session ->
+                    RecentSessionCard(
+                        session = session,
+                        onClick = { onSessionClick(session.id) }
+                    )
+                }
             }
+        }
+    }
+}
+
+/**
+ * Empty state for when there are no recent sessions
+ */
+@Composable
+private fun RecentSessionsEmptyState(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+        ) {
+            Text(
+                text = "No recent sessions",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Complete a workout to see it here",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -504,4 +362,3 @@ private fun SessionStat(
         )
     }
 }
-
