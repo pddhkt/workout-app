@@ -301,7 +301,12 @@ fun WorkoutScreen(
 
     val scaffoldState = rememberBottomSheetScaffoldState()
     val navBarBottomDp = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
-    val sheetPeekHeight = if (selectedExercise != null) 230.dp + navBarBottomDp else 0.dp
+    val imeBottomDp = with(density) { WindowInsets.ime.getBottom(this).toDp() }
+    val sheetPeekHeight = if (selectedExercise != null) {
+        val baseHeight = if (isMultiParticipant) 280.dp else 230.dp
+        val imeAdjustment = (imeBottomDp - navBarBottomDp).coerceAtLeast(0.dp)
+        baseHeight + navBarBottomDp + imeAdjustment
+    } else 0.dp
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -320,7 +325,7 @@ fun WorkoutScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
+                        .windowInsetsPadding(WindowInsets.navigationBars)
                         .pointerInput(pages.size) {
                             detectHorizontalDragGestures(
                                 onDragStart = { accumulatedDrag = 0f },
@@ -646,7 +651,7 @@ fun WorkoutScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(AppTheme.spacing.lg))
+                    Spacer(modifier = Modifier.height(48.dp))
 
                     // Rest timer section: revealed when sheet is swiped up
                     HorizontalDivider(

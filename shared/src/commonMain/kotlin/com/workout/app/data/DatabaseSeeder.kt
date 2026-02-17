@@ -4,6 +4,7 @@ import com.workout.app.database.ExerciseQueries
 import com.workout.app.database.SessionExerciseQueries
 import com.workout.app.database.SessionQueries
 import com.workout.app.database.SetQueries
+import com.workout.app.database.TemplateQueries
 import com.workout.app.database.WorkoutQueries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,7 +22,8 @@ class DatabaseSeeder(
     private val sessionQueries: SessionQueries,
     private val sessionExerciseQueries: SessionExerciseQueries,
     private val setQueries: SetQueries,
-    private val exerciseQueries: ExerciseQueries
+    private val exerciseQueries: ExerciseQueries,
+    private val templateQueries: TemplateQueries
 ) {
     /**
      * Seeds the database with sample data if the database is empty.
@@ -31,6 +33,11 @@ class DatabaseSeeder(
 
         if (existingExercises == 0) {
             seedExercises()
+        }
+
+        val existingTemplates = templateQueries.countAll().executeAsOne()
+        if (existingTemplates == 0L) {
+            seedTemplates()
         }
 
         // Clean up any previously seeded sample workouts
@@ -451,6 +458,97 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+    }
+
+    /**
+     * Seeds default workout templates.
+     */
+    private fun seedTemplates() {
+        val now = Clock.System.now().toEpochMilliseconds()
+
+        templateQueries.insert(
+            id = "tmpl_push_day",
+            name = "Push Day",
+            description = "Chest, shoulders, and triceps focused workout",
+            exercises = """[{"exerciseId":"ex_bench_press","sets":4},{"exerciseId":"ex_incline_db_press","sets":3},{"exerciseId":"ex_shoulder_press","sets":3},{"exerciseId":"ex_lateral_raise","sets":3},{"exerciseId":"ex_tricep_pushdown","sets":3}]""",
+            estimatedDuration = 60,
+            isDefault = 1,
+            isFavorite = 1,
+            lastUsed = null,
+            useCount = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        templateQueries.insert(
+            id = "tmpl_pull_day",
+            name = "Pull Day",
+            description = "Back and biceps focused workout",
+            exercises = """[{"exerciseId":"ex_lat_pulldown","sets":4},{"exerciseId":"ex_barbell_row","sets":4},{"exerciseId":"ex_seated_row","sets":3},{"exerciseId":"ex_barbell_curl","sets":3},{"exerciseId":"ex_hammer_curl","sets":3}]""",
+            estimatedDuration = 60,
+            isDefault = 1,
+            isFavorite = 1,
+            lastUsed = null,
+            useCount = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        templateQueries.insert(
+            id = "tmpl_leg_day",
+            name = "Leg Day",
+            description = "Lower body focused workout",
+            exercises = """[{"exerciseId":"ex_squat","sets":4},{"exerciseId":"ex_leg_press","sets":4},{"exerciseId":"ex_romanian_deadlift","sets":3},{"exerciseId":"ex_leg_curl","sets":3}]""",
+            estimatedDuration = 55,
+            isDefault = 1,
+            isFavorite = 1,
+            lastUsed = null,
+            useCount = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        templateQueries.insert(
+            id = "tmpl_upper_body",
+            name = "Upper Body",
+            description = "Complete upper body workout",
+            exercises = """[{"exerciseId":"ex_bench_press","sets":4},{"exerciseId":"ex_barbell_row","sets":4},{"exerciseId":"ex_shoulder_press","sets":3},{"exerciseId":"ex_lat_pulldown","sets":3},{"exerciseId":"ex_barbell_curl","sets":3},{"exerciseId":"ex_tricep_pushdown","sets":3}]""",
+            estimatedDuration = 75,
+            isDefault = 1,
+            isFavorite = 0,
+            lastUsed = null,
+            useCount = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        templateQueries.insert(
+            id = "tmpl_quick_workout",
+            name = "Quick Full Body",
+            description = "Short full body workout for busy days",
+            exercises = """[{"exerciseId":"ex_bench_press","sets":3},{"exerciseId":"ex_squat","sets":3},{"exerciseId":"ex_lat_pulldown","sets":3}]""",
+            estimatedDuration = 30,
+            isDefault = 1,
+            isFavorite = 0,
+            lastUsed = null,
+            useCount = 0,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        templateQueries.insert(
+            id = "tmpl_hyrox",
+            name = "Hyrox Training",
+            description = "All 8 Hyrox race stations in order. Track reps and weight to simulate race conditions. Adapt sets and reps to your training phase.",
+            exercises = """[{"exerciseId":"ex_ski_erg","sets":3},{"exerciseId":"ex_sled_push","sets":3},{"exerciseId":"ex_sled_pull","sets":3},{"exerciseId":"ex_burpee_broad_jump","sets":3},{"exerciseId":"ex_rowing","sets":3},{"exerciseId":"ex_farmers_carry","sets":3},{"exerciseId":"ex_sandbag_lunges","sets":3},{"exerciseId":"ex_wall_balls","sets":3}]""",
+            estimatedDuration = 75,
+            isDefault = 1,
+            isFavorite = 1,
+            lastUsed = null,
+            useCount = 0,
             createdAt = now,
             updatedAt = now
         )

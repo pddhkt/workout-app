@@ -29,7 +29,8 @@ val dataModule = module {
             sessionQueries = get(),
             sessionExerciseQueries = get(),
             setQueries = get(),
-            exerciseQueries = get()
+            exerciseQueries = get(),
+            templateQueries = get()
         )
     }
 
