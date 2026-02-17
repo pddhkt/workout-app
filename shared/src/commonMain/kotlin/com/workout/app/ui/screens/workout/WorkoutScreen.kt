@@ -258,7 +258,7 @@ fun WorkoutScreen(
     }
 
     val scaffoldState = rememberBottomSheetScaffoldState()
-    val sheetPeekHeight = if (selectedExercise != null) 280.dp else 0.dp
+    val sheetPeekHeight = if (selectedExercise != null) 230.dp else 0.dp
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -647,7 +647,7 @@ fun WorkoutScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clip(RoundedCornerShape(2.dp))
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(MaterialTheme.colorScheme.error),
                                 contentAlignment = Alignment.CenterEnd
                             ) {
