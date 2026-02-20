@@ -10,8 +10,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -180,42 +182,11 @@ fun AppNavigation(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            AnimatedVisibility(
-                visible = showNavBar,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(tween(200)),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(tween(200))
-            ) {
-                BottomNavBar(
-                    selectedIndex = selectedNavIndex,
-                    onItemSelected = { index ->
-                        val route = BottomNavDestinations.getRouteForIndex(index)
-                        navController.navigate(route) {
-                            popUpTo(Route.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onAddClick = {
-                        if (activeSessionState.hasActiveSession) {
-                            showCancelSessionDialog = true
-                        } else {
-                            navController.navigateToSessionPlanning()
-                        }
-                    },
-                    modifier = Modifier.onSizeChanged { size ->
-                        with(density) {
-                            measuredNavBarHeight = size.height.toDp()
-                        }
-                    }
-                )
-            }
-        }
+        contentWindowInsets = WindowInsets.statusBars
     ) { paddingValues ->
     Box(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize().padding(
-            top = paddingValues.calculateTopPadding(),
-            bottom = paddingValues.calculateBottomPadding()
+            top = paddingValues.calculateTopPadding()
         )) {
         NavHost(
             navController = navController,
@@ -246,39 +217,43 @@ fun AppNavigation(
 
         // Home Screen (FT-012)
         composable(Route.Home.route) {
-            HomeScreenWithViewModel(
-                onTemplateClick = { templateId ->
-                    // Navigate to session planning with template pre-selected
-                    navController.navigateToSessionPlanningWithTemplate(templateId)
-                },
-                onSessionClick = { sessionId ->
-                    // Navigate to session detail to view past session
-                    navController.navigateToSessionDetail(sessionId)
-                },
-                onViewAllTemplates = {
-                    navController.navigateToTemplates {
-                        popUpTo(Route.Home.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+            Box(Modifier.padding(bottom = measuredNavBarHeight)) {
+                HomeScreenWithViewModel(
+                    onTemplateClick = { templateId ->
+                        // Navigate to session planning with template pre-selected
+                        navController.navigateToSessionPlanningWithTemplate(templateId)
+                    },
+                    onSessionClick = { sessionId ->
+                        // Navigate to session detail to view past session
+                        navController.navigateToSessionDetail(sessionId)
+                    },
+                    onViewAllTemplates = {
+                        navController.navigateToTemplates {
+                            popUpTo(Route.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onViewAllSessions = {
+                        navController.navigateToSessionHistory()
+                    },
+                    onChatClick = {
+                        navController.navigateToChat()
                     }
-                },
-                onViewAllSessions = {
-                    navController.navigateToSessionHistory()
-                },
-                onChatClick = {
-                    navController.navigateToChat()
-                }
-            )
+                )
+            }
         }
 
         // Templates Screen
         composable(Route.Templates.route) {
-            TemplatesScreen(
-                onTemplateClick = { templateId ->
-                    // Navigate to session planning with template pre-selected
-                    navController.navigateToSessionPlanningWithTemplate(templateId)
-                }
-            )
+            Box(Modifier.padding(bottom = measuredNavBarHeight)) {
+                TemplatesScreen(
+                    onTemplateClick = { templateId ->
+                        // Navigate to session planning with template pre-selected
+                        navController.navigateToSessionPlanningWithTemplate(templateId)
+                    }
+                )
+            }
         }
 
         // Session Planning (FT-013)
@@ -432,29 +407,31 @@ fun AppNavigation(
                 )
             }
 
-            ExerciseLibraryScreen(
-                onExerciseClick = { exerciseId ->
-                    navController.navigateToExerciseDetail(exerciseId)
-                },
-                onFavoriteToggle = { exerciseId ->
-                    viewModel.toggleFavorite(exerciseId)
-                },
-                onCreateExercise = { formState ->
-                    viewModel.createCustomExercise(
-                        name = formState.name,
-                        muscleGroup = formState.muscleGroup ?: "",
-                        category = formState.category,
-                        equipment = formState.equipment,
-                        difficulty = formState.difficulty,
-                        instructions = formState.instructions.takeIf { it.isNotBlank() }
-                    )
-                },
-                showAddExerciseSheet = state.showAddExerciseSheet,
-                onShowAddExerciseSheet = viewModel::showAddExerciseSheet,
-                onHideAddExerciseSheet = viewModel::hideAddExerciseSheet,
-                exercises = exercises,
-                isCreatingExercise = state.isCreating
-            )
+            Box(Modifier.padding(bottom = measuredNavBarHeight)) {
+                ExerciseLibraryScreen(
+                    onExerciseClick = { exerciseId ->
+                        navController.navigateToExerciseDetail(exerciseId)
+                    },
+                    onFavoriteToggle = { exerciseId ->
+                        viewModel.toggleFavorite(exerciseId)
+                    },
+                    onCreateExercise = { formState ->
+                        viewModel.createCustomExercise(
+                            name = formState.name,
+                            muscleGroup = formState.muscleGroup ?: "",
+                            category = formState.category,
+                            equipment = formState.equipment,
+                            difficulty = formState.difficulty,
+                            instructions = formState.instructions.takeIf { it.isNotBlank() }
+                        )
+                    },
+                    showAddExerciseSheet = state.showAddExerciseSheet,
+                    onShowAddExerciseSheet = viewModel::showAddExerciseSheet,
+                    onHideAddExerciseSheet = viewModel::hideAddExerciseSheet,
+                    exercises = exercises,
+                    isCreatingExercise = state.isCreating
+                )
+            }
         }
 
         // Exercise Detail (FT-018)
@@ -588,6 +565,38 @@ fun AppNavigation(
         // Handle back press when workout overlay is expanded
         BackHandler(enabled = showWorkoutOverlay && !activeSessionState.isMinimized) {
             onMinimizeWorkout()
+        }
+
+        // Bottom Nav Bar - overlay positioned at the bottom
+        AnimatedVisibility(
+            visible = showNavBar,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(tween(200)),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(tween(200)),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            BottomNavBar(
+                selectedIndex = selectedNavIndex,
+                onItemSelected = { index ->
+                    val route = BottomNavDestinations.getRouteForIndex(index)
+                    navController.navigate(route) {
+                        popUpTo(Route.Home.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onAddClick = {
+                    if (activeSessionState.hasActiveSession) {
+                        showCancelSessionDialog = true
+                    } else {
+                        navController.navigateToSessionPlanning()
+                    }
+                },
+                modifier = Modifier.onSizeChanged { size ->
+                    with(density) {
+                        measuredNavBarHeight = size.height.toDp()
+                    }
+                }
+            )
         }
 
         // Workout Overlay - animated shrink/expand view

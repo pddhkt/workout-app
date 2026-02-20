@@ -1,5 +1,11 @@
 package com.workout.app.ui.screens.planning
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -156,7 +163,7 @@ fun SessionPlanningScreen(
         val estimatedMinutes = state.totalSets * 5
         val hours = estimatedMinutes / 60
         val mins = estimatedMinutes % 60
-        val durationText = if (hours > 0) "$hours:${mins.toString().padStart(2, '0')}" else "$mins:00"
+        val durationText = if (hours > 0) "${hours}h${mins}m" else "${mins}m"
         SessionSummary(
             duration = durationText,
             sets = state.totalSets,
@@ -172,16 +179,33 @@ fun SessionPlanningScreen(
         exerciseMap[id]?.name
     }
 
+    // Animate bottom bar in from the bottom on screen entry
+    var bottomBarVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { bottomBarVisible = true }
+
     Scaffold(
         modifier = modifier,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            BottomActionBar(
-                actionText = "Start Session",
-                onActionClick = onStartSession,
-                exerciseNames = selectedExerciseNames,
-                sessionSummary = sessionSummary,
-                actionEnabled = state.canStartSession
-            )
+            AnimatedVisibility(
+                visible = bottomBarVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(300)
+                ) + fadeIn(tween(300)),
+                exit = slideOutVertically(
+                    targetOffsetY = { it },
+                    animationSpec = tween(200)
+                ) + fadeOut(tween(200))
+            ) {
+                BottomActionBar(
+                    actionText = "Start Session",
+                    onActionClick = onStartSession,
+                    exerciseNames = selectedExerciseNames,
+                    sessionSummary = sessionSummary,
+                    actionEnabled = state.canStartSession
+                )
+            }
         }
     ) { paddingValues ->
         @OptIn(ExperimentalFoundationApi::class)
@@ -292,7 +316,6 @@ fun SessionPlanningScreen(
                         exerciseName = exercise.name,
                         exerciseCategory = categoryDisplay,
                         isAdded = isAdded,
-                        history = emptyList(),
                         onToggle = { onToggleExercise(exercise.id) },
                         modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
                     )

@@ -66,11 +66,13 @@ fun MuscleRecoveryCard(
     BaseCard(
         modifier = modifier,
         onClick = { expanded = !expanded },
-        contentPadding = AppTheme.spacing.lg
+        contentPadding = 0.dp
     ) {
         // Header row - always visible
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppTheme.spacing.lg),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -94,8 +96,10 @@ fun MuscleRecoveryCard(
             exit = shrinkVertically()
         ) {
             Column {
-                Spacer(modifier = Modifier.height(AppTheme.spacing.md))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
+                )
                 Spacer(modifier = Modifier.height(AppTheme.spacing.md))
 
                 AnimatedContent(
@@ -109,7 +113,8 @@ fun MuscleRecoveryCard(
                     if (targetDetail != null) {
                         MuscleRecoveryDetailView(
                             recovery = targetDetail,
-                            onBackClick = { detailMuscle = null }
+                            onBackClick = { detailMuscle = null },
+                            modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
                         )
                     } else {
                         Column {
@@ -126,8 +131,8 @@ fun MuscleRecoveryCard(
                                     },
                                     onInfoClick = { detailMuscle = recovery }
                                 )
-                                Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
                             }
+                            Spacer(modifier = Modifier.height(AppTheme.spacing.md))
                         }
                     }
                 }
@@ -171,13 +176,12 @@ private fun MuscleRecoveryRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(2.dp))
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                if (isSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.surface.copy(alpha = 0f)
             )
             .clickable(onClick = onClick)
-            .padding(vertical = AppTheme.spacing.sm, horizontal = AppTheme.spacing.xs),
+            .padding(vertical = AppTheme.spacing.sm, horizontal = AppTheme.spacing.lg),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Muscle group name

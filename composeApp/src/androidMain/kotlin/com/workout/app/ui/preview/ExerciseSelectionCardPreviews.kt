@@ -14,13 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.components.exercise.ExerciseSelectionCard
-import com.workout.app.ui.components.exercise.PreviousRecord
 import com.workout.app.ui.theme.WorkoutAppTheme
-
-private val mockHistory = listOf(
-    PreviousRecord(date = "Jan 19, 2026", sets = "3", reps = "8-10", weight = "85-90 kg"),
-    PreviousRecord(date = "Jan 16, 2026", sets = "3", reps = "10-12", weight = "80-85 kg")
-)
 
 /**
  * Preview: Default state - Exercise not added
@@ -41,7 +35,6 @@ private fun ExerciseSelectionCardDefaultPreview() {
                 exerciseName = "Barbell Squat",
                 exerciseCategory = "Legs",
                 isAdded = false,
-                history = mockHistory,
                 onToggle = { },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -50,7 +43,7 @@ private fun ExerciseSelectionCardDefaultPreview() {
 }
 
 /**
- * Preview: Added state - Exercise added with expanded history
+ * Preview: Added state - Exercise added
  */
 @Preview(
     name = "Added State",
@@ -68,7 +61,6 @@ private fun ExerciseSelectionCardAddedPreview() {
                 exerciseName = "Bench Press",
                 exerciseCategory = "Push",
                 isAdded = true,
-                history = mockHistory,
                 onToggle = { },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -97,7 +89,6 @@ private fun ExerciseSelectionCardInteractivePreview() {
                 exerciseName = "Deadlift",
                 exerciseCategory = "Back",
                 isAdded = isAdded,
-                history = mockHistory,
                 onToggle = { isAdded = !isAdded },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -126,27 +117,24 @@ private fun ExerciseSelectionCardListPreview() {
                 exerciseName = "Barbell Squat",
                 exerciseCategory = "Legs",
                 isAdded = false,
-                history = mockHistory,
                 onToggle = { },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Exercise 2: Added with history
+            // Exercise 2: Added
             ExerciseSelectionCard(
                 exerciseName = "Bench Press",
                 exerciseCategory = "Push",
                 isAdded = true,
-                history = mockHistory,
                 onToggle = { },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Exercise 3: No history
+            // Exercise 3: Added
             ExerciseSelectionCard(
                 exerciseName = "New Exercise",
                 exerciseCategory = "Core",
                 isAdded = true,
-                history = emptyList(),
                 onToggle = { },
                 modifier = Modifier.fillMaxWidth()
             )
