@@ -118,8 +118,10 @@ private fun ParticipantChip(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Remove $name",
                 modifier = Modifier
-                    .size(16.dp)
-                    .clickable(onClick = onRemove),
+                    .size(24.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onRemove)
+                    .padding(4.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

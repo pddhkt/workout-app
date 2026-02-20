@@ -1,11 +1,15 @@
 package com.workout.app.ui.components.buttons
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +26,7 @@ import com.workout.app.ui.theme.AppTheme
  * @param modifier Modifier to be applied to the button
  * @param enabled Whether the button is enabled or disabled
  * @param fullWidth Whether the button should fill max width
+ * @param isLoading Whether to show a loading indicator instead of text
  */
 @Composable
 fun PrimaryButton(
@@ -29,14 +34,15 @@ fun PrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    fullWidth: Boolean = false
+    fullWidth: Boolean = false,
+    isLoading: Boolean = false
 ) {
     Button(
         onClick = onClick,
         modifier = modifier
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .height(48.dp),
-        enabled = enabled,
+        enabled = enabled && !isLoading,
         shape = RoundedCornerShape(2.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
@@ -49,9 +55,22 @@ fun PrimaryButton(
             vertical = AppTheme.spacing.md
         )
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge
-        )
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.dp
+            )
+            Spacer(modifier = Modifier.width(AppTheme.spacing.sm))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge
+            )
+        } else {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
     }
 }

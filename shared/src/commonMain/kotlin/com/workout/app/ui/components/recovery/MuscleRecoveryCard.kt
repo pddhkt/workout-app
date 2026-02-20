@@ -56,7 +56,7 @@ fun MuscleRecoveryCard(
 ) {
     if (muscleRecoveryList.isEmpty()) return
 
-    var expanded by remember { mutableStateOf(true) }
+    var expanded by remember { mutableStateOf(false) }
     var detailMuscle by remember { mutableStateOf<MuscleRecovery?>(null) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -177,7 +177,7 @@ private fun MuscleRecoveryRow(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primary
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                 else MaterialTheme.colorScheme.surface.copy(alpha = 0f)
             )
             .clickable(onClick = onClick)
@@ -236,13 +236,13 @@ private fun MuscleRecoveryRow(
             onClick = onInfoClick,
             modifier = Modifier
                 .padding(start = AppTheme.spacing.xs)
-                .size(20.dp)
+                .size(40.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Info,
                 contentDescription = "View recovery details",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
     }

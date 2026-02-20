@@ -62,7 +62,8 @@ fun BottomActionBar(
     modifier: Modifier = Modifier,
     exerciseNames: List<String> = emptyList(),
     sessionSummary: SessionSummary? = null,
-    actionEnabled: Boolean = true
+    actionEnabled: Boolean = true,
+    isLoading: Boolean = false
 ) {
     Surface(
         modifier = modifier
@@ -116,7 +117,8 @@ fun BottomActionBar(
                 text = actionText,
                 onClick = onActionClick,
                 enabled = actionEnabled,
-                fullWidth = true
+                fullWidth = true,
+                isLoading = isLoading
             )
         }
     }

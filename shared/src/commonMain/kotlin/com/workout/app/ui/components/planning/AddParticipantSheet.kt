@@ -164,10 +164,11 @@ fun AddParticipantSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(44.dp)
                         .clickable {
                             onAddParticipant(name)
                         }
-                        .padding(vertical = AppTheme.spacing.md),
+                        .padding(horizontal = AppTheme.spacing.xs),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
