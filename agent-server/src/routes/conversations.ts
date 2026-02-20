@@ -28,7 +28,7 @@ router.get("/", (_req: Request, res: Response) => {
 // POST /conversations - Create a new conversation
 router.post("/", (req: Request, res: Response) => {
   try {
-    const { title } = req.body as { title?: string };
+    const { title } = (req.body ?? {}) as { title?: string };
     const id = crypto.randomUUID();
     const conversation = createConversation(id, title);
     res.status(201).json(conversation);

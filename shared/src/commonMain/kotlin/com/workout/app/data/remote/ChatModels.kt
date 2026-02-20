@@ -1,5 +1,6 @@
 package com.workout.app.data.remote
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -7,18 +8,18 @@ data class ConversationDto(
     val id: String,
     val title: String? = null,
     val status: String = "active",
-    val createdAt: Long = 0,
-    val updatedAt: Long = 0
+    @SerialName("created_at") val createdAt: Long = 0,
+    @SerialName("updated_at") val updatedAt: Long = 0
 )
 
 @Serializable
 data class MessageDto(
     val id: String,
-    val conversationId: String,
+    @SerialName("conversation_id") val conversationId: String,
     val role: String,
     val content: String,
     val metadata: MessageMetadataDto? = null,
-    val createdAt: Long = 0
+    @SerialName("created_at") val createdAt: Long = 0
 )
 
 @Serializable
