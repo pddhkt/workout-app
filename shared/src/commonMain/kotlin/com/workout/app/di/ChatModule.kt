@@ -13,7 +13,7 @@ val chatModule = module {
     // Agent API Client - singleton
     single {
         AgentApiClient(
-            baseUrl = "http://10.0.0.1:3141" // This device's WireGuard VPN IP (the server) - configurable in settings
+            baseUrl = "http://72.60.237.113:3141" // Server public IP - configurable in settings
         )
     }
 
