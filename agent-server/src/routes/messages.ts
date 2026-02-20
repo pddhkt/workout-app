@@ -84,14 +84,17 @@ router.post(
 
       // 3. Store the assistant message with metadata
       const assistantMessageId = crypto.randomUUID();
+      // Send the first metadata item directly (not wrapped in { items: [...] })
+      // The mobile app expects a flat object with "type" at the root level
+      const metadata = agentResponse.metadata?.length
+        ? agentResponse.metadata[0]
+        : null;
       const assistantMessage = createMessage(
         assistantMessageId,
         conversationId,
         "assistant",
         agentResponse.response,
-        agentResponse.metadata
-          ? { items: agentResponse.metadata }
-          : null
+        metadata
       );
 
       // 4. Update the conversation's agent session ID if we got a new one

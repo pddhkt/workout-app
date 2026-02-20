@@ -187,11 +187,14 @@ export class AgentManager {
                   const input = block.input as Record<string, unknown>;
                   const toolShortName = toolName.replace("mcp__workout-tools__", "");
                   if (toolShortName === "present_choices") {
+                    // Client expects { type, options } at root level
                     metadataItems.push({ type: "multiple_choice", ...input });
                   } else if (toolShortName === "create_template_proposal") {
-                    metadataItems.push({ type: "template_proposal", ...input });
+                    // Client expects { type, templateData: { name, exercises, ... } }
+                    metadataItems.push({ type: "template_proposal", templateData: input });
                   } else if (toolShortName === "create_exercise_proposal") {
-                    metadataItems.push({ type: "exercise_proposal", ...input });
+                    // Client expects { type, exerciseData: { name, muscleGroup, ... } }
+                    metadataItems.push({ type: "exercise_proposal", exerciseData: input });
                   }
                 }
               }
