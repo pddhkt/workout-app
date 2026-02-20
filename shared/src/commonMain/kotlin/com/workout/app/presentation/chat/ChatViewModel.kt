@@ -15,9 +15,6 @@ import com.workout.app.presentation.base.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -67,8 +64,8 @@ class ChatViewModel(
             if (conversationId == null) {
                 when (val result = chatRepository.createConversation()) {
                     is Result.Success -> {
-                        conversationId = result.data
-                        _state.update { it.copy(conversationId = result.data) }
+                        conversationId = result.data.id
+                        _state.update { it.copy(conversationId = result.data.id) }
                     }
                     is Result.Error -> {
                         _state.update {
@@ -94,24 +91,11 @@ class ChatViewModel(
             )
             _state.update { it.copy(messages = it.messages + userMessage) }
 
-            // Send message and stream response
-            chatRepository.sendMessage(currentConversationId, content)
-                .onStart {
-                    _state.update { it.copy(isAgentTyping = true) }
-                }
-                .onCompletion {
-                    _state.update { it.copy(isSending = false, isAgentTyping = false) }
-                }
-                .catch { error ->
-                    _state.update {
-                        it.copy(
-                            isSending = false,
-                            isAgentTyping = false,
-                            error = "Failed to send message: ${error.message}"
-                        )
-                    }
-                }
-                .collect { messageDto ->
+            // Send message and get response
+            _state.update { it.copy(isAgentTyping = true) }
+            when (val result = chatRepository.sendMessage(currentConversationId, content)) {
+                is Result.Success -> {
+                    val messageDto = result.data
                     val domainMessage = mapDtoToDomain(messageDto)
                     _state.update { currentState ->
                         // Replace the optimistic user message if we get the real one back,
@@ -122,7 +106,7 @@ class ChatViewModel(
                                 if (msg.id == userMessage.id) domainMessage else msg
                             }
                         } else {
-                            // Check if this assistant message already exists (streaming update)
+                            // Check if this assistant message already exists
                             val existingIndex = currentState.messages.indexOfFirst {
                                 it.id == domainMessage.id
                             }
@@ -134,9 +118,24 @@ class ChatViewModel(
                                 currentState.messages + domainMessage
                             }
                         }
-                        currentState.copy(messages = updatedMessages)
+                        currentState.copy(
+                            messages = updatedMessages,
+                            isSending = false,
+                            isAgentTyping = false
+                        )
                     }
                 }
+                is Result.Error -> {
+                    _state.update {
+                        it.copy(
+                            isSending = false,
+                            isAgentTyping = false,
+                            error = "Failed to send message: ${result.exception.message}"
+                        )
+                    }
+                }
+                is Result.Loading -> { /* Should not happen */ }
+            }
         }
     }
 
