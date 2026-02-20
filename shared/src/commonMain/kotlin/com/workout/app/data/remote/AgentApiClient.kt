@@ -24,7 +24,10 @@ class AgentApiClient(private val baseUrl: String) {
     }
 
     suspend fun createConversation(): ConversationDto {
-        return client.post("$baseUrl/conversations").body()
+        return client.post("$baseUrl/conversations") {
+            contentType(ContentType.Application.Json)
+            setBody("{}")
+        }.body()
     }
 
     suspend fun deleteConversation(id: String) {
