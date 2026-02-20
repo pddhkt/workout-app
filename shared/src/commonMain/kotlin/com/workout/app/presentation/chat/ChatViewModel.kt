@@ -174,14 +174,42 @@ class ChatViewModel(
         val proposal = message.metadata as? ChatMessageMetadata.TemplateProposal ?: return
 
         viewModelScope.launch {
-            // Convert exercise list to JSON format expected by TemplateRepository
+            // Load all exercises to build a name -> ID lookup
+            val allExercises = when (val r = exerciseRepository.getAll()) {
+                is Result.Success -> r.data
+                else -> emptyList()
+            }
+            val nameToId = allExercises.associateBy(
+                { it.name.lowercase() }, { it.id }
+            )
+
+            // Resolve each exercise name to an ID, creating if not found
+            val resolvedExercises = mutableListOf<Pair<String, Int>>() // (exerciseId, sets)
+            for (exercise in proposal.exercises) {
+                val existingId = nameToId[exercise.name.lowercase()]
+                val exerciseId = if (existingId != null) {
+                    existingId
+                } else {
+                    when (val r = exerciseRepository.create(
+                        name = exercise.name,
+                        muscleGroup = exercise.muscleGroup
+                    )) {
+                        is Result.Success -> r.data
+                        else -> null
+                    }
+                }
+                if (exerciseId != null) {
+                    resolvedExercises.add(exerciseId to exercise.sets)
+                }
+            }
+
+            // Build JSON in the format expected by TemplateExercise.fromJsonArray()
             val exercisesJson = buildJsonArray {
-                proposal.exercises.forEach { exercise ->
+                resolvedExercises.forEachIndexed { index, (id, sets) ->
                     add(buildJsonObject {
-                        put("name", exercise.name)
-                        put("sets", exercise.sets)
-                        put("reps", exercise.reps)
-                        put("muscleGroup", exercise.muscleGroup)
+                        put("exerciseId", id)
+                        put("sets", sets)
+                        put("order", index)
                     })
                 }
             }.toString()

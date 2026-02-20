@@ -226,7 +226,7 @@ export class AgentManager {
       const response = textParts.join("\n\n").trim();
 
       return {
-        response: response || "I apologize, but I was unable to generate a response. Please try again.",
+        response: response || (metadataItems.length > 0 ? "" : "I apologize, but I was unable to generate a response. Please try again."),
         metadata: metadataItems.length > 0 ? metadataItems : undefined,
         newSessionId: sessionId,
       };
