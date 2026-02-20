@@ -213,7 +213,10 @@ fun AppNavigation(
         }
     ) { paddingValues ->
     Box(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize().padding(top = paddingValues.calculateTopPadding())) {
+        Box(modifier = Modifier.fillMaxSize().padding(
+            top = paddingValues.calculateTopPadding(),
+            bottom = paddingValues.calculateBottomPadding()
+        )) {
         NavHost(
             navController = navController,
             startDestination = startDestination,
