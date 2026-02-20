@@ -55,6 +55,7 @@ import com.workout.app.ui.screens.templates.TemplatesScreen
 import com.workout.app.ui.screens.timer.RestTimerScreen
 import com.workout.app.ui.components.overlays.BottomSheetComparisonScreen
 import com.workout.app.ui.screens.experiment.WorkoutLayoutExperimentScreen
+import com.workout.app.ui.screens.chat.ChatScreen
 import com.workout.app.ui.components.workout.WorkoutOverlay
 import com.workout.app.data.repository.SessionRepository
 import com.workout.app.data.repository.WorkoutRepository
@@ -259,6 +260,9 @@ fun AppNavigation(
                 },
                 onViewAllSessions = {
                     navController.navigateToSessionHistory()
+                },
+                onChatClick = {
+                    navController.navigateToChat()
                 }
             )
         }
@@ -529,6 +533,19 @@ fun AppNavigation(
                 },
                 onSessionClick = { sessionId ->
                     navController.navigateToSessionDetail(sessionId)
+                }
+            )
+        }
+
+        // AI Assistant Chat Screen
+        composable(
+            route = Route.Chat.route,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+        ) {
+            ChatScreen(
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }

@@ -7,5 +7,6 @@ package com.workout.app.di
 val sharedModules = listOf(
     databaseModule,
     dataModule,
-    viewModelModule
+    viewModelModule,
+    chatModule
 )

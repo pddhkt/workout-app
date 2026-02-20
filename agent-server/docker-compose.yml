@@ -1,0 +1,16 @@
+services:
+  agent-server:
+    build: .
+    ports:
+      - "3141:3141"
+    environment:
+      - NODE_ENV=production
+      - SERVER_PORT=3141
+      - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN}
+    volumes:
+      # Persist SQLite database across restarts
+      - agent-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  agent-data:

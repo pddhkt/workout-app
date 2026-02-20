@@ -109,6 +109,11 @@ sealed class Route(val route: String) {
     }
 
     /**
+     * AI Assistant chat screen
+     */
+    data object Chat : Route("chat")
+
+    /**
      * Session history screen showing all past workouts
      */
     data object SessionHistory : Route("session_history")
@@ -180,6 +185,10 @@ fun NavController.navigateToTemplates(builder: NavOptionsBuilder.() -> Unit = {}
 
 fun NavController.navigateToSessionPlanningWithTemplate(templateId: String, builder: NavOptionsBuilder.() -> Unit = {}) {
     navigate(Route.SessionPlanningWithTemplate(templateId).route, builder)
+}
+
+fun NavController.navigateToChat(builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.Chat.route, builder)
 }
 
 fun NavController.navigateToSessionHistory(builder: NavOptionsBuilder.() -> Unit = {}) {

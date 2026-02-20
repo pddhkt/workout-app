@@ -10,8 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +31,7 @@ import com.workout.app.ui.components.cards.ElevatedCard
 import com.workout.app.ui.components.dataviz.ConsistencyHeatmap
 import com.workout.app.ui.components.dataviz.HeatmapDay
 import com.workout.app.ui.components.headers.SectionHeaderWithAction
+import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -74,11 +81,15 @@ fun HomeScreen(
     onSessionClick: (String) -> Unit = {},
     onViewAllTemplates: () -> Unit = {},
     onViewAllSessions: () -> Unit = {},
+    onChatClick: () -> Unit = {},
     heatmapData: List<HeatmapDay> = emptyList(),
     modifier: Modifier = Modifier
 ) {
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
     ) {
         // TOP SECTION - Yellow background
@@ -131,6 +142,24 @@ fun HomeScreen(
                     .padding(horizontal = AppTheme.spacing.lg)
             )
         }
+    }
+
+    // AI Assistant FAB
+    FloatingActionButton(
+        onClick = onChatClick,
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(end = AppTheme.spacing.lg, bottom = AppTheme.spacing.lg),
+        shape = CircleShape,
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.AutoAwesome,
+            contentDescription = "AI Assistant",
+            modifier = Modifier.size(24.dp)
+        )
+    }
     }
 }
 
