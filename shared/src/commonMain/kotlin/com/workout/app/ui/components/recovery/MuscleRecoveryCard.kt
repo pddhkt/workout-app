@@ -1,14 +1,7 @@
 package com.workout.app.ui.components.recovery
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.workout.app.domain.model.MuscleRecovery
@@ -52,23 +43,16 @@ fun MuscleRecoveryCard(
     muscleRecoveryList: List<MuscleRecovery>,
     selectedMuscleGroup: String?,
     onMuscleGroupSelected: (String?) -> Unit,
+    onDetailClick: (MuscleRecovery) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (muscleRecoveryList.isEmpty()) return
 
-    var expanded by remember { mutableStateOf(false) }
-    var detailMuscle by remember { mutableStateOf<MuscleRecovery?>(null) }
-    val rotationAngle by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        label = "Arrow rotation"
-    )
-
     BaseCard(
         modifier = modifier,
-        onClick = { expanded = !expanded },
         contentPadding = 0.dp
     ) {
-        // Header row - always visible
+        // Header row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -81,62 +65,30 @@ fun MuscleRecoveryCard(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.rotate(rotationAngle)
-            )
         }
 
-        // Expandable content
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column {
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                    modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
-                )
-                Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
+        )
+        Spacer(modifier = Modifier.height(AppTheme.spacing.md))
 
-                AnimatedContent(
-                    targetState = detailMuscle,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(300)) togetherWith
-                            fadeOut(animationSpec = tween(150))
-                    },
-                    label = "recovery_list_detail"
-                ) { targetDetail ->
-                    if (targetDetail != null) {
-                        MuscleRecoveryDetailView(
-                            recovery = targetDetail,
-                            onBackClick = { detailMuscle = null },
-                            modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
-                        )
-                    } else {
-                        Column {
-                            muscleRecoveryList.forEach { recovery ->
-                                MuscleRecoveryRow(
-                                    recovery = recovery,
-                                    isSelected = selectedMuscleGroup.equals(recovery.muscleGroup, ignoreCase = true),
-                                    onClick = {
-                                        if (selectedMuscleGroup.equals(recovery.muscleGroup, ignoreCase = true)) {
-                                            onMuscleGroupSelected(null) // Deselect
-                                        } else {
-                                            onMuscleGroupSelected(recovery.muscleGroup)
-                                        }
-                                    },
-                                    onInfoClick = { detailMuscle = recovery }
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(AppTheme.spacing.md))
+        Column {
+            muscleRecoveryList.forEach { recovery ->
+                MuscleRecoveryRow(
+                    recovery = recovery,
+                    isSelected = selectedMuscleGroup.equals(recovery.muscleGroup, ignoreCase = true),
+                    onClick = {
+                        if (selectedMuscleGroup.equals(recovery.muscleGroup, ignoreCase = true)) {
+                            onMuscleGroupSelected(null)
+                        } else {
+                            onMuscleGroupSelected(recovery.muscleGroup)
                         }
-                    }
-                }
+                    },
+                    onInfoClick = { onDetailClick(recovery) }
+                )
             }
+            Spacer(modifier = Modifier.height(AppTheme.spacing.md))
         }
     }
 }

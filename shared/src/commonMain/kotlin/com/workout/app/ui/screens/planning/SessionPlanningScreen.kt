@@ -4,7 +4,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -62,7 +64,9 @@ import com.workout.app.ui.components.buttons.AppIconButton
 import com.workout.app.ui.components.exercise.ExerciseSelectionCard
 import com.workout.app.ui.components.navigation.BottomActionBar
 import com.workout.app.ui.components.navigation.SessionSummary
+import com.workout.app.domain.model.MuscleRecovery
 import com.workout.app.ui.components.recovery.MuscleRecoveryCard
+import com.workout.app.ui.components.recovery.MuscleRecoveryDetailView
 import com.workout.app.ui.components.planning.AddParticipantSheet
 import com.workout.app.ui.components.planning.SessionModeSection
 import com.workout.app.ui.components.templates.TemplateListItem
@@ -141,6 +145,9 @@ fun SessionPlanningScreen(
 
     // Local UI state for muscle group filter
     var selectedMuscleGroup by remember { mutableStateOf<String?>(null) }
+
+    // Local state for muscle recovery detail overlay
+    var detailMuscle by remember { mutableStateOf<MuscleRecovery?>(null) }
 
     // Local UI state for search and filters
     var searchQuery by remember { mutableStateOf("") }
@@ -288,6 +295,7 @@ fun SessionPlanningScreen(
                     muscleRecoveryList = state.muscleRecovery,
                     selectedMuscleGroup = selectedMuscleGroup,
                     onMuscleGroupSelected = { selectedMuscleGroup = it },
+                    onDetailClick = { detailMuscle = it },
                     modifier = Modifier.padding(horizontal = AppTheme.spacing.lg)
                 )
                 Spacer(modifier = Modifier.height(AppTheme.spacing.md))
@@ -487,6 +495,7 @@ fun SessionPlanningScreen(
                             exerciseCategory = categoryDisplay,
                             isAdded = isAdded,
                             onToggle = { onToggleExercise(exercise.id) },
+                            equipmentType = exercise.equipment,
                             modifier = Modifier
                                 .padding(horizontal = AppTheme.spacing.lg)
                                 .animateItemPlacement()
@@ -568,6 +577,33 @@ fun SessionPlanningScreen(
         onAddParticipant = onAddParticipant,
         onDismiss = onHideAddParticipantSheet
     )
+
+    // Full-screen muscle recovery detail overlay
+    AnimatedVisibility(
+        visible = detailMuscle != null,
+        enter = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(300)
+        ) + fadeIn(tween(300)),
+        exit = slideOutHorizontally(
+            targetOffsetX = { it },
+            animationSpec = tween(200)
+        ) + fadeOut(tween(200))
+    ) {
+        detailMuscle?.let { recovery ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(AppTheme.spacing.lg)
+            ) {
+                MuscleRecoveryDetailView(
+                    recovery = recovery,
+                    onBackClick = { detailMuscle = null }
+                )
+            }
+        }
+    }
 }
 
 /**

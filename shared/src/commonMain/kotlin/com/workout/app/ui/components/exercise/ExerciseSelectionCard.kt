@@ -3,11 +3,15 @@ package com.workout.app.ui.components.exercise
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -18,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,18 +46,13 @@ fun ExerciseSelectionCard(
     isAdded: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    equipmentType: String? = null,
     enabled: Boolean = true
 ) {
     val cardBorder = if (isAdded) {
         BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
     } else {
         null
-    }
-
-    val cardBackground = if (isAdded) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-    } else {
-        MaterialTheme.colorScheme.surface
     }
 
     val checkScale by animateFloatAsState(
@@ -66,7 +66,7 @@ fun ExerciseSelectionCard(
         enabled = enabled,
         onClick = onToggle,
         border = cardBorder,
-        backgroundColor = cardBackground,
+        backgroundColor = MaterialTheme.colorScheme.surface,
         contentPadding = AppTheme.spacing.md
     ) {
         Row(
@@ -91,6 +91,20 @@ fun ExerciseSelectionCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (equipmentType != null) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = equipmentType,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             // Right: Indicators
