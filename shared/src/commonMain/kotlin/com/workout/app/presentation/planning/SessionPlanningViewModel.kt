@@ -351,6 +351,83 @@ class SessionPlanningViewModel(
         }
     }
 
+    fun expandExercise(exerciseId: String) {
+        _state.update {
+            it.copy(
+                expandedExerciseId = exerciseId,
+                expandedExerciseLastSummary = null,
+                isLoadingLastWorkout = true
+            )
+        }
+        viewModelScope.launch {
+            val summary = when (val result = setRepository.getByExercise(exerciseId)) {
+                is Result.Success -> {
+                    val sets = result.data
+                    if (sets.isNotEmpty()) {
+                        val first = sets.first()
+                        val fieldValues = first.fieldValues
+                        if (fieldValues != null && fieldValues.isNotEmpty()) {
+                            fieldValues.entries.joinToString(", ") { "${it.key}: ${it.value}" }
+                        } else {
+                            "${first.weight}kg x ${first.reps} reps"
+                        }
+                    } else {
+                        null
+                    }
+                }
+                else -> null
+            }
+            // Only update if this exercise is still the expanded one
+            if (_state.value.expandedExerciseId == exerciseId) {
+                _state.update {
+                    it.copy(
+                        expandedExerciseLastSummary = summary,
+                        isLoadingLastWorkout = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun collapseExercise() {
+        _state.update {
+            it.copy(
+                expandedExerciseId = null,
+                expandedExerciseLastSummary = null,
+                isLoadingLastWorkout = false
+            )
+        }
+    }
+
+    fun addExerciseWithPreset(exerciseId: String, preset: ExercisePreset) {
+        viewModelScope.launch {
+            val targetValues: Map<String, String>? = when (preset) {
+                ExercisePreset.RECOMMENDED -> mapOf("weight" to "0", "reps" to "10")
+                ExercisePreset.LAST_WORKOUT -> {
+                    when (val result = setRepository.getByExercise(exerciseId)) {
+                        is Result.Success -> result.data.firstOrNull()?.fieldValues
+                        else -> null
+                    }
+                }
+                ExercisePreset.EMPTY -> null
+            }
+            val currentAdded = _state.value.addedExercises.toMutableMap()
+            currentAdded[exerciseId] = AddedExerciseData(
+                exerciseId = exerciseId,
+                setCount = 3,
+                targetValues = targetValues
+            )
+            _state.update {
+                it.copy(
+                    addedExercises = currentAdded,
+                    expandedExerciseId = null,
+                    expandedExerciseLastSummary = null,
+                    isLoadingLastWorkout = false
+                )
+            }
+        }
+    }
+
     fun clearError() {
         _state.update { it.copy(error = null) }
     }
@@ -367,6 +444,11 @@ data class AddedExerciseData(
 )
 
 /**
+ * Preset options for how exercise input fields should be pre-filled.
+ */
+enum class ExercisePreset { RECOMMENDED, LAST_WORKOUT, EMPTY }
+
+/**
  * UI state for Session Planning screen.
  */
 data class SessionPlanningState(
@@ -381,7 +463,10 @@ data class SessionPlanningState(
     val sessionMode: SessionMode = SessionMode.SOLO,
     val participants: List<SessionParticipant> = emptyList(),
     val recentPartners: List<String> = emptyList(),
-    val showAddParticipantSheet: Boolean = false
+    val showAddParticipantSheet: Boolean = false,
+    val expandedExerciseId: String? = null,
+    val expandedExerciseLastSummary: String? = null,
+    val isLoadingLastWorkout: Boolean = false
 ) {
     val filteredExercises: List<Exercise>
         get() = if (selectedMuscleGroup == null) {

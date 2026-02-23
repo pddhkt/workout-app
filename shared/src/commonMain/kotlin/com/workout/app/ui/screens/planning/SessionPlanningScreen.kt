@@ -61,6 +61,7 @@ import com.workout.app.data.repository.TemplateRepository
 import com.workout.app.domain.model.TemplateExercise
 import com.workout.app.presentation.planning.SessionPlanningState
 import com.workout.app.ui.components.buttons.AppIconButton
+import com.workout.app.presentation.planning.ExercisePreset
 import com.workout.app.ui.components.exercise.ExerciseSelectionCard
 import com.workout.app.ui.components.navigation.BottomActionBar
 import com.workout.app.ui.components.navigation.SessionSummary
@@ -130,9 +131,12 @@ fun SessionPlanningScreen(
     templateId: String? = null,
     onBackClick: () -> Unit,
     onStartSession: () -> Unit,
-    onToggleExercise: (String) -> Unit,
+    onRemoveExercise: (String) -> Unit,
     onAddExercise: (String, Int) -> Unit,
     onToggleTimeRange: () -> Unit,
+    onExpandExercise: (String) -> Unit = {},
+    onCollapseExercise: () -> Unit = {},
+    onAddExerciseWithPreset: (String, ExercisePreset) -> Unit = { _, _ -> },
     onModeSelected: (SessionMode) -> Unit = {},
     onAddParticipant: (String) -> Unit = {},
     onRemoveParticipant: (String) -> Unit = {},
@@ -503,7 +507,17 @@ fun SessionPlanningScreen(
                             exerciseName = exercise.name,
                             exerciseCategory = categoryDisplay,
                             isAdded = isAdded,
-                            onToggle = { onToggleExercise(exercise.id) },
+                            isExpanded = state.expandedExerciseId == exercise.id && !isAdded,
+                            lastWorkoutSummary = if (state.expandedExerciseId == exercise.id) state.expandedExerciseLastSummary else null,
+                            isLoadingLastWorkout = if (state.expandedExerciseId == exercise.id) state.isLoadingLastWorkout else false,
+                            onCardClick = {
+                                if (isAdded) onRemoveExercise(exercise.id)
+                                else if (state.expandedExerciseId == exercise.id) onCollapseExercise()
+                                else onExpandExercise(exercise.id)
+                            },
+                            onPresetSelected = { preset ->
+                                onAddExerciseWithPreset(exercise.id, preset)
+                            },
                             equipmentType = exercise.equipment,
                             modifier = Modifier
                                 .padding(horizontal = AppTheme.spacing.lg)

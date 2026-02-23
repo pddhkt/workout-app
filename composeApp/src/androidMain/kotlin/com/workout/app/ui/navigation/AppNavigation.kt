@@ -286,9 +286,12 @@ fun AppNavigation(
                         }
                     }
                 },
-                onToggleExercise = viewModel::toggleExercise,
+                onRemoveExercise = viewModel::removeExercise,
                 onAddExercise = viewModel::addExercise,
                 onToggleTimeRange = viewModel::toggleTimeRange,
+                onExpandExercise = viewModel::expandExercise,
+                onCollapseExercise = viewModel::collapseExercise,
+                onAddExerciseWithPreset = viewModel::addExerciseWithPreset,
                 onModeSelected = viewModel::setSessionMode,
                 onAddParticipant = viewModel::addParticipant,
                 onRemoveParticipant = viewModel::removeParticipant,
@@ -335,9 +338,12 @@ fun AppNavigation(
                         }
                     }
                 },
-                onToggleExercise = viewModel::toggleExercise,
+                onRemoveExercise = viewModel::removeExercise,
                 onAddExercise = viewModel::addExercise,
                 onToggleTimeRange = viewModel::toggleTimeRange,
+                onExpandExercise = viewModel::expandExercise,
+                onCollapseExercise = viewModel::collapseExercise,
+                onAddExerciseWithPreset = viewModel::addExerciseWithPreset,
                 onModeSelected = viewModel::setSessionMode,
                 onAddParticipant = viewModel::addParticipant,
                 onRemoveParticipant = viewModel::removeParticipant,

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,6 +28,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.workout.app.data.remote.ConversationDto
+import com.workout.app.ui.components.buttons.SecondaryButton
 import com.workout.app.ui.theme.AppTheme
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -48,6 +54,8 @@ fun ChatHistoryDrawer(
     onDeleteConversation: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var conversationToDelete by remember { mutableStateOf<ConversationDto?>(null) }
+
     ModalDrawerSheet(
         modifier = modifier.width(300.dp),
         drawerContainerColor = MaterialTheme.colorScheme.surface
@@ -121,12 +129,49 @@ fun ChatHistoryDrawer(
                             conversation = conversation,
                             isActive = conversation.id == currentConversationId,
                             onClick = { onConversationSelected(conversation.id) },
-                            onDelete = { onDeleteConversation(conversation.id) }
+                            onDelete = { conversationToDelete = conversation }
                         )
                     }
                 }
             }
         }
+    }
+
+    // Delete confirmation dialog
+    conversationToDelete?.let { conversation ->
+        AlertDialog(
+            onDismissRequest = { conversationToDelete = null },
+            title = {
+                Text(
+                    text = "Delete Conversation",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete \"${conversation.title ?: "New conversation"}\"? This cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                SecondaryButton(
+                    text = "Delete",
+                    onClick = {
+                        onDeleteConversation(conversation.id)
+                        conversationToDelete = null
+                    },
+                    destructive = true
+                )
+            },
+            dismissButton = {
+                SecondaryButton(
+                    text = "Cancel",
+                    onClick = { conversationToDelete = null }
+                )
+            }
+        )
     }
 }
 

@@ -147,7 +147,6 @@ fun ChatScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        viewModel.loadConversations()
                         scope.launch { drawerState.open() }
                     }) {
                         Icon(

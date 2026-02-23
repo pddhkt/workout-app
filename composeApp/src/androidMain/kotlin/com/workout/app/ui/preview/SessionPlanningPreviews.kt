@@ -59,7 +59,7 @@ private fun SessionPlanningScreenPreview() {
             state = SessionPlanningState(allExercises = mockExercises),
             onBackClick = {},
             onStartSession = {},
-            onToggleExercise = {},
+            onRemoveExercise = {},
             onAddExercise = { _, _ -> },
             onToggleTimeRange = {}
         )
@@ -121,7 +121,7 @@ private fun SessionPlanningScreenWithExercisesPreview() {
             ),
             onBackClick = {},
             onStartSession = {},
-            onToggleExercise = {},
+            onRemoveExercise = {},
             onAddExercise = { _, _ -> },
             onToggleTimeRange = {}
         )
@@ -176,7 +176,7 @@ private fun SessionPlanningScreenFilteredPreview() {
             state = SessionPlanningState(allExercises = mockExercises),
             onBackClick = {},
             onStartSession = {},
-            onToggleExercise = {},
+            onRemoveExercise = {},
             onAddExercise = { _, _ -> },
             onToggleTimeRange = {}
         )
@@ -229,7 +229,7 @@ private fun SessionPlanningGroupModePreview() {
             ),
             onBackClick = {},
             onStartSession = {},
-            onToggleExercise = {},
+            onRemoveExercise = {},
             onAddExercise = { _, _ -> },
             onToggleTimeRange = {}
         )
