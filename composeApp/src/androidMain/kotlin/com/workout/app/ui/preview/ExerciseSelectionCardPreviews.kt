@@ -35,7 +35,7 @@ private fun ExerciseSelectionCardDefaultPreview() {
                 exerciseName = "Barbell Squat",
                 exerciseCategory = "Legs",
                 isAdded = false,
-                onToggle = { },
+                onCardClick = { },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -61,7 +61,7 @@ private fun ExerciseSelectionCardAddedPreview() {
                 exerciseName = "Bench Press",
                 exerciseCategory = "Push",
                 isAdded = true,
-                onToggle = { },
+                onCardClick = { },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -89,7 +89,7 @@ private fun ExerciseSelectionCardInteractivePreview() {
                 exerciseName = "Deadlift",
                 exerciseCategory = "Back",
                 isAdded = isAdded,
-                onToggle = { isAdded = !isAdded },
+                onCardClick = { isAdded = !isAdded },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -117,7 +117,7 @@ private fun ExerciseSelectionCardListPreview() {
                 exerciseName = "Barbell Squat",
                 exerciseCategory = "Legs",
                 isAdded = false,
-                onToggle = { },
+                onCardClick = { },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -126,7 +126,7 @@ private fun ExerciseSelectionCardListPreview() {
                 exerciseName = "Bench Press",
                 exerciseCategory = "Push",
                 isAdded = true,
-                onToggle = { },
+                onCardClick = { },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -135,7 +135,7 @@ private fun ExerciseSelectionCardListPreview() {
                 exerciseName = "New Exercise",
                 exerciseCategory = "Core",
                 isAdded = true,
-                onToggle = { },
+                onCardClick = { },
                 modifier = Modifier.fillMaxWidth()
             )
         }
