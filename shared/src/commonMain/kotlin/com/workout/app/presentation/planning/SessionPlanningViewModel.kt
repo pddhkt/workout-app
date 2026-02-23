@@ -399,6 +399,24 @@ class SessionPlanningViewModel(
         }
     }
 
+    /**
+     * Dismiss the currently expanded exercise: collapse and remove it if it was added.
+     * Used when the user taps outside the expanded card (cancels the selection).
+     */
+    fun dismissExpandedExercise() {
+        val expandedId = _state.value.expandedExerciseId ?: return
+        val currentAdded = _state.value.addedExercises.toMutableMap()
+        currentAdded.remove(expandedId)
+        _state.update {
+            it.copy(
+                addedExercises = currentAdded,
+                expandedExerciseId = null,
+                expandedExerciseLastSummary = null,
+                isLoadingLastWorkout = false
+            )
+        }
+    }
+
     fun addExerciseWithPreset(exerciseId: String, preset: ExercisePreset) {
         viewModelScope.launch {
             val targetValues: Map<String, String>? = when (preset) {
@@ -419,10 +437,7 @@ class SessionPlanningViewModel(
             )
             _state.update {
                 it.copy(
-                    addedExercises = currentAdded,
-                    expandedExerciseId = null,
-                    expandedExerciseLastSummary = null,
-                    isLoadingLastWorkout = false
+                    addedExercises = currentAdded
                 )
             }
         }

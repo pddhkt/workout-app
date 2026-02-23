@@ -136,6 +136,7 @@ fun SessionPlanningScreen(
     onToggleTimeRange: () -> Unit,
     onExpandExercise: (String) -> Unit = {},
     onCollapseExercise: () -> Unit = {},
+    onDismissExpandedExercise: () -> Unit = {},
     onAddExerciseWithPreset: (String, ExercisePreset) -> Unit = { _, _ -> },
     onModeSelected: (SessionMode) -> Unit = {},
     onAddParticipant: (String) -> Unit = {},
@@ -507,13 +508,24 @@ fun SessionPlanningScreen(
                             exerciseName = exercise.name,
                             exerciseCategory = categoryDisplay,
                             isAdded = isAdded,
-                            isExpanded = state.expandedExerciseId == exercise.id && !isAdded,
+                            isExpanded = state.expandedExerciseId == exercise.id,
                             lastWorkoutSummary = if (state.expandedExerciseId == exercise.id) state.expandedExerciseLastSummary else null,
                             isLoadingLastWorkout = if (state.expandedExerciseId == exercise.id) state.isLoadingLastWorkout else false,
                             onCardClick = {
-                                if (isAdded) onRemoveExercise(exercise.id)
-                                else if (state.expandedExerciseId == exercise.id) onCollapseExercise()
-                                else onExpandExercise(exercise.id)
+                                when {
+                                    // Tap expanded card → confirm (collapse, keep exercise)
+                                    state.expandedExerciseId == exercise.id -> onCollapseExercise()
+                                    // Tap another card while one is expanded → dismiss expanded (remove), then handle this card
+                                    state.expandedExerciseId != null -> {
+                                        onDismissExpandedExercise()
+                                        if (isAdded) onRemoveExercise(exercise.id)
+                                        else onExpandExercise(exercise.id)
+                                    }
+                                    // Tap added card → remove
+                                    isAdded -> onRemoveExercise(exercise.id)
+                                    // Tap non-added card → expand to show presets
+                                    else -> onExpandExercise(exercise.id)
+                                }
                             },
                             onPresetSelected = { preset ->
                                 onAddExerciseWithPreset(exercise.id, preset)

@@ -99,6 +99,7 @@ import com.workout.app.ui.components.exercise.getMockLibraryExercises
 import com.workout.app.ui.components.inputs.SearchBar
 import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.components.timer.RestTimerSection
+import com.workout.app.ui.components.timer.StopwatchInput
 import com.workout.app.ui.theme.AppTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -119,7 +120,7 @@ private fun formatSetRecord(
     exercise: com.workout.app.presentation.workout.WorkoutExercise?
 ): String {
     val fields = exercise?.recordingFields ?: com.workout.app.domain.model.RecordingField.DEFAULT_FIELDS
-    val fv = set.fieldValues
+    val fv = set.fieldValues.filterKeys { !it.startsWith("_") }
 
     // If we have dynamic field values, format from those
     if (fv.isNotEmpty()) {
@@ -198,6 +199,22 @@ fun WorkoutScreen(
     var currentPageIndex by remember { mutableIntStateOf(0) }
     var fieldInputs by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var swipeDirection by remember { mutableIntStateOf(1) }
+
+    // Stopwatch state for duration-type fields (keyed by field key)
+    var stopwatchRunningKey by remember { mutableStateOf<String?>(null) }
+    var stopwatchSeconds by remember { mutableIntStateOf(0) }
+
+    // Tick the stopwatch every second when running
+    LaunchedEffect(stopwatchRunningKey) {
+        val key = stopwatchRunningKey
+        if (key != null) {
+            while (true) {
+                kotlinx.coroutines.delay(1000)
+                stopwatchSeconds++
+                fieldInputs = fieldInputs + (key to stopwatchSeconds.toString())
+            }
+        }
+    }
     var accumulatedDrag by remember { mutableFloatStateOf(0f) }
 
     // Per-participant draft inputs: saves uncommitted field values when switching participants
@@ -275,8 +292,8 @@ fun WorkoutScreen(
             }
         }
 
-        // Priority 3: Target values from template
-        val targets = exercise.targetValues
+        // Priority 3: Target values from template (filter out _prefixed meta-keys)
+        val targets = exercise.targetValues?.filterKeys { !it.startsWith("_") }
         if (targets != null && targets.isNotEmpty()) {
             fieldInputs = targets
             return
@@ -353,6 +370,9 @@ fun WorkoutScreen(
     ) {
         // Clear drafts when exercise or set page changes (drafts are per-context)
         participantDrafts.clear()
+        // Reset stopwatch on page/exercise change
+        stopwatchRunningKey = null
+        stopwatchSeconds = 0
         pages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
     }
 
@@ -604,40 +624,77 @@ fun WorkoutScreen(
                                     .onSizeChanged { inputPageHeightPx = it.height },
                                 verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    selectedExercise.recordingFields.forEach { field ->
-                                        val label = if (field.unit.isNotEmpty()) {
-                                            "${field.label} (${field.unit})"
+                                // Check if any field is a duration (stopwatch) type
+                                val hasDurationField = selectedExercise.recordingFields.any { it.type == "duration" }
+                                val nonDurationFields = selectedExercise.recordingFields.filter { it.type != "duration" }
+                                val durationField = selectedExercise.recordingFields.find { it.type == "duration" }
+
+                                // Stopwatch for duration fields (shown above the other inputs)
+                                if (durationField != null) {
+                                    StopwatchInput(
+                                        elapsedSeconds = stopwatchSeconds,
+                                        isRunning = stopwatchRunningKey == durationField.key,
+                                        onToggle = {
+                                            if (stopwatchRunningKey == durationField.key) {
+                                                // Stop: write final value
+                                                fieldInputs = fieldInputs + (durationField.key to stopwatchSeconds.toString())
+                                                stopwatchRunningKey = null
+                                            } else {
+                                                // Start
+                                                stopwatchRunningKey = durationField.key
+                                            }
+                                        },
+                                        onReset = {
+                                            stopwatchRunningKey = null
+                                            stopwatchSeconds = 0
+                                            fieldInputs = fieldInputs + (durationField.key to "")
+                                        },
+                                        label = if (durationField.unit.isNotEmpty()) {
+                                            "${durationField.label} (${durationField.unit})"
                                         } else {
-                                            field.label
-                                        }
-                                        val keyboardType = when (field.type) {
-                                            "decimal" -> KeyboardType.Decimal
-                                            else -> KeyboardType.Number
-                                        }
-                                        OutlinedTextField(
-                                            value = fieldInputs[field.key] ?: "",
-                                            onValueChange = { value ->
-                                                fieldInputs = fieldInputs + (field.key to value)
-                                            },
-                                            label = { Text(label) },
-                                            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true,
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                                focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-                                                unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                                focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                                unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                                cursorColor = MaterialTheme.colorScheme.onPrimary
+                                            durationField.label
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
+                                // Non-duration fields in a row
+                                if (nonDurationFields.isNotEmpty()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        nonDurationFields.forEach { field ->
+                                            val label = if (field.unit.isNotEmpty()) {
+                                                "${field.label} (${field.unit})"
+                                            } else {
+                                                field.label
+                                            }
+                                            val keyboardType = when (field.type) {
+                                                "decimal" -> KeyboardType.Decimal
+                                                else -> KeyboardType.Number
+                                            }
+                                            OutlinedTextField(
+                                                value = fieldInputs[field.key] ?: "",
+                                                onValueChange = { value ->
+                                                    fieldInputs = fieldInputs + (field.key to value)
+                                                },
+                                                label = { Text(label) },
+                                                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true,
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                                    focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                                                    unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                                    focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                                    unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                                    cursorColor = MaterialTheme.colorScheme.onPrimary
+                                                )
                                             )
-                                        )
+                                        }
                                     }
                                 }
 
@@ -648,6 +705,12 @@ fun WorkoutScreen(
                                 Button(
                                     enabled = canComplete,
                                     onClick = {
+                                        // Auto-stop stopwatch if running
+                                        if (stopwatchRunningKey != null) {
+                                            fieldInputs = fieldInputs + (stopwatchRunningKey!! to stopwatchSeconds.toString())
+                                            stopwatchRunningKey = null
+                                        }
+
                                         onCompleteSet(selectedExercise.id, currentPage.setNumber, fieldInputs)
 
                                         // Clear draft for completing participant (values are now in records)

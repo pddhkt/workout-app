@@ -145,7 +145,7 @@ fun ExerciseSelectionCard(
 
         // Expandable preset options
         AnimatedVisibility(
-            visible = isExpanded && !isAdded,
+            visible = isExpanded,
             enter = expandVertically(animationSpec = tween(200)) + fadeIn(tween(200)),
             exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(tween(150))
         ) {

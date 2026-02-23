@@ -40,6 +40,16 @@ Common patterns:
 When creating non-weight exercises (e.g. eye routines, stretching, timed holds, cardio drills), include recordingFields and targetValues per exercise.
 For standard weight training exercises, omit recordingFields entirely (the app uses weight+reps by default).
 
+INTERVAL & CARDIO WORKOUTS:
+For running intervals, cycling, rowing, etc., create ONE exercise per interval type — NEVER create a separate "Rest" exercise.
+Use the "_restDuration" key in targetValues to specify rest between sets (in seconds).
+Example — 5x1km Run Intervals with 60s rest:
+  name: "1km Run Interval", sets: 5,
+  recordingFields: [distance(decimal,km), duration(duration,sec)],
+  targetValues: {"distance":"1","_restDuration":"60"}
+The app will automatically start a rest timer with the specified duration after each set.
+NEVER create a separate "Rest" exercise. Rest between sets is ALWAYS embedded via "_restDuration" in targetValues.
+
 Focus on being helpful and actionable.`;
 
 // In-process MCP tools using SDK's createSdkMcpServer (no subprocess needed)
@@ -101,7 +111,7 @@ const workoutToolsServer = createSdkMcpServer({
                 required: z.boolean().optional().describe("Whether field is required to complete a set (default true)"),
               })
             ).optional().describe("Custom recording fields. Omit for standard weight+reps exercises."),
-            targetValues: z.record(z.string(), z.string()).optional().describe("Target values per field key, e.g. {\"reps\":\"10\"} or {\"duration\":\"30\"}"),
+            targetValues: z.record(z.string(), z.string()).optional().describe("Target values per field key, e.g. {\"reps\":\"10\"} or {\"duration\":\"30\"}. Use \"_restDuration\" (seconds) for rest between sets instead of creating a separate Rest exercise."),
           })
         ).describe("List of exercises in the template"),
         estimatedDuration: z.number().optional().describe("Estimated workout duration in minutes"),

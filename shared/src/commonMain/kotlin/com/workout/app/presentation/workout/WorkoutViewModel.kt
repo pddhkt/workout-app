@@ -292,8 +292,10 @@ class WorkoutViewModel(
             val weight = currentState.currentWeight.toDouble()
             val reps = currentState.currentReps
 
-            // Build fieldValues JSON from current field values
-            val fieldValuesJson = fieldValuesToJson(currentState.currentFieldValues)
+            // Build fieldValues JSON from current field values (filter out _prefixed meta-keys)
+            val fieldValuesJson = fieldValuesToJson(
+                currentState.currentFieldValues.filterKeys { !it.startsWith("_") }
+            )
 
             // Check if this set was already completed (editing an existing record)
             val existingRecordIndex = exercise.setRecords.indexOfFirst {
@@ -363,8 +365,12 @@ class WorkoutViewModel(
                 )
             }
 
-            // Start rest timer
-            startRestTimer()
+            // Start rest timer with per-exercise duration if available
+            val exerciseRestDuration = exercise.targetValues
+                ?.get("_restDuration")
+                ?.toIntOrNull()
+                ?.coerceIn(10, 600)
+            startRestTimer(exerciseRestDuration)
         }
     }
 
@@ -584,12 +590,13 @@ class WorkoutViewModel(
         }
     }
 
-    fun startRestTimer() {
-        val duration = _state.value.restTimerDuration
+    fun startRestTimer(durationOverride: Int? = null) {
+        val duration = durationOverride ?: _state.value.restTimerDuration
         restTimerJob?.cancel()
         _state.update {
             it.copy(
                 restTimerRemaining = duration,
+                restTimerDuration = duration,
                 isRestTimerActive = true
             )
         }
