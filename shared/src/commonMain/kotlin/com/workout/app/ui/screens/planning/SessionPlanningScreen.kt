@@ -138,6 +138,7 @@ fun SessionPlanningScreen(
     onRemoveParticipant: (String) -> Unit = {},
     onShowAddParticipantSheet: () -> Unit = {},
     onHideAddParticipantSheet: () -> Unit = {},
+    onUpdateExerciseRecording: (exerciseId: String, recordingFields: List<com.workout.app.domain.model.RecordingField>?, targetValues: Map<String, String>?) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val templateRepository: TemplateRepository = koinInject()
@@ -172,10 +173,18 @@ fun SessionPlanningScreen(
                 val templateExercises = TemplateExercise.fromJsonArray(template.exercises)
                 val exerciseMap = state.allExercises.associateBy { it.id }
 
-                // Add each template exercise to the ViewModel
+                // Add each template exercise to the ViewModel, carrying through recording config
                 templateExercises.forEach { templateExercise ->
                     if (exerciseMap.containsKey(templateExercise.exerciseId)) {
                         onAddExercise(templateExercise.exerciseId, templateExercise.defaultSets)
+                        // Update with recording fields and target values from template
+                        if (templateExercise.recordingFields != null || templateExercise.targetValues != null) {
+                            onUpdateExerciseRecording(
+                                templateExercise.exerciseId,
+                                templateExercise.recordingFields,
+                                templateExercise.targetValues
+                            )
+                        }
                     }
                 }
 

@@ -1,0 +1,8 @@
+-- Migration 4: Add dynamic recording fields support
+-- Adds recordingFields to Exercise, fieldValues to WorkoutSet, targetValues to SessionExercise
+
+ALTER TABLE Exercise ADD COLUMN recordingFields TEXT;
+
+ALTER TABLE WorkoutSet ADD COLUMN fieldValues TEXT;
+
+ALTER TABLE SessionExercise ADD COLUMN targetValues TEXT;

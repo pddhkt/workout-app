@@ -76,7 +76,8 @@ class ExerciseRepositoryImpl(
         equipment: String?,
         difficulty: String?,
         instructions: String?,
-        videoUrl: String?
+        videoUrl: String?,
+        recordingFields: String?
     ): Result<String> = withContext(Dispatchers.Default) {
         try {
             val id = generateId()
@@ -93,6 +94,7 @@ class ExerciseRepositoryImpl(
                 videoUrl = videoUrl,
                 isCustom = 1,
                 isFavorite = 0,
+                recordingFields = recordingFields,
                 createdAt = now,
                 updatedAt = now
             )

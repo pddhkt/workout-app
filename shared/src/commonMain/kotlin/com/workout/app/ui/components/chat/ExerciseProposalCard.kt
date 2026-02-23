@@ -42,6 +42,7 @@ fun ExerciseProposalCard(
     equipment: String?,
     difficulty: String?,
     instructions: String?,
+    recordingFields: List<com.workout.app.domain.model.RecordingField>? = null,
     onSave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -75,6 +76,12 @@ fun ExerciseProposalCard(
             }
             if (!difficulty.isNullOrBlank()) {
                 DetailRow(label = "Difficulty", value = difficulty)
+            }
+            if (recordingFields != null && recordingFields.isNotEmpty()) {
+                val desc = recordingFields.joinToString(" + ") { field ->
+                    if (field.unit.isNotEmpty()) "${field.label} (${field.unit})" else field.label
+                }
+                DetailRow(label = "Records", value = desc)
             }
         }
 

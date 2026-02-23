@@ -30,6 +30,7 @@ class SessionExerciseRepositoryImpl(
                     targetSets = exercise.targetSets.toLong(),
                     completedSets = 0L,
                     notes = null,
+                    targetValues = exercise.targetValues,
                     createdAt = now,
                     updatedAt = now
                 )
@@ -56,7 +57,9 @@ class SessionExerciseRepositoryImpl(
                         category = se.exerciseCategory,
                         orderIndex = se.orderIndex.toInt(),
                         targetSets = se.targetSets.toInt(),
-                        completedSets = se.completedSets.toInt()
+                        completedSets = se.completedSets.toInt(),
+                        targetValues = se.targetValues,
+                        recordingFields = se.exerciseRecordingFields
                     )
                 }
 

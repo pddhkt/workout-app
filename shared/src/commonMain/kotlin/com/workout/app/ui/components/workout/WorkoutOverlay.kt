@@ -37,7 +37,7 @@ fun WorkoutOverlay(
     startTime: Long,
     onMinimize: () -> Unit,
     onExpand: () -> Unit,
-    onCompleteSet: (exerciseId: String, setNumber: Int, reps: Int, weight: Float, rpe: Int?) -> Unit,
+    onCompleteSet: (exerciseId: String, setNumber: Int, fieldValues: Map<String, String>) -> Unit,
     onAddExercises: (List<String>) -> Unit,
     onRemoveExercise: (exerciseId: String) -> Unit,
     onReplaceExercise: (exerciseId: String, newExercise: LibraryExercise) -> Unit,

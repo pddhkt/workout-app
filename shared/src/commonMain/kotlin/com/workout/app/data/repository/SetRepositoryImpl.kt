@@ -3,6 +3,7 @@ package com.workout.app.data.repository
 import com.workout.app.database.SetQueries
 import com.workout.app.domain.model.Result
 import com.workout.app.domain.model.SetData
+import com.workout.app.domain.model.fieldValuesFromJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -23,7 +24,8 @@ class SetRepositoryImpl(
         reps: Int,
         rpe: Int?,
         isWarmup: Boolean,
-        notes: String?
+        notes: String?,
+        fieldValues: String?
     ): Result<String> = withContext(Dispatchers.Default) {
         try {
             val id = generateId()
@@ -41,6 +43,7 @@ class SetRepositoryImpl(
                 isWarmup = if (isWarmup) 1L else 0L,
                 restTime = null,
                 notes = notes,
+                fieldValues = fieldValues,
                 completedAt = now,
                 createdAt = now
             )
@@ -66,7 +69,8 @@ class SetRepositoryImpl(
                         isWarmup = set.isWarmup == 1L,
                         completedAt = set.completedAt,
                         isPR = false,
-                        sessionId = set.sessionId
+                        sessionId = set.sessionId,
+                        fieldValues = fieldValuesFromJson(set.fieldValues)
                     )
                 }
 
@@ -91,7 +95,8 @@ class SetRepositoryImpl(
                         isWarmup = set.isWarmup == 1L,
                         completedAt = set.completedAt,
                         isPR = false,
-                        sessionId = set.sessionId
+                        sessionId = set.sessionId,
+                        fieldValues = fieldValuesFromJson(set.fieldValues)
                     )
                 }
 
@@ -144,7 +149,8 @@ class SetRepositoryImpl(
                     isWarmup = set.isWarmup == 1L,
                     completedAt = set.completedAt,
                     isPR = false,
-                    sessionId = set.sessionId
+                    sessionId = set.sessionId,
+                    fieldValues = fieldValuesFromJson(set.fieldValues)
                 )
             }
 
@@ -179,7 +185,8 @@ class SetRepositoryImpl(
                         isWarmup = set.isWarmup == 1L,
                         completedAt = set.completedAt,
                         isPR = false,
-                        sessionId = set.sessionId
+                        sessionId = set.sessionId,
+                        fieldValues = fieldValuesFromJson(set.fieldValues)
                     )
                 }
 

@@ -9,6 +9,7 @@ import com.workout.app.domain.model.ChatMessage
 import com.workout.app.domain.model.ChatMessageMetadata
 import com.workout.app.domain.model.ChatOption
 import com.workout.app.domain.model.MessageRole
+import com.workout.app.domain.model.RecordingField
 import com.workout.app.domain.model.Result
 import com.workout.app.domain.model.TemplateExerciseInfo
 import com.workout.app.presentation.base.ViewModel
@@ -18,9 +19,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 
 /**
  * ViewModel for the AI Assistant chat screen.
@@ -184,35 +182,49 @@ class ChatViewModel(
             )
 
             // Resolve each exercise name to an ID, creating if not found
-            val resolvedExercises = mutableListOf<Pair<String, Int>>() // (exerciseId, sets)
+            data class ResolvedExercise(
+                val exerciseId: String,
+                val sets: Int,
+                val recordingFields: List<RecordingField>?,
+                val targetValues: Map<String, String>?
+            )
+            val resolvedExercises = mutableListOf<ResolvedExercise>()
             for (exercise in proposal.exercises) {
                 val existingId = nameToId[exercise.name.lowercase()]
+                val rfJson = RecordingField.toJsonArray(exercise.recordingFields)
                 val exerciseId = if (existingId != null) {
                     existingId
                 } else {
                     when (val r = exerciseRepository.create(
                         name = exercise.name,
-                        muscleGroup = exercise.muscleGroup
+                        muscleGroup = exercise.muscleGroup,
+                        recordingFields = rfJson
                     )) {
                         is Result.Success -> r.data
                         else -> null
                     }
                 }
                 if (exerciseId != null) {
-                    resolvedExercises.add(exerciseId to exercise.sets)
+                    resolvedExercises.add(ResolvedExercise(
+                        exerciseId = exerciseId,
+                        sets = exercise.sets,
+                        recordingFields = exercise.recordingFields,
+                        targetValues = exercise.targetValues
+                    ))
                 }
             }
 
-            // Build JSON in the format expected by TemplateExercise.fromJsonArray()
-            val exercisesJson = buildJsonArray {
-                resolvedExercises.forEachIndexed { index, (id, sets) ->
-                    add(buildJsonObject {
-                        put("exerciseId", id)
-                        put("sets", sets)
-                        put("order", index)
-                    })
-                }
-            }.toString()
+            // Build JSON using TemplateExercise.toJsonArray for proper nested JSON support
+            val templateExercises = resolvedExercises.mapIndexed { index, re ->
+                com.workout.app.domain.model.TemplateExercise(
+                    exerciseId = re.exerciseId,
+                    order = index,
+                    defaultSets = re.sets,
+                    recordingFields = re.recordingFields,
+                    targetValues = re.targetValues
+                )
+            }
+            val exercisesJson = com.workout.app.domain.model.TemplateExercise.toJsonArray(templateExercises)
 
             when (val result = templateRepository.create(
                 name = proposal.name,
@@ -260,7 +272,8 @@ class ChatViewModel(
                 category = proposal.category,
                 equipment = proposal.equipment,
                 difficulty = proposal.difficulty,
-                instructions = proposal.instructions
+                instructions = proposal.instructions,
+                recordingFields = RecordingField.toJsonArray(proposal.recordingFields)
             )) {
                 is Result.Success -> {
                     _state.update {
@@ -383,7 +396,17 @@ class ChatViewModel(
                             name = exercise.name,
                             sets = exercise.sets,
                             reps = exercise.reps,
-                            muscleGroup = exercise.muscleGroup
+                            muscleGroup = exercise.muscleGroup,
+                            recordingFields = exercise.recordingFields?.map { rf ->
+                                RecordingField(
+                                    key = rf.key,
+                                    label = rf.label,
+                                    type = rf.type,
+                                    unit = rf.unit,
+                                    required = rf.required
+                                )
+                            },
+                            targetValues = exercise.targetValues
                         )
                     },
                     estimatedDuration = templateData.estimatedDuration
@@ -397,7 +420,16 @@ class ChatViewModel(
                     category = exerciseData.category,
                     equipment = exerciseData.equipment,
                     difficulty = exerciseData.difficulty,
-                    instructions = exerciseData.instructions
+                    instructions = exerciseData.instructions,
+                    recordingFields = exerciseData.recordingFields?.map { rf ->
+                        RecordingField(
+                            key = rf.key,
+                            label = rf.label,
+                            type = rf.type,
+                            unit = rf.unit,
+                            required = rf.required
+                        )
+                    }
                 )
             }
             else -> null

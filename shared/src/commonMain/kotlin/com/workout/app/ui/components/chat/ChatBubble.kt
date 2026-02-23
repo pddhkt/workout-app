@@ -172,6 +172,7 @@ private fun AssistantBubble(
                         equipment = metadata.equipment,
                         difficulty = metadata.difficulty,
                         instructions = metadata.instructions,
+                        recordingFields = metadata.recordingFields,
                         onSave = { onSaveExercise?.invoke(message.id) }
                     )
                 }

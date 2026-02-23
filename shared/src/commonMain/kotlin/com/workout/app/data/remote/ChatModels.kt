@@ -45,11 +45,22 @@ data class TemplateProposalDto(
 )
 
 @Serializable
+data class RecordingFieldDto(
+    val key: String,
+    val label: String,
+    val type: String,
+    val unit: String = "",
+    val required: Boolean = true
+)
+
+@Serializable
 data class TemplateExerciseDto(
     val name: String,
     val sets: Int = 3,
     val reps: String = "8-12",
-    val muscleGroup: String = ""
+    val muscleGroup: String = "",
+    val recordingFields: List<RecordingFieldDto>? = null,
+    val targetValues: Map<String, String>? = null
 )
 
 @Serializable
@@ -59,7 +70,8 @@ data class ExerciseProposalDto(
     val category: String? = null,
     val equipment: String? = null,
     val difficulty: String? = null,
-    val instructions: String? = null
+    val instructions: String? = null,
+    val recordingFields: List<RecordingFieldDto>? = null
 )
 
 @Serializable

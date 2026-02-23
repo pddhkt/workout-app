@@ -29,6 +29,17 @@ Use WebSearch to look up exercise information, proper form cues, and workout pro
 
 When you have enough information, use create_template_proposal or create_exercise_proposal to present the result. The user can then save it to their app.
 
+RECORDING TYPES:
+Each exercise can define custom recording fields. Default is weight (kg) + reps (count).
+Available field types: "number" (integer), "decimal" (float), "duration" (seconds)
+Common patterns:
+  - Weight training (default): weight(decimal,kg) + reps(number) — do NOT specify recordingFields for this.
+  - Bodyweight/count only: reps(number) with custom label (e.g. "Slow Blinks", "Pushups")
+  - Timed hold: duration(duration,sec)
+  - Distance + time: distance(decimal,km) + duration(duration,sec)
+When creating non-weight exercises (e.g. eye routines, stretching, timed holds, cardio drills), include recordingFields and targetValues per exercise.
+For standard weight training exercises, omit recordingFields entirely (the app uses weight+reps by default).
+
 Focus on being helpful and actionable.`;
 
 // In-process MCP tools using SDK's createSdkMcpServer (no subprocess needed)
@@ -62,8 +73,18 @@ const workoutToolsServer = createSdkMcpServer({
           z.object({
             name: z.string().describe("Exercise name"),
             sets: z.number().describe("Number of sets"),
-            reps: z.string().describe("Rep range or count (e.g. '8-12', '10', 'AMRAP')"),
+            reps: z.string().describe("Rep range or count (e.g. '8-12', '10', 'AMRAP', '10 slow blinks')"),
             muscleGroup: z.string().describe("Primary muscle group"),
+            recordingFields: z.array(
+              z.object({
+                key: z.string().describe("Field key: 'weight', 'reps', 'duration', 'distance', or custom"),
+                label: z.string().describe("Display label (e.g. 'Weight', 'Slow Blinks', 'Duration')"),
+                type: z.string().describe("Data type: 'decimal' (float), 'number' (int), 'duration' (seconds)"),
+                unit: z.string().describe("Unit label: 'kg', 'sec', 'km', '' etc."),
+                required: z.boolean().optional().describe("Whether field is required to complete a set (default true)"),
+              })
+            ).optional().describe("Custom recording fields. Omit for standard weight+reps exercises."),
+            targetValues: z.record(z.string()).optional().describe("Target values per field key, e.g. {\"reps\":\"10\"} or {\"duration\":\"30\"}"),
           })
         ).describe("List of exercises in the template"),
         estimatedDuration: z.number().optional().describe("Estimated workout duration in minutes"),
@@ -89,14 +110,24 @@ const workoutToolsServer = createSdkMcpServer({
         equipment: z.string().optional().describe("Required equipment"),
         difficulty: z.string().optional().describe("Difficulty level"),
         instructions: z.string().optional().describe("Step-by-step instructions"),
+        recordingFields: z.array(
+          z.object({
+            key: z.string().describe("Field key: 'weight', 'reps', 'duration', 'distance', or custom"),
+            label: z.string().describe("Display label (e.g. 'Weight', 'Reps', 'Duration')"),
+            type: z.string().describe("Data type: 'decimal' (float), 'number' (int), 'duration' (seconds)"),
+            unit: z.string().describe("Unit label: 'kg', 'sec', 'km', '' etc."),
+            required: z.boolean().optional().describe("Whether field is required (default true)"),
+          })
+        ).optional().describe("Custom recording fields. Omit for standard weight+reps exercises."),
       },
-      async ({ name, muscleGroup, category, equipment, difficulty, instructions }) => ({
+      async ({ name, muscleGroup, category, equipment, difficulty, instructions, recordingFields }) => ({
         content: [{
           type: "text" as const,
           text: JSON.stringify({
             type: "exercise_proposal", name, muscleGroup,
             category: category ?? null, equipment: equipment ?? null,
             difficulty: difficulty ?? null, instructions: instructions ?? null,
+            recordingFields: recordingFields ?? null,
           }),
         }],
       })

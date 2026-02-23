@@ -11,6 +11,7 @@ CREATE TABLE Exercise (
     videoUrl TEXT,
     isCustom INTEGER NOT NULL DEFAULT 0,
     isFavorite INTEGER NOT NULL DEFAULT 0,
+    recordingFields TEXT,
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL
 );
@@ -51,8 +52,8 @@ ORDER BY name ASC;
 
 -- Insert exercise
 insert:
-INSERT INTO Exercise (id, name, muscleGroup, category, equipment, difficulty, instructions, videoUrl, isCustom, isFavorite, createdAt, updatedAt)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO Exercise (id, name, muscleGroup, category, equipment, difficulty, instructions, videoUrl, isCustom, isFavorite, recordingFields, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Update exercise
 update:

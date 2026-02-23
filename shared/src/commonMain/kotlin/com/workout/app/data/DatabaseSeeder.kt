@@ -77,6 +77,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 1,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -92,6 +93,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -107,6 +109,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -123,6 +126,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -138,6 +142,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -154,6 +159,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 1,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -169,6 +175,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -185,6 +192,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 1,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -200,6 +208,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -215,6 +224,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -231,6 +241,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -246,6 +257,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -262,6 +274,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 1,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -277,6 +290,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -292,6 +306,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -307,6 +322,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -322,6 +338,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -337,6 +354,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -353,6 +371,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -368,6 +387,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -383,6 +403,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -398,6 +419,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -413,6 +435,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -428,6 +451,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -443,6 +467,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -458,6 +483,7 @@ class DatabaseSeeder(
             videoUrl = null,
             isCustom = 0,
             isFavorite = 0,
+            recordingFields = null,
             createdAt = now,
             updatedAt = now
         )
@@ -851,6 +877,7 @@ class DatabaseSeeder(
             targetSets = sets.size.toLong(),
             completedSets = sets.size.toLong(),
             notes = null,
+            targetValues = null,
             createdAt = now,
             updatedAt = now
         )
@@ -871,6 +898,7 @@ class DatabaseSeeder(
                 isWarmup = 0,
                 restTime = 90,
                 notes = null,
+                fieldValues = null,
                 completedAt = completedAt,
                 createdAt = completedAt
             )

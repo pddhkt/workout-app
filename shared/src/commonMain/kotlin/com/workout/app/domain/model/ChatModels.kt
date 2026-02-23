@@ -81,7 +81,8 @@ sealed class ChatMessageMetadata {
         val category: String?,
         val equipment: String?,
         val difficulty: String?,
-        val instructions: String?
+        val instructions: String?,
+        val recordingFields: List<RecordingField>? = null
     ) : ChatMessageMetadata()
 }
 
@@ -108,5 +109,7 @@ data class TemplateExerciseInfo(
     val name: String,
     val sets: Int = 3,
     val reps: String = "8-12",
-    val muscleGroup: String = ""
+    val muscleGroup: String = "",
+    val recordingFields: List<RecordingField>? = null,
+    val targetValues: Map<String, String>? = null
 )

@@ -7,27 +7,31 @@ package com.workout.app.domain.model
  * @param exerciseId The ID of the exercise
  * @param order The position of the exercise in the template (0-indexed)
  * @param defaultSets Default number of sets for this exercise
+ * @param recordingFields Custom recording fields (null = inherit from exercise or use defaults)
+ * @param targetValues Target values per field key (e.g. {"reps":"10","weight":"80"})
  */
 data class TemplateExercise(
     val exerciseId: String,
     val order: Int,
-    val defaultSets: Int = 3
+    val defaultSets: Int = 3,
+    val recordingFields: List<RecordingField>? = null,
+    val targetValues: Map<String, String>? = null
 ) {
     companion object {
         /**
          * Parse a list of TemplateExercise from JSON string.
          * Expected format: [{"exerciseId":"1","order":0,"defaultSets":3},...]
+         * Also supports: recordingFields and targetValues nested objects.
          */
         fun fromJsonArray(json: String): List<TemplateExercise> {
             if (json.isBlank() || json == "[]") return emptyList()
 
             return try {
-                // Simple JSON parsing without external library
                 val result = mutableListOf<TemplateExercise>()
                 val trimmed = json.trim().removePrefix("[").removeSuffix("]")
                 if (trimmed.isBlank()) return emptyList()
 
-                // Split by objects - this is a simplified parser
+                // Split by top-level objects
                 var depth = 0
                 var start = 0
                 for (i in trimmed.indices) {
@@ -56,16 +60,29 @@ data class TemplateExercise(
             var exerciseId: String? = null
             var order = 0
             var defaultSets = 3
+            var recordingFields: List<RecordingField>? = null
+            var targetValues: Map<String, String>? = null
 
-            content.split(",").forEach { pair ->
-                val parts = pair.split(":")
-                if (parts.size == 2) {
-                    val key = parts[0].trim().removeSurrounding("\"")
-                    val value = parts[1].trim().removeSurrounding("\"")
-                    when (key) {
-                        "exerciseId", "id" -> exerciseId = value
-                        "order" -> order = value.toIntOrNull() ?: 0
-                        "defaultSets", "sets" -> defaultSets = value.toIntOrNull() ?: 3
+            val pairs = splitTopLevel(content, ',')
+            for (pair in pairs) {
+                val colonIdx = findTopLevelColon(pair)
+                if (colonIdx == -1) continue
+                val key = pair.substring(0, colonIdx).trim().removeSurrounding("\"")
+                val value = pair.substring(colonIdx + 1).trim()
+
+                when (key) {
+                    "exerciseId", "id" -> exerciseId = value.removeSurrounding("\"")
+                    "order" -> order = value.removeSurrounding("\"").toIntOrNull() ?: 0
+                    "defaultSets", "sets" -> defaultSets = value.removeSurrounding("\"").toIntOrNull() ?: 3
+                    "recordingFields" -> {
+                        if (value != "null") {
+                            recordingFields = RecordingField.fromJsonArray(value)
+                        }
+                    }
+                    "targetValues" -> {
+                        if (value != "null") {
+                            targetValues = fieldValuesFromJson(value)
+                        }
                     }
                 }
             }
@@ -74,7 +91,9 @@ data class TemplateExercise(
                 TemplateExercise(
                     exerciseId = it,
                     order = order,
-                    defaultSets = defaultSets
+                    defaultSets = defaultSets,
+                    recordingFields = recordingFields,
+                    targetValues = targetValues
                 )
             }
         }
@@ -89,8 +108,57 @@ data class TemplateExercise(
                 postfix = "]",
                 separator = ","
             ) { exercise ->
-                """{"exerciseId":"${exercise.exerciseId}","order":${exercise.order},"defaultSets":${exercise.defaultSets}}"""
+                buildString {
+                    append("{\"exerciseId\":\"${exercise.exerciseId}\"")
+                    append(",\"order\":${exercise.order}")
+                    append(",\"defaultSets\":${exercise.defaultSets}")
+                    val rf = RecordingField.toJsonArray(exercise.recordingFields)
+                    if (rf != null) {
+                        append(",\"recordingFields\":$rf")
+                    }
+                    val tv = fieldValuesToJson(exercise.targetValues)
+                    if (tv != null) {
+                        append(",\"targetValues\":$tv")
+                    }
+                    append("}")
+                }
             }
+        }
+
+        /** Split a string by a delimiter at the top nesting level only. */
+        private fun splitTopLevel(s: String, delimiter: Char): List<String> {
+            val result = mutableListOf<String>()
+            var depth = 0
+            var inString = false
+            var start = 0
+            for (i in s.indices) {
+                when {
+                    s[i] == '"' && (i == 0 || s[i - 1] != '\\') -> inString = !inString
+                    !inString && (s[i] == '{' || s[i] == '[') -> depth++
+                    !inString && (s[i] == '}' || s[i] == ']') -> depth--
+                    !inString && depth == 0 && s[i] == delimiter -> {
+                        result.add(s.substring(start, i))
+                        start = i + 1
+                    }
+                }
+            }
+            if (start < s.length) result.add(s.substring(start))
+            return result
+        }
+
+        /** Find the first colon at top nesting level. */
+        private fun findTopLevelColon(s: String): Int {
+            var depth = 0
+            var inString = false
+            for (i in s.indices) {
+                when {
+                    s[i] == '"' && (i == 0 || s[i - 1] != '\\') -> inString = !inString
+                    !inString && (s[i] == '{' || s[i] == '[') -> depth++
+                    !inString && (s[i] == '}' || s[i] == ']') -> depth--
+                    !inString && depth == 0 && s[i] == ':' -> return i
+                }
+            }
+            return -1
         }
     }
 }

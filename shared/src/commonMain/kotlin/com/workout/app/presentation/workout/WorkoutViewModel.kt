@@ -7,9 +7,12 @@ import com.workout.app.data.repository.SessionRepository
 import com.workout.app.data.repository.SettingsRepository
 import com.workout.app.data.repository.SetRepository
 import com.workout.app.ui.components.exercise.LibraryExercise
+import com.workout.app.domain.model.RecordingField
 import com.workout.app.domain.model.Result
 import com.workout.app.domain.model.SessionMode
 import com.workout.app.domain.model.SessionParticipant
+import com.workout.app.domain.model.fieldValuesToJson
+import com.workout.app.domain.model.fieldValuesFromJson
 import com.workout.app.presentation.base.ViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,6 +62,9 @@ class WorkoutViewModel(
                             is Result.Success -> {
                                 val exercises = exercisesResult.data.map { se ->
                                     val prevPerf = loadPreviousPerformance(se.exerciseId)
+                                    val fields = RecordingField.fromJsonArray(se.recordingFields)
+                                        ?: RecordingField.DEFAULT_FIELDS
+                                    val targets = fieldValuesFromJson(se.targetValues)
                                     WorkoutExercise(
                                         id = se.id,
                                         exerciseId = se.exerciseId,
@@ -66,7 +72,9 @@ class WorkoutViewModel(
                                         muscleGroup = se.muscleGroup,
                                         targetSets = se.targetSets,
                                         completedSets = se.completedSets,
-                                        previousPerformance = prevPerf
+                                        previousPerformance = prevPerf,
+                                        recordingFields = fields,
+                                        targetValues = targets
                                     )
                                 }
 
@@ -165,17 +173,21 @@ class WorkoutViewModel(
             is Result.Success -> {
                 val sets = result.data
                 if (sets.isEmpty()) return "First time"
-                // Group by sessionId to find the most recent session's sets
-                // Since results are ordered by completedAt DESC, the first set's session is most recent
-                // Find the best set by weight from that group
                 val bestSet = sets.maxByOrNull { it.weight }
                 if (bestSet != null) {
-                    val weightStr = if (bestSet.weight == bestSet.weight.toLong().toDouble()) {
-                        bestSet.weight.toLong().toString()
+                    // If fieldValues exist, format dynamically
+                    val fv = bestSet.fieldValues
+                    if (fv != null && fv.isNotEmpty()) {
+                        val parts = fv.entries.map { (k, v) -> "$k: $v" }
+                        "Previous: ${parts.joinToString(", ")}"
                     } else {
-                        bestSet.weight.toString()
+                        val weightStr = if (bestSet.weight == bestSet.weight.toLong().toDouble()) {
+                            bestSet.weight.toLong().toString()
+                        } else {
+                            bestSet.weight.toString()
+                        }
+                        "Previous: ${weightStr}kg x ${bestSet.reps}"
                     }
-                    "Previous: ${weightStr}kg x ${bestSet.reps}"
                 } else {
                     "First time"
                 }
@@ -236,12 +248,18 @@ class WorkoutViewModel(
         }
     }
 
+    fun updateFieldValue(key: String, value: String) {
+        _state.update {
+            it.copy(currentFieldValues = it.currentFieldValues + (key to value))
+        }
+    }
+
     fun updateReps(reps: Int) {
-        _state.update { it.copy(currentReps = reps) }
+        updateFieldValue("reps", reps.toString())
     }
 
     fun updateWeight(weight: Float) {
-        _state.update { it.copy(currentWeight = weight) }
+        updateFieldValue("weight", weight.toString())
     }
 
     fun updateRPE(rpe: Int?) {
@@ -270,6 +288,13 @@ class WorkoutViewModel(
             if (exerciseIndex == -1) return@launch
             val exercise = currentState.exercises[exerciseIndex]
 
+            // Extract weight/reps from field values for legacy columns
+            val weight = currentState.currentWeight.toDouble()
+            val reps = currentState.currentReps
+
+            // Build fieldValues JSON from current field values
+            val fieldValuesJson = fieldValuesToJson(currentState.currentFieldValues)
+
             // Check if this set was already completed (editing an existing record)
             val existingRecordIndex = exercise.setRecords.indexOfFirst {
                 it.setNumber == setNumber && it.participantId == currentState.activeParticipantId
@@ -283,11 +308,12 @@ class WorkoutViewModel(
                     sessionExerciseId = exercise.id,
                     exerciseId = exercise.exerciseId,
                     setNumber = setNumber,
-                    weight = currentState.currentWeight.toDouble(),
-                    reps = currentState.currentReps,
+                    weight = weight,
+                    reps = reps,
                     rpe = currentState.currentRPE,
                     isWarmup = false,
-                    notes = currentState.currentNotes.takeIf { it.isNotBlank() }
+                    notes = currentState.currentNotes.takeIf { it.isNotBlank() },
+                    fieldValues = fieldValuesJson
                 )
 
                 if (setResult is Result.Error) {
@@ -305,9 +331,10 @@ class WorkoutViewModel(
             val setRecord = CompletedSetRecord(
                 setNumber = setNumber,
                 weight = currentState.currentWeight,
-                reps = currentState.currentReps,
+                reps = reps,
                 rpe = currentState.currentRPE,
-                participantId = currentState.activeParticipantId
+                participantId = currentState.activeParticipantId,
+                fieldValues = currentState.currentFieldValues
             )
 
             // Update UI state - replace existing record or append new one
@@ -330,8 +357,7 @@ class WorkoutViewModel(
             _state.update {
                 it.copy(
                     exercises = updatedExercises,
-                    currentReps = 0,
-                    currentWeight = 0f,
+                    currentFieldValues = emptyMap(),
                     currentRPE = null,
                     currentNotes = ""
                 )
@@ -357,8 +383,7 @@ class WorkoutViewModel(
         _state.update {
             it.copy(
                 exercises = updatedExercises,
-                currentReps = 0,
-                currentWeight = 0f,
+                currentFieldValues = emptyMap(),
                 currentRPE = null,
                 currentNotes = ""
             )
@@ -415,6 +440,8 @@ class WorkoutViewModel(
                             it.exerciseId == exerciseId && it.orderIndex == orderIndex
                         }
                         val libraryExercise = currentState.availableExercises.find { it.id == exerciseId }
+                        val fields = RecordingField.fromJsonArray(dbExercise?.recordingFields)
+                            ?: RecordingField.DEFAULT_FIELDS
                         WorkoutExercise(
                             id = dbExercise?.id ?: "${sessionId}_${orderIndex}",
                             exerciseId = exerciseId,
@@ -422,7 +449,8 @@ class WorkoutViewModel(
                             muscleGroup = dbExercise?.muscleGroup ?: libraryExercise?.muscleGroup ?: "Other",
                             targetSets = 3,
                             completedSets = 0,
-                            setRecords = emptyList()
+                            setRecords = emptyList(),
+                            recordingFields = fields
                         )
                     }
 
@@ -864,7 +892,8 @@ data class CompletedSetRecord(
     val weight: Float,
     val reps: Int,
     val rpe: Int?,
-    val participantId: String = "owner"
+    val participantId: String = "owner",
+    val fieldValues: Map<String, String> = emptyMap()
 )
 
 /**
@@ -879,7 +908,9 @@ data class WorkoutExercise(
     val completedSets: Int = 0,
     val setRecords: List<CompletedSetRecord> = emptyList(),
     val previousPerformance: String? = null,
-    val userSelectedSetIndex: Int? = null  // User-selected active set
+    val userSelectedSetIndex: Int? = null,  // User-selected active set
+    val recordingFields: List<com.workout.app.domain.model.RecordingField> = com.workout.app.domain.model.RecordingField.DEFAULT_FIELDS,
+    val targetValues: Map<String, String>? = null
 )
 
 /**
@@ -895,8 +926,7 @@ data class WorkoutState(
     val availableExercises: List<LibraryExercise> = emptyList(),
     val currentExerciseIndex: Int = 0,
     val elapsedSeconds: Int = 0,
-    val currentReps: Int = 0,
-    val currentWeight: Float = 0f,
+    val currentFieldValues: Map<String, String> = emptyMap(),
     val currentRPE: Int? = null,
     val currentNotes: String = "",
     val isRestTimerActive: Boolean = false,
@@ -908,6 +938,14 @@ data class WorkoutState(
     val activeParticipantId: String = "owner",
     val error: String? = null
 ) {
+    /** Backward-compat: current reps from field values. */
+    val currentReps: Int
+        get() = currentFieldValues["reps"]?.toIntOrNull() ?: 0
+
+    /** Backward-compat: current weight from field values. */
+    val currentWeight: Float
+        get() = currentFieldValues["weight"]?.toFloatOrNull() ?: 0f
+
     /**
      * Current exercise being performed.
      */
@@ -927,10 +965,16 @@ data class WorkoutState(
         get() = exercises.isNotEmpty() && exercises.all { it.completedSets >= it.targetSets }
 
     /**
-     * Whether set can be completed (has reps entered).
+     * Whether set can be completed (has required field values).
      */
     val canCompleteSet: Boolean
-        get() = currentReps > 0 && !isFinishing && !isSaving
+        get() {
+            if (isFinishing || isSaving) return false
+            val exercise = currentExercise ?: return false
+            return exercise.recordingFields.all { field ->
+                !field.required || currentFieldValues[field.key]?.isNotBlank() == true
+            }
+        }
 
     /**
      * Total sets completed across all exercises.

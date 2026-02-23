@@ -110,6 +110,48 @@ private enum class SheetType {
     OPTIONS, ADD_EXERCISE, EXERCISE_OPTIONS, FINISH_CONFIRM, CREATE_EXERCISE
 }
 
+/**
+ * Format a completed set record for display, using the exercise's recording fields.
+ * Produces: "80kg x10" for weight+reps, "10 slow blinks" for reps-only, "30sec" for duration, etc.
+ */
+private fun formatSetRecord(
+    set: com.workout.app.presentation.workout.CompletedSetRecord,
+    exercise: com.workout.app.presentation.workout.WorkoutExercise?
+): String {
+    val fields = exercise?.recordingFields ?: com.workout.app.domain.model.RecordingField.DEFAULT_FIELDS
+    val fv = set.fieldValues
+
+    // If we have dynamic field values, format from those
+    if (fv.isNotEmpty()) {
+        val isDefault = fields.size == 2 && fields.any { it.key == "weight" } && fields.any { it.key == "reps" }
+        if (isDefault) {
+            val w = fv["weight"] ?: set.weight.toString()
+            val r = fv["reps"] ?: set.reps.toString()
+            return "${formatNumber(w)}kg x$r"
+        }
+        return fields.mapNotNull { field ->
+            val v = fv[field.key] ?: return@mapNotNull null
+            if (v.isBlank()) return@mapNotNull null
+            val unitSuffix = if (field.unit.isNotEmpty()) field.unit else ""
+            if (fields.size == 1) {
+                // Single field: "10 Slow Blinks" or "30sec"
+                if (unitSuffix.isNotEmpty()) "${formatNumber(v)}$unitSuffix" else "${formatNumber(v)} ${field.label}"
+            } else {
+                "${formatNumber(v)}$unitSuffix"
+            }
+        }.joinToString(" x ")
+    }
+
+    // Legacy fallback
+    val w = if (set.weight == set.weight.toLong().toFloat()) set.weight.toLong().toString() else set.weight.toString()
+    return "${w}kg x${set.reps}"
+}
+
+private fun formatNumber(s: String): String {
+    val d = s.toDoubleOrNull() ?: return s
+    return if (d == d.toLong().toDouble()) d.toLong().toString() else s
+}
+
 private data class SetPage(
     val setNumber: Int,
     val isEndPage: Boolean = false,
@@ -126,7 +168,7 @@ private data class SetPage(
 @Composable
 fun WorkoutScreen(
     state: WorkoutState,
-    onCompleteSet: (exerciseId: String, setNumber: Int, reps: Int, weight: Float, rpe: Int?) -> Unit = { _, _, _, _, _ -> },
+    onCompleteSet: (exerciseId: String, setNumber: Int, fieldValues: Map<String, String>) -> Unit = { _, _, _ -> },
     onExerciseExpand: (exerciseId: String) -> Unit = {},
     onEndWorkout: () -> Unit = {},
     onCancelWorkout: () -> Unit = {},
@@ -154,13 +196,12 @@ fun WorkoutScreen(
     // Selected exercise and set page tracking
     var selectedExerciseIndex by remember { mutableIntStateOf(state.currentExerciseIndex) }
     var currentPageIndex by remember { mutableIntStateOf(0) }
-    var weightInput by remember { mutableStateOf("0") }
-    var repsInput by remember { mutableStateOf("10") }
+    var fieldInputs by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var swipeDirection by remember { mutableIntStateOf(1) }
     var accumulatedDrag by remember { mutableFloatStateOf(0f) }
 
-    // Per-participant draft inputs: saves uncommitted weight/reps when switching participants
-    val participantDrafts = remember { mutableMapOf<String, Pair<String, String>>() }
+    // Per-participant draft inputs: saves uncommitted field values when switching participants
+    val participantDrafts = remember { mutableMapOf<String, Map<String, String>>() }
     var previousParticipantId by remember { mutableStateOf(state.activeParticipantId) }
 
     // Drag-to-reorder state
@@ -205,7 +246,7 @@ fun WorkoutScreen(
         currentPageIndex = (pages.size - 1).coerceAtLeast(0)
     }
 
-    // Load weight/reps for a set page (filtered by active participant)
+    // Load field values for a set page (filtered by active participant)
     fun loadPageInputs(page: SetPage) {
         if (page.isEndPage) return
         val exercise = state.exercises.getOrNull(selectedExerciseIndex) ?: return
@@ -213,25 +254,42 @@ fun WorkoutScreen(
 
         // Priority 1: Current session record for this set
         val currentRecord = participantRecords.find { it.setNumber == page.setNumber }
-        if (currentRecord != null) {
-            weightInput = currentRecord.weight.toString()
-            repsInput = currentRecord.reps.toString()
+        if (currentRecord != null && currentRecord.fieldValues.isNotEmpty()) {
+            fieldInputs = currentRecord.fieldValues
+            return
+        } else if (currentRecord != null) {
+            // Backward compat: reconstruct from legacy fields
+            fieldInputs = mapOf("weight" to currentRecord.weight.toString(), "reps" to currentRecord.reps.toString())
             return
         }
 
         // Priority 2: Carry forward from previous set in current session
         if (page.setNumber > 1) {
             val prevRecord = participantRecords.find { it.setNumber == page.setNumber - 1 }
-            if (prevRecord != null) {
-                weightInput = prevRecord.weight.toString()
-                repsInput = prevRecord.reps.toString()
+            if (prevRecord != null && prevRecord.fieldValues.isNotEmpty()) {
+                fieldInputs = prevRecord.fieldValues
+                return
+            } else if (prevRecord != null) {
+                fieldInputs = mapOf("weight" to prevRecord.weight.toString(), "reps" to prevRecord.reps.toString())
                 return
             }
         }
 
-        // Priority 3: Defaults
-        weightInput = "0"
-        repsInput = "10"
+        // Priority 3: Target values from template
+        val targets = exercise.targetValues
+        if (targets != null && targets.isNotEmpty()) {
+            fieldInputs = targets
+            return
+        }
+
+        // Priority 4: Defaults based on recording fields
+        fieldInputs = exercise.recordingFields.associate { field ->
+            field.key to when (field.key) {
+                "weight" -> "0"
+                "reps" -> "10"
+                else -> ""
+            }
+        }
     }
 
     fun navigatePage(delta: Int) {
@@ -274,14 +332,13 @@ fun WorkoutScreen(
     LaunchedEffect(state.activeParticipantId) {
         if (state.activeParticipantId != previousParticipantId) {
             // Save outgoing participant's current inputs as draft
-            participantDrafts[previousParticipantId] = Pair(weightInput, repsInput)
+            participantDrafts[previousParticipantId] = fieldInputs
             previousParticipantId = state.activeParticipantId
 
             // Restore incoming participant's draft if available, otherwise auto-fill
             val draft = participantDrafts[state.activeParticipantId]
             if (draft != null) {
-                weightInput = draft.first
-                repsInput = draft.second
+                fieldInputs = draft
             } else {
                 pages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
             }
@@ -539,7 +596,7 @@ fun WorkoutScreen(
                                 }
                             }
                         } else if (currentPage != null) {
-                            // Normal set page: weight + reps + complete button
+                            // Normal set page: dynamic input fields + complete button
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -552,47 +609,46 @@ fun WorkoutScreen(
                                     horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.md),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    OutlinedTextField(
-                                        value = weightInput,
-                                        onValueChange = { weightInput = it },
-                                        label = { Text("Weight (kg)") },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                            unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                            focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-                                            unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                            focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                            unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                            cursorColor = MaterialTheme.colorScheme.onPrimary
+                                    selectedExercise.recordingFields.forEach { field ->
+                                        val label = if (field.unit.isNotEmpty()) {
+                                            "${field.label} (${field.unit})"
+                                        } else {
+                                            field.label
+                                        }
+                                        val keyboardType = when (field.type) {
+                                            "decimal" -> KeyboardType.Decimal
+                                            else -> KeyboardType.Number
+                                        }
+                                        OutlinedTextField(
+                                            value = fieldInputs[field.key] ?: "",
+                                            onValueChange = { value ->
+                                                fieldInputs = fieldInputs + (field.key to value)
+                                            },
+                                            label = { Text(label) },
+                                            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                                focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                                                unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                                focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                                unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                                cursorColor = MaterialTheme.colorScheme.onPrimary
+                                            )
                                         )
-                                    )
-                                    OutlinedTextField(
-                                        value = repsInput,
-                                        onValueChange = { repsInput = it },
-                                        label = { Text("Reps") },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                            unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                            focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
-                                            unfocusedBorderColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                            focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                            unfocusedLabelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                                            cursorColor = MaterialTheme.colorScheme.onPrimary
-                                        )
-                                    )
+                                    }
+                                }
+
+                                val canComplete = selectedExercise.recordingFields.all { field ->
+                                    !field.required || fieldInputs[field.key]?.isNotBlank() == true
                                 }
 
                                 Button(
+                                    enabled = canComplete,
                                     onClick = {
-                                        val weight = weightInput.toFloatOrNull() ?: 0f
-                                        val reps = repsInput.toIntOrNull() ?: 0
-                                        onCompleteSet(selectedExercise.id, currentPage.setNumber, reps, weight, null)
+                                        onCompleteSet(selectedExercise.id, currentPage.setNumber, fieldInputs)
 
                                         // Clear draft for completing participant (values are now in records)
                                         participantDrafts.remove(state.activeParticipantId)
@@ -885,7 +941,7 @@ fun WorkoutScreen(
                                                                         )
                                                                 ) {
                                                                     Text(
-                                                                        text = "${set.weight}kg x${set.reps}",
+                                                                        text = formatSetRecord(set, state.exercises.getOrNull(selectedExerciseIndex)),
                                                                         style = MaterialTheme.typography.labelSmall,
                                                                         color = MaterialTheme.colorScheme.onSurface
                                                                     )
@@ -912,7 +968,7 @@ fun WorkoutScreen(
                                                         )
                                                 ) {
                                                     Text(
-                                                        text = "S${set.setNumber} ${set.weight}kg x${set.reps}",
+                                                        text = "S${set.setNumber} ${formatSetRecord(set, exercise)}",
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = MaterialTheme.colorScheme.onSurface
                                                     )

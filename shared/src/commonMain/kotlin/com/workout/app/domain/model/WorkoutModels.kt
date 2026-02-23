@@ -69,7 +69,8 @@ data class SetData(
     val isWarmup: Boolean,
     val completedAt: Long,
     val isPR: Boolean = false,
-    val sessionId: String = ""
+    val sessionId: String = "",
+    val fieldValues: Map<String, String>? = null
 )
 
 /**

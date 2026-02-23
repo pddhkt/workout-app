@@ -42,7 +42,8 @@ interface SetRepository {
         reps: Int,
         rpe: Int?,
         isWarmup: Boolean = false,
-        notes: String? = null
+        notes: String? = null,
+        fieldValues: String? = null
     ): Result<String>
 
     /**

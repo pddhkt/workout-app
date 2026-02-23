@@ -8,7 +8,8 @@ import com.workout.app.domain.model.Result
 data class AddedExerciseInput(
     val exerciseId: String,
     val targetSets: Int,
-    val orderIndex: Int
+    val orderIndex: Int,
+    val targetValues: String? = null
 )
 
 /**
@@ -23,7 +24,9 @@ data class SessionExerciseWithDetails(
     val category: String?,
     val orderIndex: Int,
     val targetSets: Int,
-    val completedSets: Int
+    val completedSets: Int,
+    val targetValues: String? = null,
+    val recordingFields: String? = null
 )
 
 /**

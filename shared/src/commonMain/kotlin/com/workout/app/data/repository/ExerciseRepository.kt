@@ -73,7 +73,8 @@ interface ExerciseRepository {
         equipment: String? = null,
         difficulty: String? = null,
         instructions: String? = null,
-        videoUrl: String? = null
+        videoUrl: String? = null,
+        recordingFields: String? = null
     ): Result<String>
 
     /**

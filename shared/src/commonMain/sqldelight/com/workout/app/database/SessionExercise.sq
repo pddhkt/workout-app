@@ -8,6 +8,7 @@ CREATE TABLE SessionExercise (
     targetSets INTEGER NOT NULL,
     completedSets INTEGER NOT NULL DEFAULT 0,
     notes TEXT,
+    targetValues TEXT,
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
     FOREIGN KEY (sessionId) REFERENCES Session(id) ON DELETE CASCADE,
@@ -24,7 +25,8 @@ SELECT
     se.*,
     e.name AS exerciseName,
     e.muscleGroup AS exerciseMuscleGroup,
-    e.category AS exerciseCategory
+    e.category AS exerciseCategory,
+    e.recordingFields AS exerciseRecordingFields
 FROM SessionExercise se
 INNER JOIN Exercise e ON se.exerciseId = e.id
 WHERE se.sessionId = ?
@@ -36,8 +38,8 @@ SELECT * FROM SessionExercise WHERE id = ?;
 
 -- Insert session exercise
 insert:
-INSERT INTO SessionExercise (id, sessionId, exerciseId, orderIndex, targetSets, completedSets, notes, createdAt, updatedAt)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO SessionExercise (id, sessionId, exerciseId, orderIndex, targetSets, completedSets, notes, targetValues, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Update session exercise
 update:

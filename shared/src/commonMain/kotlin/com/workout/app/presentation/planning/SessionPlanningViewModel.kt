@@ -172,6 +172,20 @@ class SessionPlanningViewModel(
         }
     }
 
+    fun updateExerciseRecording(
+        exerciseId: String,
+        recordingFields: List<com.workout.app.domain.model.RecordingField>?,
+        targetValues: Map<String, String>?
+    ) {
+        val currentAdded = _state.value.addedExercises.toMutableMap()
+        val existing = currentAdded[exerciseId] ?: return
+        currentAdded[exerciseId] = existing.copy(
+            recordingFields = recordingFields,
+            targetValues = targetValues
+        )
+        _state.update { it.copy(addedExercises = currentAdded) }
+    }
+
     // --- Session Mode & Participants ---
 
     private fun loadRecentPartners() {
@@ -276,7 +290,8 @@ class SessionPlanningViewModel(
                         AddedExerciseInput(
                             exerciseId = entry.key,
                             targetSets = entry.value.setCount,
-                            orderIndex = index
+                            orderIndex = index,
+                            targetValues = com.workout.app.domain.model.fieldValuesToJson(entry.value.targetValues)
                         )
                     }
 
@@ -342,11 +357,13 @@ class SessionPlanningViewModel(
 }
 
 /**
- * Data class for added exercise with set count.
+ * Data class for added exercise with set count and optional recording configuration.
  */
 data class AddedExerciseData(
     val exerciseId: String,
-    val setCount: Int
+    val setCount: Int,
+    val recordingFields: List<com.workout.app.domain.model.RecordingField>? = null,
+    val targetValues: Map<String, String>? = null
 )
 
 /**

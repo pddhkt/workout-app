@@ -293,7 +293,8 @@ fun AppNavigation(
                 onAddParticipant = viewModel::addParticipant,
                 onRemoveParticipant = viewModel::removeParticipant,
                 onShowAddParticipantSheet = viewModel::showAddParticipantSheet,
-                onHideAddParticipantSheet = viewModel::hideAddParticipantSheet
+                onHideAddParticipantSheet = viewModel::hideAddParticipantSheet,
+                onUpdateExerciseRecording = viewModel::updateExerciseRecording
             )
         }
 
@@ -341,7 +342,8 @@ fun AppNavigation(
                 onAddParticipant = viewModel::addParticipant,
                 onRemoveParticipant = viewModel::removeParticipant,
                 onShowAddParticipantSheet = viewModel::showAddParticipantSheet,
-                onHideAddParticipantSheet = viewModel::hideAddParticipantSheet
+                onHideAddParticipantSheet = viewModel::hideAddParticipantSheet,
+                onUpdateExerciseRecording = viewModel::updateExerciseRecording
             )
         }
 
@@ -615,10 +617,10 @@ fun AppNavigation(
                     startTime = activeSessionState.startTime!!,
                     onMinimize = onMinimizeWorkout,
                     onExpand = onExpandWorkout,
-                    onCompleteSet = { exerciseId, setNumber, reps, weight, rpe ->
-                        workoutViewModel.updateReps(reps)
-                        workoutViewModel.updateWeight(weight)
-                        workoutViewModel.updateRPE(rpe)
+                    onCompleteSet = { exerciseId, setNumber, fieldValues ->
+                        fieldValues.forEach { (key, value) ->
+                            workoutViewModel.updateFieldValue(key, value)
+                        }
                         workoutViewModel.completeSet(exerciseId, setNumber)
                     },
                     onAddExercises = { exerciseIds ->
