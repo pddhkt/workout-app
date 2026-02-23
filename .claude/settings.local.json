@@ -5,7 +5,8 @@
       "WebSearch",
       "WebFetch(domain:docs.convex.dev)",
       "WebFetch(domain:developers.cloudflare.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(adb install:*)"
     ]
   }
 }

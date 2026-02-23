@@ -3,10 +3,16 @@
 build/
 !gradle/wrapper/gradle-wrapper.jar
 
-# IDE
+# IDE & tools
 .idea/
 *.iml
 .DS_Store
+.factory/
+.kiro/
+.windsurf/
+
+# Kotlin metadata cache
+.kotlin/
 
 # Android
 local.properties
