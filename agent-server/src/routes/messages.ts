@@ -134,4 +134,109 @@ router.post(
   }
 );
 
+// POST /conversations/:conversationId/messages/stream - SSE streaming endpoint
+router.post(
+  "/:conversationId/messages/stream",
+  async (req: Request, res: Response) => {
+    try {
+      const conversationId = param(req, "conversationId");
+      const { content } = req.body as { content: string };
+
+      if (!content || typeof content !== "string" || content.trim().length === 0) {
+        res.status(400).json({ error: "Message content is required" });
+        return;
+      }
+
+      const conversation = getConversation(conversationId);
+      if (!conversation) {
+        res.status(404).json({ error: "Conversation not found" });
+        return;
+      }
+
+      // Set SSE headers
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders();
+
+      // 1. Store the user message
+      const userMessageId = crypto.randomUUID();
+      createMessage(
+        userMessageId,
+        conversationId,
+        "user",
+        content.trim()
+      );
+
+      // 2. Call the agent with streaming
+      console.log(
+        `[messages] Processing streaming message for conversation ${conversationId}...`
+      );
+
+      const agentResponse = await agentManager.processMessageStream(
+        conversationId,
+        content.trim(),
+        conversation.agent_session_id,
+        (event) => {
+          res.write(`data: ${JSON.stringify(event)}\n\n`);
+        }
+      );
+
+      // 3. Store the assistant message with metadata
+      const assistantMessageId = crypto.randomUUID();
+      const metadata = agentResponse.metadata?.length
+        ? agentResponse.metadata[0]
+        : null;
+      const assistantMessage = createMessage(
+        assistantMessageId,
+        conversationId,
+        "assistant",
+        agentResponse.response,
+        metadata
+      );
+
+      // 4. Update the conversation's agent session ID if we got a new one
+      if (agentResponse.newSessionId) {
+        updateAgentSessionId(conversationId, agentResponse.newSessionId);
+      }
+
+      // 5. Auto-set conversation title from first user message if not set
+      if (!conversation.title) {
+        const title =
+          content.trim().length > 60
+            ? content.trim().substring(0, 57) + "..."
+            : content.trim();
+        setConversationTitle(conversationId, title);
+      }
+
+      // 6. Send the final done event with the complete message
+      const responseMessage = {
+        ...assistantMessage,
+        metadata: assistantMessage.metadata
+          ? JSON.parse(assistantMessage.metadata)
+          : null,
+      };
+
+      res.write(`data: ${JSON.stringify({ type: "done", message: responseMessage })}\n\n`);
+      res.end();
+
+      console.log(
+        `[messages] Agent stream completed for conversation ${conversationId}`
+      );
+    } catch (error) {
+      console.error("[messages] Error processing streaming message:", error);
+      // If headers already sent, write error as SSE event
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Unknown error" })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({
+          error: "Failed to process message",
+          details: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+  }
+);
+
 export default router;

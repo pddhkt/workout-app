@@ -9,5 +9,10 @@ interface ChatRepository {
     suspend fun getConversations(): Result<List<ConversationDto>>
     suspend fun getMessages(conversationId: String): Result<List<MessageDto>>
     suspend fun sendMessage(conversationId: String, content: String): Result<MessageDto>
+    suspend fun sendMessageStream(
+        conversationId: String,
+        content: String,
+        onStatus: (String) -> Unit
+    ): Result<MessageDto>
     suspend fun deleteConversation(id: String): Result<Unit>
 }

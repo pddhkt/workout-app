@@ -5,9 +5,11 @@ import com.workout.app.data.remote.MessageMetadataDto
 import com.workout.app.data.repository.ChatRepository
 import com.workout.app.data.repository.ExerciseRepository
 import com.workout.app.data.repository.TemplateRepository
+import com.workout.app.domain.model.AgentStatus
 import com.workout.app.domain.model.ChatMessage
 import com.workout.app.domain.model.ChatMessageMetadata
 import com.workout.app.domain.model.ChatOption
+import com.workout.app.domain.model.ChatQuestion
 import com.workout.app.domain.model.MessageRole
 import com.workout.app.domain.model.RecordingField
 import com.workout.app.domain.model.Result
@@ -89,9 +91,11 @@ class ChatViewModel(
             )
             _state.update { it.copy(messages = it.messages + userMessage) }
 
-            // Send message and get response
-            _state.update { it.copy(isAgentTyping = true) }
-            when (val result = chatRepository.sendMessage(currentConversationId, content)) {
+            // Send message with streaming status updates
+            _state.update { it.copy(agentStatus = AgentStatus.Thinking) }
+            when (val result = chatRepository.sendMessageStream(currentConversationId, content) { status ->
+                _state.update { it.copy(agentStatus = AgentStatus.Working(status)) }
+            }) {
                 is Result.Success -> {
                     val messageDto = result.data
                     val domainMessage = mapDtoToDomain(messageDto)
@@ -119,7 +123,7 @@ class ChatViewModel(
                         currentState.copy(
                             messages = updatedMessages,
                             isSending = false,
-                            isAgentTyping = false
+                            agentStatus = AgentStatus.Idle
                         )
                     }
                 }
@@ -127,7 +131,7 @@ class ChatViewModel(
                     _state.update {
                         it.copy(
                             isSending = false,
-                            isAgentTyping = false,
+                            agentStatus = AgentStatus.Idle,
                             error = "Failed to send message: ${result.exception.message}"
                         )
                     }
@@ -160,6 +164,42 @@ class ChatViewModel(
 
         // Send the selected option label as a new user message
         sendMessage(optionLabel)
+    }
+
+    /**
+     * Select an option from a multi-choice (batched questions) message.
+     * Accumulates answers per question; once all questions are answered,
+     * sends a combined response as a new user message.
+     *
+     * @param messageId ID of the message containing the multi-choice questions
+     * @param questionId ID of the question being answered
+     * @param optionId ID of the selected option
+     * @param optionLabel Display label of the selected option
+     */
+    fun selectMultiOption(messageId: String, questionId: String, optionId: String, optionLabel: String) {
+        _state.update { currentState ->
+            val updatedMessages = currentState.messages.map { msg ->
+                if (msg.id == messageId) {
+                    val newSelections = msg.selectedOptionIds + (questionId to optionId)
+                    msg.copy(selectedOptionIds = newSelections)
+                } else {
+                    msg
+                }
+            }
+            currentState.copy(messages = updatedMessages)
+        }
+
+        // Check if all questions are answered
+        val message = _state.value.messages.find { it.id == messageId } ?: return
+        val metadata = message.metadata as? ChatMessageMetadata.MultiChoice ?: return
+        if (message.selectedOptionIds.size == metadata.questions.size) {
+            // Build combined response from all answers
+            val combined = metadata.questions.map { q ->
+                val selectedId = message.selectedOptionIds[q.id]
+                q.options.find { it.id == selectedId }?.label ?: ""
+            }.joinToString(", ")
+            sendMessage(combined)
+        }
     }
 
     /**
@@ -386,6 +426,16 @@ class ChatViewModel(
                 } ?: emptyList()
                 ChatMessageMetadata.MultipleChoice(options)
             }
+            "multi_choice" -> {
+                val questions = dto.questions?.map { q ->
+                    ChatQuestion(
+                        id = q.id,
+                        question = q.question,
+                        options = q.options.map { o -> ChatOption(id = o.id, label = o.label) }
+                    )
+                } ?: emptyList()
+                ChatMessageMetadata.MultiChoice(questions)
+            }
             "template_proposal" -> {
                 val templateData = dto.templateData ?: return null
                 ChatMessageMetadata.TemplateProposal(
@@ -443,7 +493,7 @@ class ChatViewModel(
  * @param messages All messages in the current conversation
  * @param isLoading Whether messages are being loaded (initial load)
  * @param isSending Whether a message is currently being sent
- * @param isAgentTyping Whether the AI assistant is currently generating a response
+ * @param agentStatus Current status of the AI agent (idle, thinking, working)
  * @param error Current error message, or null if no error
  * @param serverConnected Whether the agent server is reachable
  * @param conversationId The current conversation ID, or null for a new conversation
@@ -452,7 +502,7 @@ data class ChatState(
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
     val isSending: Boolean = false,
-    val isAgentTyping: Boolean = false,
+    val agentStatus: AgentStatus = AgentStatus.Idle,
     val error: String? = null,
     val serverConnected: Boolean = true,
     val conversationId: String? = null

@@ -26,8 +26,16 @@ data class MessageDto(
 data class MessageMetadataDto(
     val type: String? = null,
     val options: List<ChoiceOptionDto>? = null,
+    val questions: List<MultiChoiceQuestionDto>? = null,
     val templateData: TemplateProposalDto? = null,
     val exerciseData: ExerciseProposalDto? = null
+)
+
+@Serializable
+data class MultiChoiceQuestionDto(
+    val id: String,
+    val question: String,
+    val options: List<ChoiceOptionDto>
 )
 
 @Serializable

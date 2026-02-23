@@ -41,6 +41,18 @@ class AgentChatRepositoryImpl(
         }
     }
 
+    override suspend fun sendMessageStream(
+        conversationId: String,
+        content: String,
+        onStatus: (String) -> Unit
+    ): Result<MessageDto> {
+        return try {
+            Result.Success(apiClient.sendMessageStream(conversationId, content, onStatus))
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
     override suspend fun deleteConversation(id: String): Result<Unit> {
         return try {
             apiClient.deleteConversation(id)

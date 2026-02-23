@@ -53,10 +53,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.workout.app.domain.model.AgentStatus
 import com.workout.app.presentation.chat.ChatViewModel
+import com.workout.app.ui.components.chat.AgentStatusIndicator
 import com.workout.app.ui.components.chat.ChatBubble
 import com.workout.app.ui.components.chat.ChatInput
-import com.workout.app.ui.components.chat.TypingIndicator
 import com.workout.app.ui.theme.AppTheme
 
 /**
@@ -202,6 +203,9 @@ fun ChatScreen(
                             onOptionSelected = { messageId, optionId, optionLabel ->
                                 viewModel.selectOption(messageId, optionId, optionLabel)
                             },
+                            onMultiOptionSelected = { messageId, questionId, optionId, optionLabel ->
+                                viewModel.selectMultiOption(messageId, questionId, optionId, optionLabel)
+                            },
                             onSaveTemplate = { messageId ->
                                 viewModel.saveTemplate(messageId)
                             },
@@ -211,10 +215,10 @@ fun ChatScreen(
                         )
                     }
 
-                    // Typing indicator
-                    if (state.isAgentTyping) {
-                        item(key = "typing-indicator") {
-                            TypingIndicator()
+                    // Agent status indicator
+                    if (state.agentStatus !is AgentStatus.Idle) {
+                        item(key = "status-indicator") {
+                            AgentStatusIndicator(status = state.agentStatus)
                         }
                     }
                 }

@@ -20,7 +20,8 @@ data class ChatMessage(
     val content: String,
     val metadata: ChatMessageMetadata? = null,
     val createdAt: Long = 0,
-    val selectedOptionId: String? = null
+    val selectedOptionId: String? = null,
+    val selectedOptionIds: Map<String, String> = emptyMap()
 )
 
 /**
@@ -84,6 +85,10 @@ sealed class ChatMessageMetadata {
         val instructions: String?,
         val recordingFields: List<RecordingField>? = null
     ) : ChatMessageMetadata()
+
+    data class MultiChoice(
+        val questions: List<ChatQuestion>
+    ) : ChatMessageMetadata()
 }
 
 /**
@@ -96,6 +101,18 @@ data class ChatOption(
     val id: String,
     val label: String
 )
+
+data class ChatQuestion(
+    val id: String,
+    val question: String,
+    val options: List<ChatOption>
+)
+
+sealed class AgentStatus {
+    data object Idle : AgentStatus()
+    data object Thinking : AgentStatus()
+    data class Working(val statusText: String) : AgentStatus()
+}
 
 /**
  * Exercise information within a template proposal.

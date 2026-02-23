@@ -11,8 +11,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.workout.app.domain.model.ChatOption
+import com.workout.app.domain.model.ChatQuestion
 import com.workout.app.ui.theme.AppTheme
 
 /**
@@ -52,7 +54,58 @@ fun MultipleChoiceCard(
 }
 
 /**
- * Individual option chip within a multiple-choice card.
+ * Card displaying multiple batched questions, each with its own set of options.
+ * Users answer each question independently. Once all questions are answered,
+ * a combined response is sent.
+ *
+ * @param questions List of questions, each with its own options
+ * @param selectedOptionIds Map of questionId -> selected optionId
+ * @param onOptionSelected Callback with (questionId, optionId, optionLabel) when an option is tapped
+ * @param modifier Optional modifier
+ */
+@Composable
+fun MultiChoiceCard(
+    questions: List<ChatQuestion>,
+    selectedOptionIds: Map<String, String>,
+    onOptionSelected: (questionId: String, optionId: String, optionLabel: String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
+    ) {
+        questions.forEach { question ->
+            val selectedId = selectedOptionIds[question.id]
+            val isQuestionAnswered = selectedId != null
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
+            ) {
+                Text(
+                    text = question.question,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                question.options.forEach { option ->
+                    val isSelected = option.id == selectedId
+
+                    OptionChip(
+                        label = option.label,
+                        isSelected = isSelected,
+                        isDisabled = isQuestionAnswered,
+                        onClick = { onOptionSelected(question.id, option.id, option.label) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Individual option chip within a choice card.
  *
  * @param label Display text for the option
  * @param isSelected Whether this option is currently selected
@@ -61,7 +114,7 @@ fun MultipleChoiceCard(
  * @param modifier Optional modifier
  */
 @Composable
-private fun OptionChip(
+internal fun OptionChip(
     label: String,
     isSelected: Boolean,
     isDisabled: Boolean,

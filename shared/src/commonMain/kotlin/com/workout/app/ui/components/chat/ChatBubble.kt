@@ -43,6 +43,7 @@ import com.workout.app.ui.theme.AppTheme
 fun ChatBubble(
     message: ChatMessage,
     onOptionSelected: ((messageId: String, optionId: String, optionLabel: String) -> Unit)? = null,
+    onMultiOptionSelected: ((messageId: String, questionId: String, optionId: String, optionLabel: String) -> Unit)? = null,
     onSaveTemplate: ((messageId: String) -> Unit)? = null,
     onSaveExercise: ((messageId: String) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -55,6 +56,7 @@ fun ChatBubble(
         MessageRole.ASSISTANT -> AssistantBubble(
             message = message,
             onOptionSelected = onOptionSelected,
+            onMultiOptionSelected = onMultiOptionSelected,
             onSaveTemplate = onSaveTemplate,
             onSaveExercise = onSaveExercise,
             modifier = modifier
@@ -108,6 +110,7 @@ private fun UserBubble(
 private fun AssistantBubble(
     message: ChatMessage,
     onOptionSelected: ((messageId: String, optionId: String, optionLabel: String) -> Unit)?,
+    onMultiOptionSelected: ((messageId: String, questionId: String, optionId: String, optionLabel: String) -> Unit)?,
     onSaveTemplate: ((messageId: String) -> Unit)?,
     onSaveExercise: ((messageId: String) -> Unit)?,
     modifier: Modifier = Modifier
@@ -174,6 +177,15 @@ private fun AssistantBubble(
                         instructions = metadata.instructions,
                         recordingFields = metadata.recordingFields,
                         onSave = { onSaveExercise?.invoke(message.id) }
+                    )
+                }
+                is ChatMessageMetadata.MultiChoice -> {
+                    MultiChoiceCard(
+                        questions = metadata.questions,
+                        selectedOptionIds = message.selectedOptionIds,
+                        onOptionSelected = { questionId, optionId, optionLabel ->
+                            onMultiOptionSelected?.invoke(message.id, questionId, optionId, optionLabel)
+                        }
                     )
                 }
                 null -> { /* No metadata - text-only message */ }
