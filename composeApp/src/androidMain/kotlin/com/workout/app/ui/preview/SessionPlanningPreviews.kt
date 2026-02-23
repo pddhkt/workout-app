@@ -34,7 +34,8 @@ private fun SessionPlanningScreenPreview() {
             isCustom = 0,
             isFavorite = 0,
             createdAt = 0,
-            updatedAt = 0
+            updatedAt = 0,
+            recordingFields = null
         ),
         Exercise(
             id = "ex_squat",
@@ -48,7 +49,8 @@ private fun SessionPlanningScreenPreview() {
             isCustom = 0,
             isFavorite = 0,
             createdAt = 0,
-            updatedAt = 0
+            updatedAt = 0,
+            recordingFields = null
         )
     )
 
@@ -87,7 +89,8 @@ private fun SessionPlanningScreenWithExercisesPreview() {
             isCustom = 0,
             isFavorite = 0,
             createdAt = 0,
-            updatedAt = 0
+            updatedAt = 0,
+            recordingFields = null
         ),
         Exercise(
             id = "ex_squat",
@@ -101,7 +104,8 @@ private fun SessionPlanningScreenWithExercisesPreview() {
             isCustom = 0,
             isFavorite = 0,
             createdAt = 0,
-            updatedAt = 0
+            updatedAt = 0,
+            recordingFields = null
         )
     )
 
@@ -147,7 +151,8 @@ private fun SessionPlanningScreenFilteredPreview() {
             isCustom = 0,
             isFavorite = 0,
             createdAt = 0,
-            updatedAt = 0
+            updatedAt = 0,
+            recordingFields = null
         ),
         Exercise(
             id = "ex_squat",
@@ -161,7 +166,8 @@ private fun SessionPlanningScreenFilteredPreview() {
             isCustom = 0,
             isFavorite = 0,
             createdAt = 0,
-            updatedAt = 0
+            updatedAt = 0,
+            recordingFields = null
         )
     )
 
@@ -200,7 +206,8 @@ private fun SessionPlanningGroupModePreview() {
             isCustom = 0,
             isFavorite = 0,
             createdAt = 0,
-            updatedAt = 0
+            updatedAt = 0,
+            recordingFields = null
         )
     )
 

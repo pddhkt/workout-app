@@ -77,7 +77,7 @@ fun WorkoutScreen(
 
     WorkoutScreen(
         state = state,
-        onCompleteSet = { _, _, _, _, _ ->
+        onCompleteSet = { _, _, _ ->
             // TODO: Handle set completion
         },
         onEndWorkout = {
