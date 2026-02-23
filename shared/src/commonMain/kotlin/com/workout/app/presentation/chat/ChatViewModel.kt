@@ -1,5 +1,6 @@
 package com.workout.app.presentation.chat
 
+import com.workout.app.data.remote.ConversationDto
 import com.workout.app.data.remote.MessageDto
 import com.workout.app.data.remote.MessageMetadataDto
 import com.workout.app.data.repository.ChatRepository
@@ -47,6 +48,7 @@ class ChatViewModel(
             loadMessages()
         }
         checkServerConnection()
+        loadConversations()
     }
 
     /**
@@ -126,6 +128,7 @@ class ChatViewModel(
                             agentStatus = AgentStatus.Idle
                         )
                     }
+                    loadConversations()
                 }
                 is Result.Error -> {
                     _state.update {
@@ -395,6 +398,65 @@ class ChatViewModel(
     }
 
     /**
+     * Load the list of all conversations for the history sidebar.
+     */
+    fun loadConversations() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoadingConversations = true) }
+            when (val result = chatRepository.getConversations()) {
+                is Result.Success -> _state.update {
+                    it.copy(conversations = result.data, isLoadingConversations = false)
+                }
+                is Result.Error -> _state.update { it.copy(isLoadingConversations = false) }
+                is Result.Loading -> {}
+            }
+        }
+    }
+
+    /**
+     * Switch to an existing conversation, loading its messages.
+     */
+    fun switchConversation(newConversationId: String) {
+        conversationId = newConversationId
+        _state.update { it.copy(
+            conversationId = newConversationId,
+            messages = emptyList(),
+            agentStatus = AgentStatus.Idle,
+            error = null
+        ) }
+        loadMessages()
+    }
+
+    /**
+     * Start a fresh conversation, clearing current messages.
+     */
+    fun startNewConversation() {
+        conversationId = null
+        _state.update { it.copy(
+            conversationId = null,
+            messages = emptyList(),
+            agentStatus = AgentStatus.Idle,
+            error = null
+        ) }
+    }
+
+    /**
+     * Delete a conversation by ID. If it's the current one, reset to a new conversation.
+     */
+    fun deleteConversationById(id: String) {
+        viewModelScope.launch {
+            when (chatRepository.deleteConversation(id)) {
+                is Result.Success -> {
+                    if (id == conversationId) startNewConversation()
+                    loadConversations()
+                }
+                is Result.Error -> {}
+                is Result.Loading -> {}
+            }
+        }
+    }
+
+    /**
      * Map a MessageDto from the data layer to a domain ChatMessage.
      */
     private fun mapDtoToDomain(dto: MessageDto): ChatMessage {
@@ -505,5 +567,7 @@ data class ChatState(
     val agentStatus: AgentStatus = AgentStatus.Idle,
     val error: String? = null,
     val serverConnected: Boolean = true,
-    val conversationId: String? = null
+    val conversationId: String? = null,
+    val conversations: List<ConversationDto> = emptyList(),
+    val isLoadingConversations: Boolean = false
 )

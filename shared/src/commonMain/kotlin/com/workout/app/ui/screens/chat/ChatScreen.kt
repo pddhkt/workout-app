@@ -28,25 +28,30 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,8 +62,10 @@ import com.workout.app.domain.model.AgentStatus
 import com.workout.app.presentation.chat.ChatViewModel
 import com.workout.app.ui.components.chat.AgentStatusIndicator
 import com.workout.app.ui.components.chat.ChatBubble
+import com.workout.app.ui.components.chat.ChatHistoryDrawer
 import com.workout.app.ui.components.chat.ChatInput
 import com.workout.app.ui.theme.AppTheme
+import kotlinx.coroutines.launch
 
 /**
  * Full-screen chat interface for the AI Workout Assistant.
@@ -82,6 +89,8 @@ fun ChatScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
     // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(state.messages.size) {
@@ -94,6 +103,27 @@ fun ChatScreen(
     var bottomBarVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { bottomBarVisible = true }
 
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ChatHistoryDrawer(
+                conversations = state.conversations,
+                currentConversationId = state.conversationId,
+                isLoading = state.isLoadingConversations,
+                onConversationSelected = { id ->
+                    viewModel.switchConversation(id)
+                    scope.launch { drawerState.close() }
+                },
+                onNewConversation = {
+                    viewModel.startNewConversation()
+                    scope.launch { drawerState.close() }
+                },
+                onDeleteConversation = { id ->
+                    viewModel.deleteConversationById(id)
+                }
+            )
+        }
+    ) {
     Scaffold(
         modifier = Modifier.imePadding(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -112,6 +142,17 @@ fun ChatScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        viewModel.loadConversations()
+                        scope.launch { drawerState.open() }
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.List,
+                            contentDescription = "Chat history"
                         )
                     }
                 },
@@ -225,6 +266,7 @@ fun ChatScreen(
             }
         }
     }
+    } // ModalNavigationDrawer
 }
 
 /**
