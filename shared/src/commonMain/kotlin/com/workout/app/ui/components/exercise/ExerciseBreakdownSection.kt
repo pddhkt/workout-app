@@ -1,19 +1,11 @@
 package com.workout.app.ui.components.exercise
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -31,8 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,9 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.workout.app.domain.model.ExerciseWithSets
 import com.workout.app.domain.model.RecordingField
@@ -173,103 +160,27 @@ private fun ExerciseBreakdownCard(
 
                 Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
 
-                // Per-set GPS path carousel
+                // Per-set GPS paths (vertical list)
                 if (hasDistanceField) {
-                    val gpsSets = exercise.sets.filter { set ->
-                        set.fieldValues?.get("_gpsPath")?.isNotBlank() == true
-                    }
-                    if (gpsSets.isNotEmpty()) {
-                        var selectedGpsSetIndex by remember { mutableIntStateOf(0) }
-                        var swipeDirection by remember { mutableIntStateOf(1) }
-                        var accumulatedDrag by remember { mutableFloatStateOf(0f) }
-
-                        // Clamp index if sets changed
-                        val clampedIndex = selectedGpsSetIndex.coerceIn(0, gpsSets.size - 1)
-                        if (clampedIndex != selectedGpsSetIndex) selectedGpsSetIndex = clampedIndex
-
-                        val currentGpsSet = gpsSets[selectedGpsSetIndex]
-                        val gpsPath = parseGpsPath(currentGpsSet.fieldValues!!["_gpsPath"]!!)
-
-                        if (gpsPath.size >= 2) {
-                            Column(
-                                modifier = if (gpsSets.size > 1) {
-                                    Modifier.pointerInput(gpsSets.size) {
-                                        detectHorizontalDragGestures(
-                                            onDragStart = { accumulatedDrag = 0f },
-                                            onHorizontalDrag = { change, dragAmount ->
-                                                change.consume()
-                                                accumulatedDrag += dragAmount
-                                            },
-                                            onDragEnd = {
-                                                val threshold = 80f
-                                                if (accumulatedDrag < -threshold && selectedGpsSetIndex < gpsSets.size - 1) {
-                                                    swipeDirection = 1
-                                                    selectedGpsSetIndex++
-                                                } else if (accumulatedDrag > threshold && selectedGpsSetIndex > 0) {
-                                                    swipeDirection = -1
-                                                    selectedGpsSetIndex--
-                                                }
-                                                accumulatedDrag = 0f
-                                            },
-                                            onDragCancel = { accumulatedDrag = 0f }
-                                        )
-                                    }
-                                } else Modifier
-                            ) {
-                                AnimatedContent(
-                                    targetState = selectedGpsSetIndex,
-                                    transitionSpec = {
-                                        val slide = if (swipeDirection > 0) {
-                                            slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-                                        } else {
-                                            slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
-                                        }
-                                        slide using SizeTransform(clip = false, sizeAnimationSpec = { _, _ -> snap() })
-                                    },
-                                    label = "gpsSetCarousel"
-                                ) { index ->
-                                    val set = gpsSets[index]
-                                    val path = parseGpsPath(set.fieldValues!!["_gpsPath"]!!)
-                                    val distance = set.fieldValues?.get("distance")?.toDoubleOrNull()
-                                    GpsPathCanvas(
-                                        points = path,
-                                        distanceKm = distance,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-
-                                if (gpsSets.size > 1) {
-                                    Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        gpsSets.forEachIndexed { dotIndex, set ->
-                                            val isCurrent = dotIndex == selectedGpsSetIndex
-                                            Box(
-                                                modifier = Modifier
-                                                    .padding(horizontal = 3.dp)
-                                                    .size(if (isCurrent) 8.dp else 6.dp)
-                                                    .clip(CircleShape)
-                                                    .background(
-                                                        if (isCurrent) MaterialTheme.colorScheme.onSurface
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                                                    )
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        text = "Set ${currentGpsSet.setNumber}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
+                    exercise.sets.forEach { set ->
+                        val gpsPathStr = set.fieldValues?.get("_gpsPath")
+                        if (gpsPathStr != null && gpsPathStr.isNotBlank()) {
+                            val path = parseGpsPath(gpsPathStr)
+                            val distance = set.fieldValues?.get("distance")?.toDoubleOrNull()
+                            if (path.size >= 2) {
+                                Text(
+                                    text = "Set ${set.setNumber}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
+                                GpsPathCanvas(
+                                    points = path,
+                                    distanceKm = distance,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
                             }
-
-                            Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
                         }
                     }
                 }

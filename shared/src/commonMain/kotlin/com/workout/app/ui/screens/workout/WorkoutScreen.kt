@@ -335,6 +335,8 @@ fun WorkoutScreen(
     }
 
     fun navigatePage(delta: Int) {
+        // Clear GPS meta-data so it doesn't flash on the incoming page
+        fieldInputs = fieldInputs.filterKeys { !it.startsWith("_") }
         val newIndex = currentPageIndex + delta
         if (newIndex < 0 && selectedExerciseIndex > 0) {
             // Swipe right past first set → go to previous exercise's end page
