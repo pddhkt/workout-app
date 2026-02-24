@@ -8,5 +8,6 @@ val sharedModules = listOf(
     databaseModule,
     dataModule,
     viewModelModule,
-    chatModule
+    chatModule,
+    locationModule
 )

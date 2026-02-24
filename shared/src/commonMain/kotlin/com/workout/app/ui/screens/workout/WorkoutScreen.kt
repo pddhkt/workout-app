@@ -100,12 +100,17 @@ import com.workout.app.ui.components.inputs.SearchBar
 import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.components.timer.RestTimerSection
 import com.workout.app.ui.components.timer.StopwatchInput
+import com.workout.app.ui.components.gps.GpsPathCanvas
+import com.workout.app.ui.components.gps.RequestLocationPermission
 import com.workout.app.ui.theme.AppTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.collectAsState
+import com.workout.app.domain.location.LocationTracker
 import com.workout.app.domain.model.SessionMode
 import com.workout.app.presentation.workout.WorkoutState
 import com.workout.app.presentation.workout.WorkoutExercise
+import org.koin.compose.koinInject
 
 private enum class SheetType {
     OPTIONS, ADD_EXERCISE, EXERCISE_OPTIONS, FINISH_CONFIRM, CREATE_EXERCISE
@@ -204,6 +209,14 @@ fun WorkoutScreen(
     var stopwatchRunningKey by remember { mutableStateOf<String?>(null) }
     var stopwatchSeconds by remember { mutableIntStateOf(0) }
 
+    // GPS tracking for distance exercises
+    val locationTracker: LocationTracker = koinInject()
+    val gpsPoints by locationTracker.points.collectAsState()
+    val gpsDistanceMeters by locationTracker.distanceMeters.collectAsState()
+    val isGpsTracking by locationTracker.isTracking.collectAsState()
+    val hasLocationPermission by locationTracker.hasPermission.collectAsState()
+    var showPermissionRequest by remember { mutableStateOf(false) }
+
     // Tick the stopwatch every second when running
     LaunchedEffect(stopwatchRunningKey) {
         val key = stopwatchRunningKey
@@ -245,6 +258,16 @@ fun WorkoutScreen(
     }
 
     val selectedExercise = state.exercises.getOrNull(selectedExerciseIndex)
+    val hasDistanceField = selectedExercise?.recordingFields?.any { it.key == "distance" } == true
+
+    // Auto-fill distance from GPS
+    LaunchedEffect(gpsDistanceMeters) {
+        if (hasDistanceField && gpsDistanceMeters > 0) {
+            val distanceKm = gpsDistanceMeters / 1000.0
+            val formatted = "%.2f".format(distanceKm)
+            fieldInputs = fieldInputs + ("distance" to formatted)
+        }
+    }
 
     // Build pages for the current exercise (filtered by active participant)
     val isMultiParticipant = state.participants.size > 1
@@ -373,16 +396,19 @@ fun WorkoutScreen(
         // Reset stopwatch on page/exercise change
         stopwatchRunningKey = null
         stopwatchSeconds = 0
+        // Reset GPS tracking on page/exercise change
+        locationTracker.reset()
         pages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
     }
 
     val scaffoldState = rememberBottomSheetScaffoldState()
     val navBarBottomDp = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
     val imeBottomDp = with(density) { WindowInsets.ime.getBottom(this).toDp() }
+    val gpsCanvasExtra = if (hasDistanceField) 132.dp else 0.dp
     val sheetPeekHeight = if (selectedExercise != null) {
         val baseHeight = if (isMultiParticipant) 280.dp else 230.dp
         val imeAdjustment = (imeBottomDp - navBarBottomDp).coerceAtLeast(0.dp)
-        baseHeight + navBarBottomDp + imeAdjustment
+        baseHeight + gpsCanvasExtra + navBarBottomDp + imeAdjustment
     } else 0.dp
 
     BottomSheetScaffold(
@@ -629,6 +655,16 @@ fun WorkoutScreen(
                                 val nonDurationFields = selectedExercise.recordingFields.filter { it.type != "duration" }
                                 val durationField = selectedExercise.recordingFields.find { it.type == "duration" }
 
+                                // GPS Path Canvas (only for distance exercises)
+                                if (hasDistanceField) {
+                                    GpsPathCanvas(
+                                        points = gpsPoints,
+                                        distanceKm = gpsDistanceMeters / 1000.0,
+                                        isTracking = isGpsTracking,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
                                 // Stopwatch for duration fields (shown above the other inputs)
                                 if (durationField != null) {
                                     StopwatchInput(
@@ -639,15 +675,32 @@ fun WorkoutScreen(
                                                 // Stop: write final value
                                                 fieldInputs = fieldInputs + (durationField.key to stopwatchSeconds.toString())
                                                 stopwatchRunningKey = null
+                                                // Stop GPS tracking
+                                                if (hasDistanceField) {
+                                                    locationTracker.stopTracking()
+                                                }
                                             } else {
                                                 // Start
                                                 stopwatchRunningKey = durationField.key
+                                                // Start GPS tracking
+                                                if (hasDistanceField) {
+                                                    locationTracker.checkPermission()
+                                                    if (hasLocationPermission) {
+                                                        locationTracker.startTracking()
+                                                    } else {
+                                                        showPermissionRequest = true
+                                                    }
+                                                }
                                             }
                                         },
                                         onReset = {
                                             stopwatchRunningKey = null
                                             stopwatchSeconds = 0
                                             fieldInputs = fieldInputs + (durationField.key to "")
+                                            // Reset GPS tracking
+                                            if (hasDistanceField) {
+                                                locationTracker.reset()
+                                            }
                                         },
                                         label = if (durationField.unit.isNotEmpty()) {
                                             "${durationField.label} (${durationField.unit})"
@@ -709,6 +762,15 @@ fun WorkoutScreen(
                                         if (stopwatchRunningKey != null) {
                                             fieldInputs = fieldInputs + (stopwatchRunningKey!! to stopwatchSeconds.toString())
                                             stopwatchRunningKey = null
+                                        }
+
+                                        // Stop GPS tracking and store path data
+                                        if (hasDistanceField) {
+                                            locationTracker.stopTracking()
+                                            if (gpsPoints.isNotEmpty()) {
+                                                val pathJson = gpsPoints.joinToString(";") { "${it.latitude},${it.longitude}" }
+                                                fieldInputs = fieldInputs + ("_gpsPath" to pathJson)
+                                            }
                                         }
 
                                         onCompleteSet(selectedExercise.id, currentPage.setNumber, fieldInputs)
@@ -1300,6 +1362,17 @@ fun WorkoutScreen(
                 }
             }
             null -> {}
+        }
+    }
+
+    // Location permission request
+    if (showPermissionRequest) {
+        RequestLocationPermission { granted ->
+            showPermissionRequest = false
+            locationTracker.checkPermission()
+            if (granted) {
+                locationTracker.startTracking()
+            }
         }
     }
 

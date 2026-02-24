@@ -59,6 +59,8 @@ kotlin {
             implementation(libs.sqldelight.android)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.play.services.location)
+            implementation(libs.androidx.activity.compose)
         }
 
         iosMain.dependencies {
