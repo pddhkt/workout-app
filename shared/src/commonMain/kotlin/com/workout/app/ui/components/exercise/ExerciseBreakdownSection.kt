@@ -28,20 +28,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.workout.app.domain.model.ExerciseWithSets
+import com.workout.app.domain.model.RecordingField
 import com.workout.app.domain.model.SetData
 import com.workout.app.ui.components.chips.Badge
 import com.workout.app.ui.components.chips.BadgeVariant
+import com.workout.app.ui.components.gps.GpsPathCanvas
+import com.workout.app.ui.components.gps.parseGpsPath
 import com.workout.app.ui.theme.AppTheme
 
-/**
- * Section showing exercise breakdown with sets (always expanded).
- *
- * @param exercises List of exercises with their sets
- * @param modifier Optional modifier
- */
 @Composable
 fun ExerciseBreakdownSection(
     exercises: List<ExerciseWithSets>,
@@ -50,7 +48,6 @@ fun ExerciseBreakdownSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        // Header (non-clickable)
         Text(
             text = "Exercises (${exercises.size})",
             style = MaterialTheme.typography.titleMedium.copy(
@@ -60,7 +57,6 @@ fun ExerciseBreakdownSection(
             modifier = Modifier.padding(vertical = AppTheme.spacing.sm)
         )
 
-        // Exercise cards
         Column(
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
         ) {
@@ -79,6 +75,12 @@ private fun ExerciseBreakdownCard(
     modifier: Modifier = Modifier
 ) {
     var showSets by remember { mutableStateOf(false) }
+
+    val fields = remember(exercise.recordingFields) {
+        RecordingField.fromJsonArray(exercise.recordingFields) ?: RecordingField.DEFAULT_FIELDS
+    }
+    val hasDistanceField = fields.any { it.key == "distance" }
+    val isDefaultFields = fields.size == 2 && fields.any { it.key == "weight" } && fields.any { it.key == "reps" }
 
     Column(
         modifier = modifier
@@ -103,10 +105,24 @@ private fun ExerciseBreakdownCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
+                val bestSetText = if (isDefaultFields) {
+                    exercise.bestSet?.let { " | Best: ${formatNumber(it.weight)}kg x ${it.reps}" } ?: ""
+                } else {
+                    exercise.bestSet?.let { best ->
+                        val fv = best.fieldValues?.filterKeys { !it.startsWith("_") }
+                        if (fv != null && fv.isNotEmpty()) {
+                            " | Best: " + fields.mapNotNull { field ->
+                                val v = fv[field.key] ?: return@mapNotNull null
+                                if (v.isBlank()) return@mapNotNull null
+                                val unit = if (field.unit.isNotEmpty()) field.unit else ""
+                                "${formatNumber(v.toDoubleOrNull() ?: return@mapNotNull null)}$unit"
+                            }.joinToString(" x ")
+                        } else null
+                    } ?: ""
+                }
+
                 Text(
-                    text = "${exercise.sets.size} sets" + (exercise.bestSet?.let {
-                        " | Best: ${it.weight}kg x ${it.reps}"
-                    } ?: ""),
+                    text = "${exercise.sets.size} sets$bestSetText",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -144,42 +160,63 @@ private fun ExerciseBreakdownCard(
 
                 Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
 
-                // Sets table header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Set",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = "Weight",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = "Reps",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = "RPE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
+                // GPS path for the first set that has one (show combined/last path)
+                if (hasDistanceField) {
+                    val gpsSet = exercise.sets.lastOrNull { set ->
+                        set.fieldValues?.get("_gpsPath")?.isNotBlank() == true
+                    }
+                    gpsSet?.let { set ->
+                        val gpsPath = parseGpsPath(set.fieldValues!!["_gpsPath"]!!)
+                        if (gpsPath.size >= 2) {
+                            GpsPathCanvas(
+                                points = gpsPath,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(AppTheme.spacing.sm))
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
+                if (isDefaultFields) {
+                    // Default weight/reps table
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Set", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                        Text("Weight", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                        Text("Reps", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                        Text("RPE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    }
 
-                // Sets rows
-                exercise.sets.forEach { set ->
-                    SetRow(set = set)
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
+
+                    exercise.sets.forEach { set ->
+                        DefaultSetRow(set = set)
+                    }
+                } else {
+                    // Dynamic field columns
+                    val displayFields = fields.filter { it.key != "duration" || fields.size == 1 }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Set", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                        displayFields.forEach { field ->
+                            Text(
+                                text = field.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.xs))
+
+                    exercise.sets.forEach { set ->
+                        DynamicSetRow(set = set, fields = displayFields)
+                    }
                 }
             }
         }
@@ -187,7 +224,7 @@ private fun ExerciseBreakdownCard(
 }
 
 @Composable
-private fun SetRow(
+private fun DefaultSetRow(
     set: SetData,
     modifier: Modifier = Modifier
 ) {
@@ -205,11 +242,7 @@ private fun SetRow(
             Text(
                 text = if (set.isWarmup) "W" else set.setNumber.toString(),
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (set.isWarmup) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
+                color = if (set.isWarmup) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
             )
             if (set.isPR) {
                 Icon(
@@ -221,7 +254,7 @@ private fun SetRow(
             }
         }
         Text(
-            text = "${set.weight} kg",
+            text = "${formatNumber(set.weight)} kg",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
@@ -239,4 +272,71 @@ private fun SetRow(
             modifier = Modifier.weight(1f)
         )
     }
+}
+
+@Composable
+private fun DynamicSetRow(
+    set: SetData,
+    fields: List<RecordingField>,
+    modifier: Modifier = Modifier
+) {
+    val fv = set.fieldValues?.filterKeys { !it.startsWith("_") } ?: emptyMap()
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = AppTheme.spacing.xs),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
+        ) {
+            Text(
+                text = if (set.isWarmup) "W" else set.setNumber.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (set.isWarmup) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+            )
+            if (set.isPR) {
+                Icon(
+                    imageVector = Icons.Filled.EmojiEvents,
+                    contentDescription = "PR",
+                    modifier = Modifier.size(12.dp),
+                    tint = AppTheme.colors.primaryText
+                )
+            }
+        }
+        fields.forEach { field ->
+            val value = fv[field.key]
+            val displayValue = if (value != null && value.isNotBlank()) {
+                val unit = if (field.unit.isNotEmpty()) " ${field.unit}" else ""
+                if (field.type == "duration") {
+                    val secs = value.toIntOrNull() ?: 0
+                    val mins = secs / 60
+                    val remainSecs = secs % 60
+                    "%d:%02d".format(mins, remainSecs)
+                } else {
+                    "${formatNumber(value.toDoubleOrNull() ?: 0.0)}$unit"
+                }
+            } else {
+                "-"
+            }
+            Text(
+                text = displayValue,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+private fun formatNumber(value: Double): String {
+    return if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
+}
+
+private fun formatNumber(value: String): String {
+    val d = value.toDoubleOrNull() ?: return value
+    return formatNumber(d)
 }

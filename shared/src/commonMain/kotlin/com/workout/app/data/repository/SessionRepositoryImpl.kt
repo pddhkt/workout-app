@@ -10,6 +10,7 @@ import com.workout.app.database.SelectWithExercises
 import com.workout.app.domain.model.ExerciseWithSets
 import com.workout.app.domain.model.SetData
 import com.workout.app.domain.model.Result
+import com.workout.app.domain.model.fieldValuesFromJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -224,7 +225,8 @@ class SessionRepositoryImpl(
                             rpe = setRow.rpe?.toInt(),
                             isWarmup = setRow.isWarmup == 1L,
                             completedAt = setRow.completedAt,
-                            isPR = false
+                            isPR = false,
+                            fieldValues = fieldValuesFromJson(setRow.fieldValues)
                         )
                     }.sortedBy { it.setNumber }
 
@@ -233,7 +235,8 @@ class SessionRepositoryImpl(
                         exerciseName = se.exerciseName ?: "Unknown",
                         muscleGroup = se.exerciseMuscleGroup ?: "Other",
                         category = se.exerciseCategory,
-                        sets = exerciseSets
+                        sets = exerciseSets,
+                        recordingFields = se.exerciseRecordingFields
                     )
                 }
 

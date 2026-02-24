@@ -292,10 +292,8 @@ class WorkoutViewModel(
             val weight = currentState.currentWeight.toDouble()
             val reps = currentState.currentReps
 
-            // Build fieldValues JSON from current field values (filter out _prefixed meta-keys)
-            val fieldValuesJson = fieldValuesToJson(
-                currentState.currentFieldValues.filterKeys { !it.startsWith("_") }
-            )
+            // Build fieldValues JSON from current field values (includes _gpsPath for GPS tracking)
+            val fieldValuesJson = fieldValuesToJson(currentState.currentFieldValues)
 
             // Check if this set was already completed (editing an existing record)
             val existingRecordIndex = exercise.setRecords.indexOfFirst {

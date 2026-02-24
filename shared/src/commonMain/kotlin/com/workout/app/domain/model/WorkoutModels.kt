@@ -54,7 +54,8 @@ data class ExerciseWithSets(
     val category: String?,
     val sets: List<SetData>,
     val hasPR: Boolean = false,
-    val bestSet: SetData? = null
+    val bestSet: SetData? = null,
+    val recordingFields: String? = null
 )
 
 /**
