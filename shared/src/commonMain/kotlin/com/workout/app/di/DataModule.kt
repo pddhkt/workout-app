@@ -13,6 +13,8 @@ import com.workout.app.data.repository.SettingsRepository
 import com.workout.app.data.repository.SettingsRepositoryImpl
 import com.workout.app.data.repository.TemplateRepository
 import com.workout.app.data.repository.TemplateRepositoryImpl
+import com.workout.app.data.repository.GoalRepository
+import com.workout.app.data.repository.GoalRepositoryImpl
 import com.workout.app.data.repository.WorkoutRepository
 import com.workout.app.data.repository.WorkoutRepositoryImpl
 import org.koin.dsl.module
@@ -76,6 +78,13 @@ val dataModule = module {
     single<SettingsRepository> {
         SettingsRepositoryImpl(
             settingsQueries = get()
+        )
+    }
+
+    single<GoalRepository> {
+        GoalRepositoryImpl(
+            goalQueries = get(),
+            goalProgressQueries = get()
         )
     }
 

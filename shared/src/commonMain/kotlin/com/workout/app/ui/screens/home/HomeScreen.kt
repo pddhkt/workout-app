@@ -27,9 +27,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.workout.app.domain.model.GoalWithProgress
 import com.workout.app.ui.components.cards.ElevatedCard
 import com.workout.app.ui.components.dataviz.ConsistencyHeatmap
 import com.workout.app.ui.components.dataviz.HeatmapDay
+import com.workout.app.ui.components.goals.GoalCard
 import com.workout.app.ui.components.headers.SectionHeaderWithAction
 import androidx.compose.ui.unit.dp
 import com.workout.app.ui.theme.AppTheme
@@ -77,10 +79,13 @@ data class RecentSession(
 fun HomeScreen(
     templates: List<WorkoutTemplate>,
     recentSessions: List<RecentSession>,
+    activeGoals: List<GoalWithProgress> = emptyList(),
     onTemplateClick: (String) -> Unit = {},
     onSessionClick: (String) -> Unit = {},
     onViewAllTemplates: () -> Unit = {},
     onViewAllSessions: () -> Unit = {},
+    onGoalClick: (String) -> Unit = {},
+    onManageGoals: () -> Unit = {},
     onChatClick: () -> Unit = {},
     heatmapData: List<HeatmapDay> = emptyList(),
     modifier: Modifier = Modifier
@@ -131,11 +136,11 @@ fun HomeScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(top = AppTheme.spacing.xl)
         ) {
-            // Recent Sessions
-            RecentSessionsSection(
-                sessions = recentSessions,
-                onSessionClick = onSessionClick,
-                onViewAll = onViewAllSessions,
+            // Active Goals
+            ActiveGoalsSection(
+                goals = activeGoals,
+                onGoalClick = onGoalClick,
+                onManageGoals = onManageGoals,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -221,28 +226,28 @@ private fun HomeHeader(
 }
 
 /**
- * Recent sessions section with session cards in a scrollable list
+ * Active goals section showing goal progress cards.
  */
 @Composable
-private fun RecentSessionsSection(
-    sessions: List<RecentSession>,
-    onSessionClick: (String) -> Unit,
-    onViewAll: () -> Unit,
+private fun ActiveGoalsSection(
+    goals: List<GoalWithProgress>,
+    onGoalClick: (String) -> Unit,
+    onManageGoals: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
     ) {
         SectionHeaderWithAction(
-            title = "Recent Sessions",
-            actionText = "View All",
-            onActionClick = onViewAll
+            title = "Goals",
+            actionText = "Manage",
+            onActionClick = onManageGoals
         )
 
         Spacer(modifier = Modifier.height(AppTheme.spacing.md))
 
-        if (sessions.isEmpty()) {
-            RecentSessionsEmptyState(
+        if (goals.isEmpty()) {
+            GoalsEmptyState(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = AppTheme.spacing.xxl)
@@ -252,10 +257,10 @@ private fun RecentSessionsSection(
                 verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(sessions, key = { it.id }) { session ->
-                    RecentSessionCard(
-                        session = session,
-                        onClick = { onSessionClick(session.id) }
+                items(goals, key = { it.id }) { goal ->
+                    GoalCard(
+                        goal = goal,
+                        onClick = { onGoalClick(goal.id) }
                     )
                 }
             }
@@ -264,10 +269,10 @@ private fun RecentSessionsSection(
 }
 
 /**
- * Empty state for when there are no recent sessions
+ * Empty state for when there are no active goals.
  */
 @Composable
-private fun RecentSessionsEmptyState(
+private fun GoalsEmptyState(
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -279,12 +284,12 @@ private fun RecentSessionsEmptyState(
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.sm)
         ) {
             Text(
-                text = "No recent sessions",
+                text = "No active goals",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Complete a workout to see it here",
+                text = "Tap Manage to create your first goal",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

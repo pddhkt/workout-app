@@ -31,11 +31,13 @@ fun HomeScreenWithViewModel(
     onSessionClick: (String) -> Unit = {},
     onViewAllTemplates: () -> Unit = {},
     onViewAllSessions: () -> Unit = {},
+    onGoalClick: (String) -> Unit = {},
+    onManageGoals: () -> Unit = {},
     onChatClick: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
 
-    val hasNoData = state.recentSessions.isEmpty() && state.templates.isEmpty()
+    val hasNoData = state.recentSessions.isEmpty() && state.templates.isEmpty() && state.activeGoals.isEmpty()
 
     when {
         state.isLoading && hasNoData -> {
@@ -96,10 +98,13 @@ fun HomeScreenWithViewModel(
             HomeScreen(
                 templates = templates,
                 recentSessions = sessions,
+                activeGoals = state.activeGoals,
                 onTemplateClick = onTemplateClick,
                 onSessionClick = onSessionClick,
                 onViewAllTemplates = onViewAllTemplates,
                 onViewAllSessions = onViewAllSessions,
+                onGoalClick = onGoalClick,
+                onManageGoals = onManageGoals,
                 onChatClick = onChatClick,
                 heatmapData = state.heatmapData
             )

@@ -2,6 +2,9 @@ package com.workout.app.di
 
 import com.workout.app.presentation.complete.WorkoutCompleteViewModel
 import com.workout.app.presentation.detail.ExerciseDetailViewModel
+import com.workout.app.presentation.goals.GoalCreateEditViewModel
+import com.workout.app.presentation.goals.GoalDetailViewModel
+import com.workout.app.presentation.goals.GoalsViewModel
 import com.workout.app.presentation.history.SessionDetailViewModel
 import com.workout.app.presentation.history.SessionHistoryViewModel
 import com.workout.app.presentation.home.HomeViewModel
@@ -23,7 +26,8 @@ val viewModelModule = module {
         HomeViewModel(
             workoutRepository = get(),
             templateRepository = get(),
-            sessionRepository = get()
+            sessionRepository = get(),
+            goalRepository = get()
         )
     }
 
@@ -106,7 +110,32 @@ val viewModelModule = module {
             sessionRepository = get(),
             setRepository = get(),
             workoutRepository = get(),
-            templateRepository = get()
+            templateRepository = get(),
+            goalRepository = get()
+        )
+    }
+
+    // Goals Management ViewModel
+    factory {
+        GoalsViewModel(
+            goalRepository = get()
+        )
+    }
+
+    // Goal Detail ViewModel - requires goalId parameter
+    factory { (goalId: String) ->
+        GoalDetailViewModel(
+            goalId = goalId,
+            goalRepository = get()
+        )
+    }
+
+    // Goal Create/Edit ViewModel - optional goalId parameter
+    factory { (goalId: String?) ->
+        GoalCreateEditViewModel(
+            goalId = goalId,
+            goalRepository = get(),
+            exerciseRepository = get()
         )
     }
 }

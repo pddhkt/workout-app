@@ -46,6 +46,9 @@ import com.workout.app.presentation.workout.WorkoutState
 import com.workout.app.presentation.workout.WorkoutViewModel
 import com.workout.app.ui.screens.complete.EnhancedWorkoutCompleteScreen
 import com.workout.app.ui.screens.detail.ExerciseDetailScreen
+import com.workout.app.ui.screens.goals.GoalCreateEditScreen
+import com.workout.app.ui.screens.goals.GoalDetailScreen
+import com.workout.app.ui.screens.goals.GoalsScreenWithViewModel
 import com.workout.app.ui.screens.home.HomeScreenWithViewModel
 import com.workout.app.ui.screens.history.SessionHistoryScreen
 import com.workout.app.ui.screens.history.SessionDetailScreen
@@ -236,6 +239,12 @@ fun AppNavigation(
                     },
                     onViewAllSessions = {
                         navController.navigateToSessionHistory()
+                    },
+                    onGoalClick = { goalId ->
+                        navController.navigateToGoalDetail(goalId)
+                    },
+                    onManageGoals = {
+                        navController.navigateToGoals()
                     },
                     onChatClick = {
                         navController.navigateToChat()
@@ -525,6 +534,72 @@ fun AppNavigation(
                 onSessionClick = { sessionId ->
                     navController.navigateToSessionDetail(sessionId)
                 }
+            )
+        }
+
+        // Goals Management Screen
+        composable(
+            route = Route.Goals.route,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)) + fadeOut(tween(300)) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+        ) {
+            GoalsScreenWithViewModel(
+                onGoalClick = { goalId ->
+                    navController.navigateToGoalDetail(goalId)
+                },
+                onCreateGoal = {
+                    navController.navigateToGoalCreate()
+                },
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Goal Detail Screen
+        composable(
+            route = Route.GoalDetail.ROUTE,
+            arguments = listOf(navArgument(Route.GoalDetail.ARG_GOAL_ID) { type = NavType.StringType }),
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)) + fadeOut(tween(300)) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+        ) { backStackEntry ->
+            val goalId = backStackEntry.arguments?.getString(Route.GoalDetail.ARG_GOAL_ID) ?: return@composable
+            GoalDetailScreen(
+                goalId = goalId,
+                onBackClick = { navController.popBackStack() },
+                onEditClick = { navController.navigateToGoalEdit(goalId) }
+            )
+        }
+
+        // Goal Create Screen
+        composable(
+            route = Route.GoalCreate.route,
+            enterTransition = { slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+        ) {
+            GoalCreateEditScreen(
+                goalId = null,
+                onBackClick = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() }
+            )
+        }
+
+        // Goal Edit Screen
+        composable(
+            route = Route.GoalEdit.ROUTE,
+            arguments = listOf(navArgument(Route.GoalEdit.ARG_GOAL_ID) { type = NavType.StringType }),
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(tween(300)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(300)) }
+        ) { backStackEntry ->
+            val goalId = backStackEntry.arguments?.getString(Route.GoalEdit.ARG_GOAL_ID) ?: return@composable
+            GoalCreateEditScreen(
+                goalId = goalId,
+                onBackClick = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() }
             )
         }
 

@@ -1,5 +1,6 @@
 package com.workout.app.presentation.complete
 
+import com.workout.app.data.repository.GoalRepository
 import com.workout.app.data.repository.SessionRepository
 import com.workout.app.data.repository.SetRepository
 import com.workout.app.data.repository.TemplateRepository
@@ -30,7 +31,8 @@ class WorkoutCompleteViewModel(
     private val sessionRepository: SessionRepository,
     private val setRepository: SetRepository,
     private val workoutRepository: WorkoutRepository,
-    private val templateRepository: TemplateRepository
+    private val templateRepository: TemplateRepository,
+    private val goalRepository: GoalRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WorkoutCompleteState())
@@ -215,6 +217,10 @@ class WorkoutCompleteViewModel(
                 is Result.Success -> {
                     // Link the session to the saved workout so history can find it
                     sessionRepository.updateWorkoutId(sessionId, result.data)
+
+                    // Update goal progress from completed workout exercises
+                    updateGoalProgress(workout)
+
                     _state.update { it.copy(isSaving = false) }
                     onComplete()
                 }
@@ -229,6 +235,44 @@ class WorkoutCompleteViewModel(
                 is Result.Loading -> { }
             }
         }
+    }
+
+    private suspend fun updateGoalProgress(workout: WorkoutWithSets) {
+        val exerciseIds = workout.exercises.map { it.exerciseId }
+        val setData = workout.exercises.associate { exercise ->
+            exercise.exerciseId to buildMap {
+                // Sum distance from field values
+                val distance = exercise.sets.sumOf { set ->
+                    set.fieldValues?.get("distance")?.toDoubleOrNull() ?: 0.0
+                }
+                if (distance > 0) put("distance", distance)
+
+                // Sum duration from field values (seconds -> minutes for goals)
+                val duration = exercise.sets.sumOf { set ->
+                    set.fieldValues?.get("duration")?.toDoubleOrNull() ?: 0.0
+                }
+                if (duration > 0) put("duration", duration / 60.0)
+
+                // Sum reps
+                val reps = exercise.sets.sumOf { it.reps.toDouble() }
+                if (reps > 0) put("reps", reps)
+
+                // Sets count
+                put("sets", exercise.sets.size.toDouble())
+
+                // Volume (weight * reps)
+                val volume = exercise.sets.sumOf { it.weight * it.reps }
+                if (volume > 0) put("volume", volume)
+
+                // Sessions marker
+                put("sessions", 1.0)
+            }
+        }
+
+        goalRepository.processWorkoutCompletion(
+            exerciseIds = exerciseIds,
+            setData = setData
+        )
     }
 
     fun clearError() {

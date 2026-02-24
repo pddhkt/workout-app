@@ -1,11 +1,13 @@
 package com.workout.app.presentation.home
 
+import com.workout.app.data.repository.GoalRepository
 import com.workout.app.data.repository.SessionRepository
 import com.workout.app.data.repository.TemplateRepository
 import com.workout.app.data.repository.WorkoutRepository
 import com.workout.app.database.Session
 import com.workout.app.database.Template
 import com.workout.app.database.Workout
+import com.workout.app.domain.model.GoalWithProgress
 import com.workout.app.domain.model.Result
 import com.workout.app.presentation.base.ViewModel
 import com.workout.app.ui.components.dataviz.HeatmapDay
@@ -29,7 +31,8 @@ import kotlinx.datetime.toLocalDateTime
 class HomeViewModel(
     private val workoutRepository: WorkoutRepository,
     private val templateRepository: TemplateRepository,
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
+    private val goalRepository: GoalRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -43,12 +46,13 @@ class HomeViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
-            // Combine reactive flows for templates and workouts
+            // Combine reactive flows for templates, workouts, and goals
             combine(
                 templateRepository.observeRecentlyUsed(limit = 4),
-                workoutRepository.observeRecent(limit = 3)
-            ) { templates, workouts ->
-                Pair(templates, workouts)
+                workoutRepository.observeRecent(limit = 3),
+                goalRepository.observeActiveGoals()
+            ) { templates, workouts, goals ->
+                Triple(templates, workouts, goals)
             }.catch { error ->
                 _state.update {
                     it.copy(
@@ -56,7 +60,7 @@ class HomeViewModel(
                         error = error.message ?: "Failed to load home data"
                     )
                 }
-            }.collect { (templates, workouts) ->
+            }.collect { (templates, workouts, goals) ->
                 // Load heatmap data separately
                 loadHeatmapData()
 
@@ -65,6 +69,7 @@ class HomeViewModel(
                         isLoading = false,
                         templates = templates,
                         recentSessions = workouts,
+                        activeGoals = goals,
                         error = null
                     )
                 }
@@ -108,6 +113,7 @@ data class HomeState(
     val isLoading: Boolean = false,
     val templates: List<Template> = emptyList(),
     val recentSessions: List<Workout> = emptyList(),
+    val activeGoals: List<GoalWithProgress> = emptyList(),
     val heatmapData: List<HeatmapDay> = emptyList(),
     val error: String? = null
 )

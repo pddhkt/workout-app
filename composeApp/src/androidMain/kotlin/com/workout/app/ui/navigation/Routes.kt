@@ -114,6 +114,38 @@ sealed class Route(val route: String) {
     data object Chat : Route("chat")
 
     /**
+     * Goals management screen
+     */
+    data object Goals : Route("goals")
+
+    /**
+     * Goal detail screen
+     * @param goalId The goal ID to display
+     */
+    data class GoalDetail(val goalId: String) : Route("goal_detail/$goalId") {
+        companion object {
+            const val ROUTE = "goal_detail/{goalId}"
+            const val ARG_GOAL_ID = "goalId"
+        }
+    }
+
+    /**
+     * Goal create screen
+     */
+    data object GoalCreate : Route("goal_create")
+
+    /**
+     * Goal edit screen
+     * @param goalId The goal ID to edit
+     */
+    data class GoalEdit(val goalId: String) : Route("goal_edit/$goalId") {
+        companion object {
+            const val ROUTE = "goal_edit/{goalId}"
+            const val ARG_GOAL_ID = "goalId"
+        }
+    }
+
+    /**
      * Session history screen showing all past workouts
      */
     data object SessionHistory : Route("session_history")
@@ -189,6 +221,22 @@ fun NavController.navigateToSessionPlanningWithTemplate(templateId: String, buil
 
 fun NavController.navigateToChat(builder: NavOptionsBuilder.() -> Unit = {}) {
     navigate(Route.Chat.route, builder)
+}
+
+fun NavController.navigateToGoals(builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.Goals.route, builder)
+}
+
+fun NavController.navigateToGoalDetail(goalId: String, builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.GoalDetail(goalId).route, builder)
+}
+
+fun NavController.navigateToGoalCreate(builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.GoalCreate.route, builder)
+}
+
+fun NavController.navigateToGoalEdit(goalId: String, builder: NavOptionsBuilder.() -> Unit = {}) {
+    navigate(Route.GoalEdit(goalId).route, builder)
 }
 
 fun NavController.navigateToSessionHistory(builder: NavOptionsBuilder.() -> Unit = {}) {

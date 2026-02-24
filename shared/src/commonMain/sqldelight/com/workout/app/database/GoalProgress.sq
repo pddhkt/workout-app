@@ -1,0 +1,67 @@
+-- GoalProgress table
+-- Cached per-period progress snapshots for goals
+CREATE TABLE GoalProgress (
+    id TEXT NOT NULL PRIMARY KEY,
+    goalId TEXT NOT NULL,
+    periodStart INTEGER NOT NULL,    -- epoch millis, start of day/week/month
+    periodEnd INTEGER NOT NULL,      -- epoch millis, end of day/week/month
+    currentValue REAL NOT NULL DEFAULT 0.0,
+    isCompleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL,
+    FOREIGN KEY (goalId) REFERENCES Goal(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX goal_progress_goal_idx ON GoalProgress(goalId);
+CREATE INDEX goal_progress_period_idx ON GoalProgress(goalId, periodStart);
+
+-- Select progress for a specific goal and period
+selectByGoalAndPeriod:
+SELECT * FROM GoalProgress
+WHERE goalId = ? AND periodStart = ?;
+
+-- Select current period progress for a goal (period containing given timestamp)
+selectCurrentByGoal:
+SELECT * FROM GoalProgress
+WHERE goalId = ? AND periodStart <= ? AND periodEnd >= ?;
+
+-- Select all progress for a goal (history), most recent first
+selectByGoal:
+SELECT * FROM GoalProgress
+WHERE goalId = ?
+ORDER BY periodStart DESC;
+
+-- Select recent progress for a goal with limit
+selectRecentByGoal:
+SELECT * FROM GoalProgress
+WHERE goalId = ?
+ORDER BY periodStart DESC
+LIMIT ?;
+
+-- Insert progress record
+insert:
+INSERT INTO GoalProgress (id, goalId, periodStart, periodEnd, currentValue, isCompleted, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- Update progress value
+updateProgress:
+UPDATE GoalProgress SET
+    currentValue = ?,
+    isCompleted = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+-- Delete all progress for a goal
+deleteByGoal:
+DELETE FROM GoalProgress WHERE goalId = ?;
+
+-- Count completed periods for a goal (for streak calculation)
+countCompletedByGoal:
+SELECT COUNT(*) AS completedCount FROM GoalProgress
+WHERE goalId = ? AND isCompleted = 1;
+
+-- Select completed periods ordered by period start (for streak calculation)
+selectCompletedByGoal:
+SELECT * FROM GoalProgress
+WHERE goalId = ? AND isCompleted = 1
+ORDER BY periodStart DESC;
