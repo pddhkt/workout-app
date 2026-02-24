@@ -101,13 +101,13 @@ import com.workout.app.ui.components.overlays.M3BottomSheet
 import com.workout.app.ui.components.timer.RestTimerSection
 import com.workout.app.ui.components.timer.StopwatchInput
 import com.workout.app.ui.components.gps.GpsPathCanvas
+import com.workout.app.ui.components.gps.parseGpsPath
 import com.workout.app.ui.components.gps.RequestLocationPermission
 import com.workout.app.ui.theme.AppTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.collectAsState
 import com.workout.app.domain.location.LocationTracker
-import com.workout.app.domain.model.GpsPoint
 import com.workout.app.domain.model.SessionMode
 import com.workout.app.presentation.workout.WorkoutState
 import com.workout.app.presentation.workout.WorkoutExercise
@@ -218,11 +218,6 @@ fun WorkoutScreen(
     val hasLocationPermission by locationTracker.hasPermission.collectAsState()
     var showPermissionRequest by remember { mutableStateOf(false) }
 
-    // Preserve last completed GPS path so it stays visible after set completion
-    var lastCompletedGpsPath by remember { mutableStateOf<List<GpsPoint>>(emptyList()) }
-    var lastCompletedDistanceKm by remember { mutableStateOf(0.0) }
-    var lastCompletedExerciseIndex by remember { mutableIntStateOf(-1) }
-
     // Tick the stopwatch every second when running
     LaunchedEffect(stopwatchRunningKey) {
         val key = stopwatchRunningKey
@@ -310,10 +305,11 @@ fun WorkoutScreen(
         }
 
         // Priority 2: Carry forward from previous set in current session
+        // Filter out _-prefixed meta keys (like _gpsPath) so they don't leak to the next set
         if (page.setNumber > 1) {
             val prevRecord = participantRecords.find { it.setNumber == page.setNumber - 1 }
             if (prevRecord != null && prevRecord.fieldValues.isNotEmpty()) {
-                fieldInputs = prevRecord.fieldValues
+                fieldInputs = prevRecord.fieldValues.filterKeys { !it.startsWith("_") }
                 return
             } else if (prevRecord != null) {
                 fieldInputs = mapOf("weight" to prevRecord.weight.toString(), "reps" to prevRecord.reps.toString())
@@ -404,11 +400,6 @@ fun WorkoutScreen(
         stopwatchSeconds = 0
         // Reset live GPS tracking on page/exercise change
         locationTracker.reset()
-        // Clear last completed path only when exercise changes
-        if (selectedExerciseIndex != lastCompletedExerciseIndex) {
-            lastCompletedGpsPath = emptyList()
-            lastCompletedDistanceKm = 0.0
-        }
         pages.getOrNull(currentPageIndex)?.let { loadPageInputs(it) }
     }
 
@@ -449,10 +440,12 @@ fun WorkoutScreen(
                                 },
                                 onDragEnd = {
                                     val threshold = 100f
-                                    if (accumulatedDrag < -threshold) {
-                                        navigatePage(1)
-                                    } else if (accumulatedDrag > threshold) {
-                                        navigatePage(-1)
+                                    if (stopwatchRunningKey == null) {
+                                        if (accumulatedDrag < -threshold) {
+                                            navigatePage(1)
+                                        } else if (accumulatedDrag > threshold) {
+                                            navigatePage(-1)
+                                        }
                                     }
                                     accumulatedDrag = 0f
                                 },
@@ -576,13 +569,23 @@ fun WorkoutScreen(
                                     .padding(horizontal = AppTheme.spacing.lg),
                                 verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.md)
                             ) {
-                                // Show last completed GPS path on end page
-                                if (hasDistanceField && lastCompletedGpsPath.isNotEmpty()) {
-                                    GpsPathCanvas(
-                                        points = lastCompletedGpsPath,
-                                        distanceKm = lastCompletedDistanceKm,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
+                                // Show last completed set's GPS path on end page
+                                if (hasDistanceField) {
+                                    val lastSetRecord = selectedExercise.setRecords
+                                        .filter { it.participantId == state.activeParticipantId }
+                                        .sortedByDescending { it.setNumber }
+                                        .firstOrNull()
+                                    val endPagePath = lastSetRecord?.fieldValues?.get("_gpsPath")
+                                    if (endPagePath != null) {
+                                        val endPagePoints = parseGpsPath(endPagePath)
+                                        if (endPagePoints.size >= 2) {
+                                            GpsPathCanvas(
+                                                points = endPagePoints,
+                                                distanceKm = lastSetRecord.fieldValues["distance"]?.toDoubleOrNull() ?: 0.0,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
                                 }
 
                                 Box(
@@ -677,9 +680,15 @@ fun WorkoutScreen(
 
                                 // GPS Path Canvas (only for distance exercises)
                                 if (hasDistanceField) {
-                                    // Show live GPS points if tracking, otherwise show last completed path
-                                    val displayPoints = if (gpsPoints.isNotEmpty()) gpsPoints else lastCompletedGpsPath
-                                    val displayDistance = if (gpsPoints.isNotEmpty()) gpsDistanceMeters / 1000.0 else lastCompletedDistanceKm
+                                    // Live GPS points if actively tracking, else completed set's stored path
+                                    val storedPath = fieldInputs["_gpsPath"]
+                                    val completedGpsPoints = if (storedPath != null) parseGpsPath(storedPath) else emptyList()
+                                    val displayPoints = if (gpsPoints.isNotEmpty()) gpsPoints else completedGpsPoints
+                                    val displayDistance = if (gpsPoints.isNotEmpty()) {
+                                        gpsDistanceMeters / 1000.0
+                                    } else {
+                                        fieldInputs["distance"]?.toDoubleOrNull() ?: 0.0
+                                    }
                                     GpsPathCanvas(
                                         points = displayPoints,
                                         distanceKm = displayDistance,
@@ -794,10 +803,6 @@ fun WorkoutScreen(
                                             if (gpsPoints.isNotEmpty()) {
                                                 val pathJson = gpsPoints.joinToString(";") { "${it.latitude},${it.longitude}" }
                                                 fieldInputs = fieldInputs + ("_gpsPath" to pathJson)
-                                                // Preserve path for display after set completion
-                                                lastCompletedGpsPath = gpsPoints.toList()
-                                                lastCompletedDistanceKm = gpsDistanceMeters / 1000.0
-                                                lastCompletedExerciseIndex = selectedExerciseIndex
                                             }
                                         }
 
