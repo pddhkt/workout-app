@@ -30,7 +30,7 @@ class GoalRepositoryImpl(
 
     override fun observeActiveGoals(): Flow<List<GoalWithProgress>> {
         val now = Clock.System.now().toEpochMilliseconds()
-        return goalQueries.selectActiveWithProgress(now, now)
+        return goalQueries.selectActiveWithProgress(now)
             .asFlow()
             .mapToList(Dispatchers.Default)
             .map { rows ->
@@ -70,7 +70,7 @@ class GoalRepositoryImpl(
 
     override fun observeAllGoals(): Flow<List<GoalWithProgress>> {
         val now = Clock.System.now().toEpochMilliseconds()
-        return goalQueries.selectAllWithProgress(now, now)
+        return goalQueries.selectAllWithProgress(now)
             .asFlow()
             .mapToList(Dispatchers.Default)
             .map { rows ->

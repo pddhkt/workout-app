@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -211,7 +210,7 @@ fun GoalCreateEditScreen(
                                 onValueChange = { viewModel.updateTargetValue(it) },
                                 placeholder = "e.g. 25",
                                 modifier = Modifier.weight(1f),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                keyboardType = KeyboardType.Decimal,
                                 isError = hasAttemptedSubmit && state.targetError != null
                             )
                             Text(

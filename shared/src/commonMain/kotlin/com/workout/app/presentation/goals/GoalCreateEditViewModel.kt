@@ -42,7 +42,7 @@ class GoalCreateEditViewModel(
                 .collect { exercises ->
                     val selections = exercises.map { exercise ->
                         val fields = if (!exercise.recordingFields.isNullOrBlank()) {
-                            RecordingField.fromJsonArray(exercise.recordingFields!!)
+                            RecordingField.fromJsonArray(exercise.recordingFields!!) ?: RecordingField.DEFAULT_FIELDS
                         } else {
                             RecordingField.DEFAULT_FIELDS
                         }
