@@ -251,6 +251,9 @@ fun ChatScreen(
                             },
                             onSaveExercise = { messageId ->
                                 viewModel.saveExercise(messageId)
+                            },
+                            onSaveGoal = { messageId ->
+                                viewModel.saveGoal(messageId)
                             }
                         )
                     }

@@ -46,6 +46,7 @@ fun ChatBubble(
     onMultiOptionSelected: ((messageId: String, questionId: String, optionId: String, optionLabel: String) -> Unit)? = null,
     onSaveTemplate: ((messageId: String) -> Unit)? = null,
     onSaveExercise: ((messageId: String) -> Unit)? = null,
+    onSaveGoal: ((messageId: String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     when (message.role) {
@@ -59,6 +60,7 @@ fun ChatBubble(
             onMultiOptionSelected = onMultiOptionSelected,
             onSaveTemplate = onSaveTemplate,
             onSaveExercise = onSaveExercise,
+            onSaveGoal = onSaveGoal,
             modifier = modifier
         )
         MessageRole.SYSTEM -> SystemBubble(
@@ -113,6 +115,7 @@ private fun AssistantBubble(
     onMultiOptionSelected: ((messageId: String, questionId: String, optionId: String, optionLabel: String) -> Unit)?,
     onSaveTemplate: ((messageId: String) -> Unit)?,
     onSaveExercise: ((messageId: String) -> Unit)?,
+    onSaveGoal: ((messageId: String) -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -186,6 +189,18 @@ private fun AssistantBubble(
                         onOptionSelected = { questionId, optionId, optionLabel ->
                             onMultiOptionSelected?.invoke(message.id, questionId, optionId, optionLabel)
                         }
+                    )
+                }
+                is ChatMessageMetadata.GoalProposal -> {
+                    GoalProposalCard(
+                        name = metadata.name,
+                        exerciseNames = metadata.exerciseNames,
+                        metric = metadata.metric,
+                        targetValue = metadata.targetValue,
+                        targetUnit = metadata.targetUnit,
+                        frequency = metadata.frequency,
+                        isOngoing = metadata.isOngoing,
+                        onSave = { onSaveGoal?.invoke(message.id) }
                     )
                 }
                 null -> { /* No metadata - text-only message */ }

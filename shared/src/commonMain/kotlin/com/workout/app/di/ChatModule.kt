@@ -28,7 +28,8 @@ val chatModule = module {
             conversationId = conversationId,
             chatRepository = get(),
             templateRepository = get(),
-            exerciseRepository = get()
+            exerciseRepository = get(),
+            goalRepository = get()
         )
     }
 }

@@ -89,6 +89,16 @@ sealed class ChatMessageMetadata {
     data class MultiChoice(
         val questions: List<ChatQuestion>
     ) : ChatMessageMetadata()
+
+    data class GoalProposal(
+        val name: String,
+        val exerciseNames: List<String>,
+        val metric: String,
+        val targetValue: Double,
+        val targetUnit: String,
+        val frequency: String,
+        val isOngoing: Boolean
+    ) : ChatMessageMetadata()
 }
 
 /**

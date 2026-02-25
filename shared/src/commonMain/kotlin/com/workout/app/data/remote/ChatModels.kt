@@ -28,7 +28,8 @@ data class MessageMetadataDto(
     val options: List<ChoiceOptionDto>? = null,
     val questions: List<MultiChoiceQuestionDto>? = null,
     val templateData: TemplateProposalDto? = null,
-    val exerciseData: ExerciseProposalDto? = null
+    val exerciseData: ExerciseProposalDto? = null,
+    val goalData: GoalProposalDto? = null
 )
 
 @Serializable
@@ -80,6 +81,17 @@ data class ExerciseProposalDto(
     val difficulty: String? = null,
     val instructions: String? = null,
     val recordingFields: List<RecordingFieldDto>? = null
+)
+
+@Serializable
+data class GoalProposalDto(
+    val name: String,
+    val exerciseNames: List<String> = emptyList(),
+    val metric: String,
+    val targetValue: Double,
+    val targetUnit: String,
+    val frequency: String,
+    val isOngoing: Boolean = true
 )
 
 @Serializable

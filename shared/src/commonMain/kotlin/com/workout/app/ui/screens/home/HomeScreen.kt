@@ -15,9 +15,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,6 +89,7 @@ fun HomeScreen(
     onGoalClick: (String) -> Unit = {},
     onManageGoals: () -> Unit = {},
     onChatClick: () -> Unit = {},
+    onHistoryClick: () -> Unit = {},
     heatmapData: List<HeatmapDay> = emptyList(),
     modifier: Modifier = Modifier
 ) {
@@ -106,6 +109,7 @@ fun HomeScreen(
         ) {
             // Header with greeting and date
             HomeHeader(
+                onHistoryClick = onHistoryClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = AppTheme.spacing.lg)
@@ -173,6 +177,7 @@ fun HomeScreen(
  */
 @Composable
 private fun HomeHeader(
+    onHistoryClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val currentDate = remember {
@@ -206,22 +211,35 @@ private fun HomeHeader(
         "$dayOfWeek, $month ${localDate.dayOfMonth}"
     }
 
-    Column(
+    Row(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs)
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "Welcome Back",
-            style = MaterialTheme.typography.headlineLarge.copy(
-                fontWeight = FontWeight.Bold
-            ),
-            color = MaterialTheme.colorScheme.onPrimary
-        )
-        Text(
-            text = currentDate,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.xs),
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "Welcome Back",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+            Text(
+                text = currentDate,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+            )
+        }
+        IconButton(onClick = onHistoryClick) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.List,
+                contentDescription = "Session History",
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+        }
     }
 }
 

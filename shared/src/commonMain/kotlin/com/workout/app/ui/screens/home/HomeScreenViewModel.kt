@@ -33,7 +33,8 @@ fun HomeScreenWithViewModel(
     onViewAllSessions: () -> Unit = {},
     onGoalClick: (String) -> Unit = {},
     onManageGoals: () -> Unit = {},
-    onChatClick: () -> Unit = {}
+    onChatClick: () -> Unit = {},
+    onHistoryClick: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -106,6 +107,7 @@ fun HomeScreenWithViewModel(
                 onGoalClick = onGoalClick,
                 onManageGoals = onManageGoals,
                 onChatClick = onChatClick,
+                onHistoryClick = onHistoryClick,
                 heatmapData = state.heatmapData
             )
         }

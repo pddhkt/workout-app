@@ -29,6 +29,15 @@ Use WebSearch to look up exercise information, proper form cues, and workout pro
 
 When you have enough information, use create_template_proposal or create_exercise_proposal to present the result. The user can then save it to their app.
 
+GOALS:
+You can also create fitness goals using create_goal_proposal. Goals track progress toward a target over a recurring period.
+- frequency: "daily", "weekly", or "monthly" — how often the target resets
+- metric: what to track — "sessions" (workout count), "sets", "reps", "volume" (weight x reps), "duration" (minutes), or "distance" (km)
+- isOngoing: true for repeating goals with no end date, false for time-bound goals (you can omit end date either way; the app will handle defaults)
+- exerciseNames: list of exercise names the goal applies to. Use an empty list for goals that apply to all exercises (e.g. "work out 4 times per week").
+- targetUnit: the unit for the target value — "sessions", "sets", "reps", "kg", "min", "km", etc.
+When a user mentions a fitness goal (e.g. "run 25km per week", "do 100 pushups daily"), use create_goal_proposal.
+
 RECORDING TYPES:
 Each exercise can define custom recording fields. Default is weight (kg) + reps (count).
 Available field types: "number" (integer), "decimal" (float), "duration" (seconds)
@@ -159,6 +168,28 @@ const workoutToolsServer = createSdkMcpServer({
         }],
       })
     ),
+    tool(
+      "create_goal_proposal",
+      "Create a fitness goal proposal for the user to review. The mobile app will display it as a card with a 'Save Goal' button.",
+      {
+        name: z.string().describe("Goal name (e.g. 'Run 25km per week')"),
+        exerciseNames: z.array(z.string()).describe("Exercise names this goal tracks. Empty array for all-exercise goals (e.g. session count goals)."),
+        metric: z.string().describe("What to measure: 'sessions', 'sets', 'reps', 'volume', 'duration', or 'distance'"),
+        targetValue: z.number().describe("Target value per period (e.g. 25 for 25km)"),
+        targetUnit: z.string().describe("Unit for the target: 'sessions', 'sets', 'reps', 'kg', 'min', 'km', etc."),
+        frequency: z.string().describe("How often the target resets: 'daily', 'weekly', or 'monthly'"),
+        isOngoing: z.boolean().describe("True for repeating goals with no end date"),
+      },
+      async ({ name, exerciseNames, metric, targetValue, targetUnit, frequency, isOngoing }) => ({
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            type: "goal_proposal", name, exerciseNames, metric,
+            targetValue, targetUnit, frequency, isOngoing,
+          }),
+        }],
+      })
+    ),
   ],
 });
 
@@ -178,6 +209,7 @@ function friendlyToolName(name: string): string {
   if (name.includes("present_choices") || name.includes("present_multi_choice")) return "Preparing options...";
   if (name.includes("create_template_proposal")) return "Creating template...";
   if (name.includes("create_exercise_proposal")) return "Creating exercise...";
+  if (name.includes("create_goal_proposal")) return "Creating goal...";
   return "Processing...";
 }
 
@@ -195,6 +227,7 @@ export class AgentManager {
         "mcp__workout-tools__present_multi_choice",
         "mcp__workout-tools__create_template_proposal",
         "mcp__workout-tools__create_exercise_proposal",
+        "mcp__workout-tools__create_goal_proposal",
       ],
       mcpServers: {
         "workout-tools": workoutToolsServer,
@@ -287,6 +320,8 @@ export class AgentManager {
                   metadataItems.push({ type: "template_proposal", templateData: input });
                 } else if (toolShortName === "create_exercise_proposal") {
                   metadataItems.push({ type: "exercise_proposal", exerciseData: input });
+                } else if (toolShortName === "create_goal_proposal") {
+                  metadataItems.push({ type: "goal_proposal", goalData: input });
                 }
               }
             }

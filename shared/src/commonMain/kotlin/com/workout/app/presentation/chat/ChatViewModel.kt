@@ -5,6 +5,7 @@ import com.workout.app.data.remote.MessageDto
 import com.workout.app.data.remote.MessageMetadataDto
 import com.workout.app.data.repository.ChatRepository
 import com.workout.app.data.repository.ExerciseRepository
+import com.workout.app.data.repository.GoalRepository
 import com.workout.app.data.repository.TemplateRepository
 import com.workout.app.domain.model.AgentStatus
 import com.workout.app.domain.model.ChatMessage
@@ -36,7 +37,8 @@ class ChatViewModel(
     private var conversationId: String?,
     private val chatRepository: ChatRepository,
     private val templateRepository: TemplateRepository,
-    private val exerciseRepository: ExerciseRepository
+    private val exerciseRepository: ExerciseRepository,
+    private val goalRepository: GoalRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ChatState())
@@ -342,6 +344,77 @@ class ChatViewModel(
     }
 
     /**
+     * Save a goal proposal from a chat message to the local database.
+     *
+     * @param messageId ID of the message containing the goal proposal
+     */
+    fun saveGoal(messageId: String) {
+        val message = _state.value.messages.find { it.id == messageId } ?: return
+        val proposal = message.metadata as? ChatMessageMetadata.GoalProposal ?: return
+
+        viewModelScope.launch {
+            // Resolve exercise names to IDs (same pattern as saveTemplate)
+            val exerciseIds = if (proposal.exerciseNames.isNotEmpty()) {
+                val allExercises = when (val r = exerciseRepository.getAll()) {
+                    is Result.Success -> r.data
+                    else -> emptyList()
+                }
+                val nameToId = allExercises.associateBy(
+                    { it.name.lowercase() }, { it.id }
+                )
+
+                proposal.exerciseNames.mapNotNull { name ->
+                    val existingId = nameToId[name.lowercase()]
+                    if (existingId != null) {
+                        existingId
+                    } else {
+                        // Create the exercise if it doesn't exist
+                        when (val r = exerciseRepository.create(
+                            name = name,
+                            muscleGroup = "Other"
+                        )) {
+                            is Result.Success -> r.data
+                            else -> null
+                        }
+                    }
+                }
+            } else {
+                emptyList()
+            }
+
+            val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+            when (val result = goalRepository.create(
+                name = proposal.name,
+                exerciseIds = exerciseIds,
+                metric = proposal.metric,
+                targetValue = proposal.targetValue,
+                targetUnit = proposal.targetUnit,
+                frequency = proposal.frequency,
+                startDate = now,
+                endDate = null,
+                autoTrack = true
+            )) {
+                is Result.Success -> {
+                    _state.update { it.copy(error = null) }
+                    val confirmMessage = ChatMessage(
+                        id = "saved-goal-${Clock.System.now().toEpochMilliseconds()}",
+                        role = MessageRole.SYSTEM,
+                        content = "Goal \"${proposal.name}\" saved successfully!",
+                        createdAt = Clock.System.now().toEpochMilliseconds()
+                    )
+                    _state.update { it.copy(messages = it.messages + confirmMessage) }
+                }
+                is Result.Error -> {
+                    _state.update {
+                        it.copy(error = "Failed to save goal: ${result.exception.message}")
+                    }
+                }
+                is Result.Loading -> { /* Should not happen */ }
+            }
+        }
+    }
+
+    /**
      * Load existing messages when resuming a conversation.
      */
     fun loadMessages() {
@@ -542,6 +615,18 @@ class ChatViewModel(
                             required = rf.required
                         )
                     }
+                )
+            }
+            "goal_proposal" -> {
+                val goalData = dto.goalData ?: return null
+                ChatMessageMetadata.GoalProposal(
+                    name = goalData.name,
+                    exerciseNames = goalData.exerciseNames,
+                    metric = goalData.metric,
+                    targetValue = goalData.targetValue,
+                    targetUnit = goalData.targetUnit,
+                    frequency = goalData.frequency,
+                    isOngoing = goalData.isOngoing
                 )
             }
             else -> null

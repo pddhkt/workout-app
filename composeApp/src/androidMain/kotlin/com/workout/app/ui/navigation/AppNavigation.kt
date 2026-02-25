@@ -63,6 +63,7 @@ import com.workout.app.ui.screens.experiment.WorkoutLayoutExperimentScreen
 import com.workout.app.ui.screens.chat.ChatScreen
 import com.workout.app.presentation.chat.ChatViewModel
 import com.workout.app.ui.components.workout.WorkoutOverlay
+import com.workout.app.data.repository.GoalRepository
 import com.workout.app.data.repository.SessionRepository
 import com.workout.app.data.repository.WorkoutRepository
 import com.workout.app.presentation.library.ExerciseLibraryViewModel
@@ -99,6 +100,7 @@ fun AppNavigation(
     val scope = rememberCoroutineScope()
     val workoutRepository: WorkoutRepository = koinInject()
     val sessionRepository: SessionRepository = koinInject()
+    val goalRepository: GoalRepository = koinInject()
 
     // Inject WorkoutViewModel when there's an active session (managed at this level for overlay)
     val workoutViewModel: WorkoutViewModel? = if (activeSessionState.sessionId != null) {
@@ -248,6 +250,9 @@ fun AppNavigation(
                     },
                     onChatClick = {
                         navController.navigateToChat()
+                    },
+                    onHistoryClick = {
+                        navController.navigateToSessionHistory()
                     }
                 )
             }
@@ -767,6 +772,34 @@ fun AppNavigation(
                                         // Link the workout to the session if creation succeeded
                                         if (createResult is Result.Success) {
                                             sessionRepository.updateWorkoutId(sessionId, createResult.data)
+                                        }
+
+                                        // Update goal progress from completed exercises
+                                        val exercisesWithSets = when (val r = sessionRepository.getExercisesWithSets(sessionId)) {
+                                            is Result.Success -> r.data
+                                            else -> emptyList()
+                                        }
+                                        if (exercisesWithSets.isNotEmpty()) {
+                                            val exerciseIds = exercisesWithSets.map { it.exerciseId }
+                                            val setData = exercisesWithSets.associate { exercise ->
+                                                exercise.exerciseId to buildMap {
+                                                    val distance = exercise.sets.sumOf { set ->
+                                                        set.fieldValues?.get("distance")?.toDoubleOrNull() ?: 0.0
+                                                    }
+                                                    if (distance > 0) put("distance", distance)
+                                                    val duration = exercise.sets.sumOf { set ->
+                                                        set.fieldValues?.get("duration")?.toDoubleOrNull() ?: 0.0
+                                                    }
+                                                    if (duration > 0) put("duration", duration / 60.0)
+                                                    val reps = exercise.sets.sumOf { it.reps.toDouble() }
+                                                    if (reps > 0) put("reps", reps)
+                                                    put("sets", exercise.sets.size.toDouble())
+                                                    val volume = exercise.sets.sumOf { it.weight * it.reps }
+                                                    if (volume > 0) put("volume", volume)
+                                                    put("sessions", 1.0)
+                                                }
+                                            }
+                                            goalRepository.processWorkoutCompletion(exerciseIds, setData)
                                         }
                                     }
 
