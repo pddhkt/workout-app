@@ -437,7 +437,10 @@ class SessionPlanningViewModel(
             )
             _state.update {
                 it.copy(
-                    addedExercises = currentAdded
+                    addedExercises = currentAdded,
+                    expandedExerciseId = null,
+                    expandedExerciseLastSummary = null,
+                    isLoadingLastWorkout = false
                 )
             }
         }

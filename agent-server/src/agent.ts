@@ -34,7 +34,9 @@ You can also create fitness goals using create_goal_proposal. Goals track progre
 - frequency: "daily", "weekly", or "monthly" — how often the target resets
 - metric: what to track — "sessions" (workout count), "sets", "reps", "volume" (weight x reps), "duration" (minutes), or "distance" (km)
 - isOngoing: true for repeating goals with no end date, false for time-bound goals (you can omit end date either way; the app will handle defaults)
-- exerciseNames: list of exercise names the goal applies to. Use an empty list for goals that apply to all exercises (e.g. "work out 4 times per week").
+- exerciseNames: list of exercise names the goal applies to.
+  - For exercise-specific goals, you MUST include the exercise name(s). Examples: "run 25km per week" → exerciseNames: ["Running"], "bench press 1000kg per month" → exerciseNames: ["Bench Press"], "do 100 pushups daily" → exerciseNames: ["Push-ups"].
+  - ONLY use an empty list [] for goals that truly apply to ALL exercises with no specific exercise mentioned (e.g. "work out 4 times per week", "complete 5 sessions per week", "log 20 sets per day").
 - targetUnit: the unit for the target value — "sessions", "sets", "reps", "kg", "min", "km", etc.
 When a user mentions a fitness goal (e.g. "run 25km per week", "do 100 pushups daily"), use create_goal_proposal.
 
