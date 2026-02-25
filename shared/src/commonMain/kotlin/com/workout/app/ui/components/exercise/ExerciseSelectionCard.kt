@@ -72,6 +72,7 @@ fun ExerciseSelectionCard(
     isLoadingLastWorkout: Boolean = false,
     onPresetSelected: ((ExercisePreset) -> Unit)? = null,
     equipmentType: String? = null,
+    selectedSummary: String? = null,
     enabled: Boolean = true
 ) {
     val cardBorder = if (isAdded) {
@@ -129,6 +130,14 @@ fun ExerciseSelectionCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+                if (isAdded && !isExpanded && selectedSummary != null) {
+                    Text(
+                        text = selectedSummary,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
 

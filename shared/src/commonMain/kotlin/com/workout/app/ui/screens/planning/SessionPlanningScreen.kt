@@ -498,11 +498,29 @@ fun SessionPlanningScreen(
                 } else {
                     // Exercise items
                     items(filteredExercises, key = { it.id }) { exercise ->
-                        val isAdded = state.addedExercises.containsKey(exercise.id)
+                        val addedData = state.addedExercises[exercise.id]
+                        val isAdded = addedData != null
                         val categoryDisplay = listOfNotNull(
                             exercise.muscleGroup,
                             exercise.category
                         ).joinToString(" - ")
+                        val selectedSummary = addedData?.let { data ->
+                            buildString {
+                                append(data.setCount)
+                                append(" sets")
+                                val weight = data.targetValues?.get("weight")
+                                val reps = data.targetValues?.get("reps")
+                                if (weight != null && weight != "0") {
+                                    append(" · ${weight}kg")
+                                }
+                                if (reps != null) {
+                                    append(" · $reps reps")
+                                }
+                                if (data.targetValues == null) {
+                                    append(" · fill in during workout")
+                                }
+                            }
+                        }
 
                         ExerciseSelectionCard(
                             exerciseName = exercise.name,
@@ -531,6 +549,7 @@ fun SessionPlanningScreen(
                                 onAddExerciseWithPreset(exercise.id, preset)
                             },
                             equipmentType = exercise.equipment,
+                            selectedSummary = selectedSummary,
                             modifier = Modifier
                                 .padding(horizontal = AppTheme.spacing.lg)
                                 .animateItemPlacement()

@@ -433,6 +433,7 @@ class SessionPlanningViewModel(
             currentAdded[exerciseId] = AddedExerciseData(
                 exerciseId = exerciseId,
                 setCount = 3,
+                preset = preset,
                 targetValues = targetValues
             )
             _state.update {
@@ -457,6 +458,7 @@ class SessionPlanningViewModel(
 data class AddedExerciseData(
     val exerciseId: String,
     val setCount: Int,
+    val preset: ExercisePreset = ExercisePreset.RECOMMENDED,
     val recordingFields: List<com.workout.app.domain.model.RecordingField>? = null,
     val targetValues: Map<String, String>? = null
 )
