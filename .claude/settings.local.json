@@ -6,7 +6,12 @@
       "WebFetch(domain:docs.convex.dev)",
       "WebFetch(domain:developers.cloudflare.com)",
       "WebFetch(domain:github.com)",
-      "Bash(adb install:*)"
+      "Bash(adb install:*)",
+      "WebFetch(domain:developer.garmin.com)",
+      "WebFetch(domain:forums.garmin.com)",
+      "WebFetch(domain:www.dcrainmaker.com)",
+      "WebFetch(domain:support.garmin.com)",
+      "WebFetch(domain:the5krunner.com)"
     ]
   }
 }
